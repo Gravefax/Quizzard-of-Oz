@@ -25,7 +25,7 @@ describe("auth api", () => {
 
     const result = await loginWithGoogle("token-123");
 
-    expect(fetch).toHaveBeenCalledWith("http://localhost:8000/auth/google/login", {
+    expect(fetch).toHaveBeenCalledWith("/api/auth/google/login", {
       method: "POST",
       headers: { Authorization: "Bearer token-123" },
       credentials: "include",
@@ -57,7 +57,7 @@ describe("auth api", () => {
 
     const result = await refreshAccessToken();
 
-    expect(fetch).toHaveBeenCalledWith("http://localhost:8000/auth/google/refresh", {
+    expect(fetch).toHaveBeenCalledWith("/api/auth/google/refresh", {
       method: "GET",
       credentials: "include",
     });
@@ -87,7 +87,7 @@ describe("auth api", () => {
 
     await logout();
 
-    expect(fetch).toHaveBeenCalledWith("http://localhost:8000/auth/logout", {
+    expect(fetch).toHaveBeenCalledWith("/api/auth/logout", {
       method: "POST",
       credentials: "include",
     });

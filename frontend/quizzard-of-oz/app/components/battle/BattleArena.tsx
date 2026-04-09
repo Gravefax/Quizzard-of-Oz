@@ -11,7 +11,6 @@ import {
   ScoreInfo,
 } from '@/app/lib/interfaces/battle/BattleInterfaces';
 import { Phase } from '@/app/lib/interfaces/battle/Phase';
-import { getWsUrl } from './BattleArena.utils';
 import { BATTLE_ARENA_STYLES } from './BattleArena.styles';
 import { BattleArenaHeader } from './BattleArenaHeader';
 import {
@@ -24,6 +23,7 @@ import {
 import { PickCategoryPhase, WaitingForCategoryPhase } from './phases/CategoryPhases';
 import { QuestionPhase } from './phases/QuestionPhase';
 import { RoundResultPhase, GameOverPhase } from './phases/ResultPhases';
+import { getWsUrl } from '@/app/lib/utils/wsUrl';
 
 interface BattleArenaProps {
   readonly matchId: string;

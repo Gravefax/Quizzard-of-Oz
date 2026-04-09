@@ -35,13 +35,6 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="SQS Team 11 API", lifespan=lifespan)
 
-app.add_middleware(
-   CORSMiddleware,
-  allow_origins=["http://localhost:3000"],
- allow_methods=["*"],
-allow_headers=["*"],
-allow_credentials=True,
-)
 
 app.include_router(user.router)
 app.include_router(auth.router)

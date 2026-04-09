@@ -71,7 +71,7 @@ async def test_queue_ws_success(override_db):
             await queue_ws(ws, override_db)
             
             ws.accept.assert_called_once()
-            mock_join.assert_called_once_with(ws, user)
+            mock_join.assert_called_once_with(ws, user, override_db)
 
 
 @pytest.mark.asyncio

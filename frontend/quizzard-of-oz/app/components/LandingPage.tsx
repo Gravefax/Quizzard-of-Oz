@@ -46,6 +46,28 @@ export default function LandingPage() {
   const [topPlayers, setTopPlayers] = useState<LeaderboardEntry[]>([]);
   const [topLoading, setTopLoading] = useState(true);
 
+  let topPlayersContent: JSX.Element;
+  if (topLoading) {
+    topPlayersContent = (
+      <p style={{ color: 'rgba(140,200,230,0.6)', fontSize: '0.85rem' }}>Lade Rangliste ...</p>
+    );
+  } else if (topPlayers.length === 0) {
+    topPlayersContent = (
+      <p style={{ color: 'rgba(140,200,230,0.6)', fontSize: '0.85rem' }}>Noch keine Eintraege verfuegbar.</p>
+    );
+  } else {
+    topPlayersContent = (
+      <ol className="space-y-1.5">
+        {topPlayers.map((player) => (
+          <li key={player.user_id} className="flex items-center justify-between rounded-md px-2 py-1" style={{ background: 'rgba(0,0,0,0.16)' }}>
+            <span style={{ color: 'rgba(220,245,255,0.9)', fontSize: '0.86rem' }}>#{player.rank} {player.username}</span>
+            <span style={{ color: 'rgba(110,215,255,0.88)', fontWeight: 700, fontSize: '0.85rem' }}>{player.elo_rating}</span>
+          </li>
+        ))}
+      </ol>
+    );
+  }
+
   function handleRanked() {
     router.push('/ranked-modus');
   }
@@ -407,20 +429,7 @@ export default function LandingPage() {
               <span style={{ color: 'rgba(185,230,250,0.92)', fontWeight: 700, letterSpacing: '0.04em' }}>Top 3</span>
               <span style={{ color: 'rgba(120,190,220,0.7)', fontSize: '0.7rem', letterSpacing: '0.08em' }}>LIVE LEADERBOARD</span>
             </div>
-            {topLoading ? (
-              <p style={{ color: 'rgba(140,200,230,0.6)', fontSize: '0.85rem' }}>Lade Rangliste ...</p>
-            ) : topPlayers.length === 0 ? (
-              <p style={{ color: 'rgba(140,200,230,0.6)', fontSize: '0.85rem' }}>Noch keine Eintraege verfuegbar.</p>
-            ) : (
-              <ol className="space-y-1.5">
-                {topPlayers.map((player) => (
-                  <li key={player.user_id} className="flex items-center justify-between rounded-md px-2 py-1" style={{ background: 'rgba(0,0,0,0.16)' }}>
-                    <span style={{ color: 'rgba(220,245,255,0.9)', fontSize: '0.86rem' }}>#{player.rank} {player.username}</span>
-                    <span style={{ color: 'rgba(110,215,255,0.88)', fontWeight: 700, fontSize: '0.85rem' }}>{player.elo_rating}</span>
-                  </li>
-                ))}
-              </ol>
-            )}
+            {topPlayersContent}
           </div>
 
           {/* ── Action buttons ── */}

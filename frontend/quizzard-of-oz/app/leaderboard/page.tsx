@@ -62,6 +62,38 @@ export default function LeaderboardPage() {
 
   const totalPages = Math.max(1, Math.ceil(totalPlayers / pageSize));
 
+  let tableBodyContent: JSX.Element | JSX.Element[];
+  if (loading) {
+    tableBodyContent = (
+      <tr>
+        <td colSpan={6} className="px-4 py-8 text-center text-cyan-100/70">Lade Leaderboard ...</td>
+      </tr>
+    );
+  } else if (error) {
+    tableBodyContent = (
+      <tr>
+        <td colSpan={6} className="px-4 py-8 text-center text-red-200/90">{error}</td>
+      </tr>
+    );
+  } else if (entries.length === 0) {
+    tableBodyContent = (
+      <tr>
+        <td colSpan={6} className="px-4 py-8 text-center text-cyan-100/70">Keine Spieler gefunden.</td>
+      </tr>
+    );
+  } else {
+    tableBodyContent = entries.map((entry) => (
+      <tr key={entry.user_id} className="border-t border-cyan-500/10 text-cyan-50/95">
+        <td className="px-4 py-3">#{entry.rank}</td>
+        <td className="px-4 py-3">{entry.username}</td>
+        <td className="px-4 py-3 font-semibold text-cyan-200">{entry.elo_rating}</td>
+        <td className="px-4 py-3">{entry.wins}</td>
+        <td className="px-4 py-3">{entry.losses}</td>
+        <td className="px-4 py-3">{entry.total_matches}</td>
+      </tr>
+    ));
+  }
+
   return (
     <div className="min-h-[calc(100vh-73px)] px-4 py-8 md:px-8">
       <div className="mx-auto w-full max-w-5xl">
@@ -109,32 +141,7 @@ export default function LeaderboardPage() {
                 <th className="px-4 py-3">Matches</th>
               </tr>
             </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-cyan-100/70">Lade Leaderboard ...</td>
-                </tr>
-              ) : error ? (
-                <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-red-200/90">{error}</td>
-                </tr>
-              ) : entries.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-cyan-100/70">Keine Spieler gefunden.</td>
-                </tr>
-              ) : (
-                entries.map((entry) => (
-                  <tr key={entry.user_id} className="border-t border-cyan-500/10 text-cyan-50/95">
-                    <td className="px-4 py-3">#{entry.rank}</td>
-                    <td className="px-4 py-3">{entry.username}</td>
-                    <td className="px-4 py-3 font-semibold text-cyan-200">{entry.elo_rating}</td>
-                    <td className="px-4 py-3">{entry.wins}</td>
-                    <td className="px-4 py-3">{entry.losses}</td>
-                    <td className="px-4 py-3">{entry.total_matches}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
+            <tbody>{tableBodyContent}</tbody>
           </table>
         </div>
 

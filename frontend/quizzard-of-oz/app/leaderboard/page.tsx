@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import {JSX, useEffect, useState} from 'react';
 import { useRouter } from 'next/navigation';
 
 import { fetchLeaderboard, searchLeaderboardByUsername } from '@/app/lib/api/ranking';

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import {JSX, useEffect, useState} from 'react';
 import { useRouter } from 'next/navigation';
 import { fetchLeaderboard } from '@/app/lib/api/ranking';
 import type { LeaderboardEntry } from '@/app/models/Leaderboard';

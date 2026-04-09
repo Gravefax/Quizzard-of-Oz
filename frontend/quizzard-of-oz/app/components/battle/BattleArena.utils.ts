@@ -18,29 +18,6 @@ export function answerTextColor(isCorrect: boolean, isWrong: boolean): string {
 }
 
 /**
- * Constructs a WebSocket URL from environment variables with fallback logic.
- *
- * Priority:
- * 1. `NEXT_PUBLIC_WS_BASE` - Direct WebSocket endpoint (preferred)
- * 2. `NEXT_PUBLIC_API_BASE` if absolute URL (converts http/https to ws/wss)
- * 3. `NEXT_PUBLIC_API_BASE` if relative path (uses current browser host)
- *
- * @param path - The WebSocket path (e.g., `/battle/ws/match-id`)
- * @returns Full WebSocket URL
- *
- * @example
- * // With NEXT_PUBLIC_WS_BASE=ws://localhost:8000
- * getWsUrl('/battle/ws/123')
- * // → 'ws://localhost:8000/battle/ws/123'
- *
- * @example
- * // With NEXT_PUBLIC_API_BASE=/api
- * getWsUrl('/battle/ws/123')
- * // → 'ws://localhost:3000/api/battle/ws/123'
- */
-export { getWsUrl } from '@/app/lib/utils/wsUrl';
-
-/**
  * Maps round outcome ('win' | 'loss' | 'tie') to display metadata.
  *
  * Returns styling and label information used for rendering the round result screen.

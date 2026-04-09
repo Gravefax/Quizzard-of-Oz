@@ -1,22 +1,121 @@
 import { test, expect } from "@playwright/test";
 
-// Correct answers for the 10 static backend questions (in order)
-const CORRECT_ANSWERS = [
-  "Paris",
-  "8",
-  "1989",
-  "Goethe",
-  "Au",
-  "6",
-  "Jupiter",
-  "Portugiesisch",
-  "206",
-  "1912",
-];
+const QUESTIONS = [
+  {
+    id: "q1",
+    text: "Was ist die Hauptstadt von Frankreich?",
+    answers: ["Paris", "London", "Berlin", "Madrid"],
+    category: "Geografie",
+    correctAnswer: "Paris",
+  },
+  {
+    id: "q2",
+    text: "Wie viele Beine haben Spinnen?",
+    answers: ["6", "8", "10", "12"],
+    category: "Natur",
+    correctAnswer: "8",
+  },
+  {
+    id: "q3",
+    text: "In welchem Jahr fiel die Berliner Mauer?",
+    answers: ["1987", "1988", "1989", "1990"],
+    category: "Geschichte",
+    correctAnswer: "1989",
+  },
+  {
+    id: "q4",
+    text: "Wer schrieb Faust?",
+    answers: ["Goethe", "Schiller", "Kafka", "Brecht"],
+    category: "Literatur",
+    correctAnswer: "Goethe",
+  },
+  {
+    id: "q5",
+    text: "Was ist das chemische Symbol für Gold?",
+    answers: ["Ag", "Au", "Fe", "Go"],
+    category: "Wissenschaft",
+    correctAnswer: "Au",
+  },
+  {
+    id: "q6",
+    text: "Wie viele Kontinente gibt es?",
+    answers: ["5", "6", "7", "8"],
+    category: "Geografie",
+    correctAnswer: "6",
+  },
+  {
+    id: "q7",
+    text: "Welcher Planet ist der größte in unserem Sonnensystem?",
+    answers: ["Mars", "Jupiter", "Saturn", "Neptun"],
+    category: "Astronomie",
+    correctAnswer: "Jupiter",
+  },
+  {
+    id: "q8",
+    text: "Welche Sprache wird in Brasilien gesprochen?",
+    answers: ["Spanisch", "Französisch", "Portugiesisch", "Italienisch"],
+    category: "Sprachen",
+    correctAnswer: "Portugiesisch",
+  },
+  {
+    id: "q9",
+    text: "Wie viele Knochen hat ein erwachsener Mensch?",
+    answers: ["186", "196", "206", "216"],
+    category: "Biologie",
+    correctAnswer: "206",
+  },
+  {
+    id: "q10",
+    text: "In welchem Jahr sank die Titanic?",
+    answers: ["1910", "1912", "1914", "1916"],
+    category: "Geschichte",
+    correctAnswer: "1912",
+  },
+] as const;
+
+const CORRECT_ANSWERS = QUESTIONS.map((question) => question.correctAnswer);
 
 const TOTAL_QUESTIONS = CORRECT_ANSWERS.length;
 
 test.describe("Practice Quiz", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.route("**/quiz/practice/questions", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(
+          QUESTIONS.map(({ correctAnswer, ...question }) => question),
+        ),
+      });
+    });
+
+    await page.route("**/quiz/practice/answer", async (route) => {
+      const payload = route.request().postDataJSON() as {
+        question_id: string;
+        answer: string;
+      };
+      const question = QUESTIONS.find(({ id }) => id === payload.question_id);
+
+      if (!question) {
+        await route.fulfill({
+          status: 404,
+          contentType: "application/json",
+          body: JSON.stringify({ detail: "Question not found" }),
+        });
+        return;
+      }
+
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          correct: payload.answer === question.correctAnswer,
+          correct_answer: question.correctAnswer,
+        }),
+      });
+    });
+  });
+
   test("navigates from landing page to Übungsmodus", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: /übung/i }).click();

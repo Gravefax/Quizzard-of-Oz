@@ -115,9 +115,9 @@ Logging:
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
 import logging
-import random
 import secrets
 from dataclasses import dataclass, field
 
@@ -126,25 +126,41 @@ from sqlalchemy.orm import Session
 
 from app.models.user import User
 from app.services.ws_auth import authenticate_ws
-from app.services.quiz_service import QuizService, InternalQuizProvider, Question
+from app.services.quiz_service import QuizService, get_quiz_service
+from app.services.trivia_client import (
+    TriviaUpstreamPayloadError,
+    TriviaUpstreamResponseError,
+    TriviaUpstreamUnavailableError,
+)
+from app.services.trivia_service import TriviaInsufficientQuestionsError
+from app.services.trivia_types import Question
 
 # WebSocket close codes for match-specific errors
 _CLOSE_FULL      = 4004  # Second player cannot join; match is full
 _CLOSE_DUPLICATE = 4005  # Same user attempting reconnection to active match
+_CLOSE_INTERNAL  = 1011  # Internal question preparation failure
+_PREPARE_QUESTIONS_ERROR = "Unable to prepare questions"
 
 # Game configuration constants
 QUESTIONS_PER_ROUND  = 3  # Questions per round (both players answer)
 ROUNDS_TO_WIN        = 3  # Best-of-5 format: first player to 3 round wins
 CATEGORIES_TO_OFFER  = 3  # Number of categories the picker can choose from
 
-_quiz = QuizService(InternalQuizProvider())
 logger = logging.getLogger("uvicorn.error")
-_secure_rng = random.SystemRandom()
+_quiz = get_quiz_service()
 
 
 def _ws_id(websocket: WebSocket) -> str:
     """Stable short id for correlating websocket lifecycle logs."""
     return hex(id(websocket))
+
+
+def _safe_log_value(value: object) -> str:
+    """Return alphanumeric values as-is; encode everything else for safe logging."""
+    text = str(value)
+    if text.isalnum():
+        return text
+    return base64.b64encode(text.encode("utf-8")).decode("ascii")
 
 
 @dataclass
@@ -159,14 +175,17 @@ class MatchState:
     question_idx:    int            = 0                              # Current question index (0-2)
     round_scores:    dict[str, int] = field(default_factory=dict)   # user_id (str) → correct answers this round (0-3)
     current_answers: dict[str, str] = field(default_factory=dict)   # user_id (str) → answer letter (A/B/C/D)
+    offered_categories: list[str]   = field(default_factory=list)   # Categories offered to the picker this round
+    used_question_ids: set[str]     = field(default_factory=set)    # Avoid repeated questions inside one match
     lock:            asyncio.Lock   = field(default_factory=asyncio.Lock)  # Protects all mutations
 
 
 class BattleManager:
     """Orchestrates full match lifecycle: auth, connections, phases, scoring."""
 
-    def __init__(self) -> None:
+    def __init__(self, quiz_service: QuizService | None = None) -> None:
         self._matches: dict[str, MatchState] = {}
+        self._quiz = quiz_service or _quiz
 
     # ── Authentication ───────────────────────────────────────────────────── #
 
@@ -308,7 +327,7 @@ class BattleManager:
         logger.debug("Battle message received")
 
         if msg_type == "pick_category":
-            await self._handle_category_pick(state, user, data)
+            await self._handle_category_pick(match_id, state, user, data)
         elif msg_type == "answer":
             await self._handle_answer(match_id, state, user, data)
 
@@ -337,21 +356,48 @@ class BattleManager:
                 "rounds_to_win":     ROUNDS_TO_WIN,
             })
 
-        await self._start_round(state)
+        await self._start_round(state, match_id)
 
-    async def _start_round(self, state: MatchState) -> None:
+    async def _start_round(self, state: MatchState, match_id: str = "unknown") -> None:
         """Reset round, sample categories, and send to picker and non-picker."""
         state.phase           = "picking"
         state.round_scores    = {str(p["user"].id): 0 for p in state.players}
         state.question_idx    = 0
         state.round_questions = []
         state.current_answers = {}
+        state.offered_categories = []
 
-        all_questions        = _quiz.get_questions()
-        available_categories = list({q.category for q in all_questions})
-        offered              = _secure_rng.sample(
-            available_categories, min(CATEGORIES_TO_OFFER, len(available_categories))
-        )
+        try:
+            offered = self._quiz.get_category_options(
+                option_count=CATEGORIES_TO_OFFER,
+                questions_per_category=QUESTIONS_PER_ROUND,
+                exclude_ids=tuple(state.used_question_ids),
+            )
+        except (
+            TriviaInsufficientQuestionsError,
+            TriviaUpstreamUnavailableError,
+            TriviaUpstreamResponseError,
+            TriviaUpstreamPayloadError,
+        ) as exc:
+            logger.error(
+                "Battle round preparation failed match_id=%s round=%s error_type=%s",
+                _safe_log_value(match_id),
+                state.current_round,
+                type(exc).__name__,
+            )
+            await self._abort_match(match_id, state, _PREPARE_QUESTIONS_ERROR)
+            return
+
+        if not offered:
+            logger.error(
+                "Battle round preparation failed match_id=%s round=%s reason=no_categories",
+                _safe_log_value(match_id),
+                state.current_round,
+            )
+            await self._abort_match(match_id, state, _PREPARE_QUESTIONS_ERROR)
+            return
+
+        state.offered_categories = offered
 
         logger.info("Battle round start")
 
@@ -376,8 +422,16 @@ class BattleManager:
             "opponent_wins":   state.round_wins.get(pid, 0),
         })
 
-    async def _handle_category_pick(self, state: MatchState, user: User, data: dict) -> None:
+    async def _handle_category_pick(
+        self,
+        match_id: str,
+        state: MatchState,
+        user: User,
+        data: dict,
+    ) -> None:
         """Validate picker, load questions for category, send to both players."""
+        category = data.get("category", "")
+
         async with state.lock:
             if state.phase != "picking":
                 logger.warning("Battle pick_category ignored: wrong phase")
@@ -385,21 +439,36 @@ class BattleManager:
             if state.players[state.picker_idx]["user"].id != user.id:
                 logger.warning("Battle pick_category ignored: not picker")
                 return
+            if category not in state.offered_categories:
+                logger.warning("Battle pick_category ignored: category not offered")
+                return
             state.phase = "questions"
 
-        category = data.get("category", "")
         logger.info("Battle category picked")
-        all_q    = _quiz.get_questions()
-        cat_q    = [q for q in all_q if q.category == category]
 
-        if len(cat_q) < QUESTIONS_PER_ROUND:
-            others = [q for q in all_q if q not in cat_q]
-            _secure_rng.shuffle(others)
-            cat_q = cat_q + others[: QUESTIONS_PER_ROUND - len(cat_q)]
-        else:
-            cat_q = _secure_rng.sample(cat_q, QUESTIONS_PER_ROUND)
+        try:
+            cat_q = self._quiz.get_questions(
+                n=QUESTIONS_PER_ROUND,
+                categories=[category],
+                exclude_ids=tuple(state.used_question_ids),
+            )
+        except (
+            TriviaInsufficientQuestionsError,
+            TriviaUpstreamUnavailableError,
+            TriviaUpstreamResponseError,
+            TriviaUpstreamPayloadError,
+        ) as exc:
+            logger.error(
+                "Battle category load failed match_id=%s round=%s error_type=%s",
+                _safe_log_value(match_id),
+                state.current_round,
+                type(exc).__name__,
+            )
+            await self._abort_match(match_id, state, _PREPARE_QUESTIONS_ERROR)
+            return
 
         state.round_questions = cat_q
+        state.used_question_ids.update(question.id for question in cat_q)
 
         for p in state.players:
             await p["ws"].send_json({
@@ -454,7 +523,7 @@ class BattleManager:
 
             state.current_answers[uid] = answer
 
-            result = _quiz.check_answer(q_id, answer)
+            result = self._quiz.check_answer(q_id, answer)
             if result:
                 correct, correct_answer = result
                 if correct:
@@ -543,7 +612,7 @@ class BattleManager:
             await self._end_game(match_id, state)
         else:
             state.current_round += 1
-            await self._start_round(state)
+            await self._start_round(state, match_id)
 
     async def _end_game(self, match_id: str, state: MatchState) -> None:
         """Send game_over to both players and delete match from memory."""
@@ -573,5 +642,23 @@ class BattleManager:
                 "your_wins":     state.round_wins.get(cid, 0),
                 "opponent_wins": state.round_wins.get(oid, 0),
             })
+
+        self._matches.pop(match_id, None)
+
+    async def _abort_match(self, match_id: str, state: MatchState, reason: str) -> None:
+        """Close all sockets and remove the match when question preparation fails."""
+        state.phase = "finished"
+        players = list(state.players)
+
+        for player in players:
+            try:
+                await player["ws"].close(code=_CLOSE_INTERNAL, reason=reason)
+            except Exception:
+                logger.warning(
+                    "Battle abort close failed match_id=%s user_id=%s username=%s",
+                    match_id,
+                    player["user"].id,
+                    player["user"].username,
+                )
 
         self._matches.pop(match_id, None)

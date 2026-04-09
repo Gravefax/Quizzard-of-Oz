@@ -2,6 +2,7 @@ docs/_build/
 .claude
 CLAUDE.md
 AGENTS.md
+.tmp
 .venv
 .env
 .idea
@@ -11,3 +12,4 @@ AGENTS.md
 coverage.xml
 
 test-results/
+.vscode/settings.json

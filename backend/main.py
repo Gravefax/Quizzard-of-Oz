@@ -1,10 +1,14 @@
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+import app.models  # noqa: F401
 from app.database import engine, Base
 from app.routers import quiz
 from app.routers import user, auth, battle
+from app.routers import trivia
+from app.services.trivia_service import close_trivia_resources
 
 
 LOG_FORMAT = "%(asctime)s.%(msecs)03d | %(levelname)s | %(name)s | %(message)s"
@@ -22,12 +26,14 @@ def _configure_logging() -> None:
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="SQS Team 11 API")
-
-
-@app.on_event("startup")
-async def startup_configure_logging() -> None:
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     _configure_logging()
+    yield
+    close_trivia_resources()
+
+
+app = FastAPI(title="SQS Team 11 API", lifespan=lifespan)
 
 app.add_middleware(
    CORSMiddleware,
@@ -41,6 +47,7 @@ app.include_router(user.router)
 app.include_router(auth.router)
 app.include_router(quiz.router)
 app.include_router(battle.router)
+app.include_router(trivia.router)
 
 
 @app.get("/")

@@ -9,6 +9,7 @@ on:
     paths:
       - "backend/**"
       - "frontend/**"
+      - ".github/workflows/docker.yml"
 
 env:
   REGISTRY: ghcr.io

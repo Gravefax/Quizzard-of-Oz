@@ -124,7 +124,9 @@ from dataclasses import dataclass, field
 from fastapi import WebSocket
 from sqlalchemy.orm import Session
 
+from app.database import SessionLocal
 from app.models.user import User
+from app.services.ranking_service import apply_match_result
 from app.services.ws_auth import authenticate_ws
 from app.services.quiz_service import QuizService, get_quiz_service
 from app.services.trivia_client import (
@@ -642,6 +644,23 @@ class BattleManager:
                 "your_wins":     state.round_wins.get(cid, 0),
                 "opponent_wins": state.round_wins.get(oid, 0),
             })
+
+        winner_user = p1["user"] if w1 >= w2 else p2["user"]
+        loser_user = p2["user"] if w1 >= w2 else p1["user"]
+
+        try:
+            db = SessionLocal()
+            try:
+                apply_match_result(db, winner_id=winner_user.id, loser_id=loser_user.id)
+            finally:
+                db.close()
+        except Exception:
+            logger.exception(
+                "Battle ranking update failed match_id=%s winner_id=%s loser_id=%s",
+                match_id,
+                winner_user.id,
+                loser_user.id,
+            )
 
         self._matches.pop(match_id, None)
 

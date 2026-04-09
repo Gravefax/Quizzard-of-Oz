@@ -6,6 +6,15 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
 }));
 
+vi.mock("@/app/lib/api/ranking", () => ({
+  fetchLeaderboard: vi.fn().mockResolvedValue({
+    page: 1,
+    page_size: 50,
+    total_players: 0,
+    entries: [],
+  }),
+}));
+
 describe("Home page", () => {
   it("renders the Quizard of Oz heading", () => {
     render(<Home />);
@@ -25,6 +34,7 @@ describe("Home page", () => {
     render(<Home />);
     expect(screen.getByRole("button", { name: /ranked battle/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /übung/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /leaderboard/i })).toBeInTheDocument();
   });
 
   it("Ranked button shows login hint", () => {

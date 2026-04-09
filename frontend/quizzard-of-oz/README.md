@@ -1,36 +1,49 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Quizzard of Oz Frontend
 
-## Getting Started
+Next.js frontend for Quizzard of Oz.
 
-First, run the development server:
+## Local Development
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment Variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+See `.env.example` for defaults.
 
-## Learn More
+Main variables:
 
-To learn more about Next.js, take a look at the following resources:
+- `BACKEND_URL` (server-side rewrite target, e.g. `http://backend:8000` in Docker network)
+- `NEXT_PUBLIC_API_BASE` (usually `/api`)
+- `NEXT_PUBLIC_WS_BASE` (e.g. `ws://localhost:8000` or `wss://<domain>`)
+- `NEXT_PUBLIC_GOOGLE_CLIENT_ID` (Google OAuth Client ID)
+- `GOOGLE_CLIENT_ID` (fallback for server/runtime config)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Portainer / Docker Deployment Notes
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+This project uses two env paths:
 
-## Deploy on Vercel
+1. Build-time env (baked into JS bundle)
+2. Runtime env (read by server in container)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+`NEXT_PUBLIC_*` values are typically build-time in Next.js. For Google login in this project, the client ID is exposed through runtime config (`/api/runtime-config`) so Portainer environment variables can be used without rebuilding the image for every env change.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Practical effect:
+
+- If `NEXT_PUBLIC_GOOGLE_CLIENT_ID` is set in Portainer container env, login button gets the value at runtime.
+- If missing, backend fallback `GOOGLE_CLIENT_ID` is used.
+- If both are missing, Google login cannot initialize and OAuth fails with `client_id` errors.
+
+## CI Docker Build
+
+The GitHub workflow builds the image with stable defaults for API routing:
+
+- `BACKEND_URL=http://backend:8000`
+- `NEXT_PUBLIC_API_BASE=/api`
+- `NEXT_PUBLIC_WS_BASE=ws://localhost:8000`
+
+Google client ID is intentionally expected from runtime env in container deployment.

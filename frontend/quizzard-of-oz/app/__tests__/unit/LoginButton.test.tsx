@@ -38,6 +38,10 @@ vi.mock("@/app/stores/authStore", () => ({
 describe("LoginButton", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: true,
+      json: async () => ({ googleClientId: "test-client-id" }),
+    } as Response);
     vi.mocked(loginWithGoogle).mockResolvedValue({
       email: "user@example.com",
       username: "DummyUser",
@@ -53,8 +57,10 @@ describe("LoginButton", () => {
   it("renders google login inside provider", () => {
     render(<LoginButton />);
 
-    expect(screen.getByTestId("google-provider")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /google success/i })).toBeInTheDocument();
+    return waitFor(() => {
+      expect(screen.getByTestId("google-provider")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /google success/i })).toBeInTheDocument();
+    });
   });
 
   it("maps login response and stores credential after successful login", async () => {

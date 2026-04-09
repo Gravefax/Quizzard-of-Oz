@@ -1,15 +1,38 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {GoogleCredentialResponse, GoogleLogin, GoogleOAuthProvider} from "@react-oauth/google";
-import authConfig from "@/auth.config";
 import { loginWithGoogle } from "@/app/lib/auth/authActions";
 import useAuthStore from "@/app/stores/authStore";
 import AuthCredential from "@/app/models/AuthCredential";
 
 
 export default function LoginButton() {
-    const clientId = authConfig.clientId;
+    const [clientId, setClientId] = useState<string>("");
     const authStore = useAuthStore();
+
+    useEffect(() => {
+        let isMounted = true;
+
+        fetch("/api/runtime-config", { cache: "no-store" })
+            .then(async (res) => {
+                if (!res.ok) {
+                    throw new Error(`RUNTIME_CONFIG_FAILED_${res.status}`);
+                }
+                return res.json() as Promise<{ googleClientId?: string }>;
+            })
+            .then((config) => {
+                if (!isMounted) return;
+                setClientId(config.googleClientId ?? "");
+            })
+            .catch((err) => {
+                console.error("Runtime config konnte nicht geladen werden", err);
+            });
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     const toCredential = (result: { email?: string; username?: string; expires_at?: number }): AuthCredential => ({
         email: result.email,
@@ -41,6 +64,10 @@ export default function LoginButton() {
     const handleLoginError = () => {
         console.error("Google Login fehlgeschlagen");
     };
+
+    if (!clientId) {
+        return null;
+    }
     
     return (
         <GoogleOAuthProvider clientId={clientId}>

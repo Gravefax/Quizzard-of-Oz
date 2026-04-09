@@ -14,7 +14,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY package.json pnpm-lock.yaml ./
 COPY app/ ./app/
 COPY public/ ./public/
-COPY next.config.ts tsconfig.json postcss.config.mjs ./
+COPY auth.config.ts envConfig.ts next.config.ts tsconfig.json postcss.config.mjs ./
 ARG BACKEND_URL=http://backend:8000
 ARG NEXT_PUBLIC_API_BASE=/api
 ARG GIT_COMMIT=unknown

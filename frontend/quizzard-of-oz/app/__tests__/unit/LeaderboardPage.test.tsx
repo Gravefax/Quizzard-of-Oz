@@ -3,7 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import LeaderboardPage from "@/app/leaderboard/page";
-import { fetchLeaderboard } from "@/app/lib/api/ranking";
+import { fetchLeaderboard, searchLeaderboardByUsername } from "@/app/lib/api/ranking";
 
 const mockPush = vi.fn();
 
@@ -13,6 +13,7 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("@/app/lib/api/ranking", () => ({
   fetchLeaderboard: vi.fn(),
+  searchLeaderboardByUsername: vi.fn(),
 }));
 
 describe("LeaderboardPage", () => {
@@ -53,30 +54,23 @@ describe("LeaderboardPage", () => {
       ],
     });
 
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: vi.fn().mockResolvedValue({
-          page: 1,
-          page_size: 50,
-          total_players: 1,
-          entries: [
-            {
-              rank: 1,
-              user_id: "u1",
-              username: "Alpha",
-              elo_rating: 1300,
-              wins: 10,
-              losses: 2,
-              total_matches: 12,
-              last_win_at: null,
-            },
-          ],
-        }),
-      }),
-    );
+    vi.mocked(searchLeaderboardByUsername).mockResolvedValue({
+      page: 1,
+      page_size: 50,
+      total_players: 1,
+      entries: [
+        {
+          rank: 1,
+          user_id: "u1",
+          username: "Alpha",
+          elo_rating: 1300,
+          wins: 10,
+          losses: 2,
+          total_matches: 12,
+          last_win_at: null,
+        },
+      ],
+    });
 
     const user = userEvent.setup();
     render(<LeaderboardPage />);

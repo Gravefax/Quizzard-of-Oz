@@ -17,9 +17,11 @@ COPY public/ ./public/
 COPY envConfig.ts next.config.ts tsconfig.json postcss.config.mjs ./
 ARG BACKEND_URL=http://backend:8000
 ARG NEXT_PUBLIC_API_BASE=/api
+ARG GOOGLE_CLIENT_ID=your_client_id_here
 ARG GIT_COMMIT=unknown
 ENV BACKEND_URL=$BACKEND_URL
 ENV NEXT_PUBLIC_API_BASE=$NEXT_PUBLIC_API_BASE
+ENV GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID
 ENV GIT_COMMIT=$GIT_COMMIT
 RUN pnpm build
 

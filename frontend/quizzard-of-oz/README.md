@@ -1,47 +1,77 @@
 
+## Frontend Environment Variables
 
+Create a local environment file before starting the frontend:
 
-# Google Api Token
+1. Copy `.env.example` to `.env`
+2. Adjust values if needed
 
-- Go to: https://console.cloud.google.com/cloud-resource-manager
+### Required variables
 
-- Create a project.
-- Give it a name an press create.
-- Wait until the project is created.
+- `GOOGLE_CLIENT_ID`
+	- Google OAuth client ID used by login and Google OAuth provider.
+	- Example: `your_client_id_here`
+- `NEXT_PUBLIC_API_BASE`
+	- Base URL for API requests from the frontend.
+	- Use `/api` for local setup behind the Next.js proxy.
+	- Example: `/api`
+- `NEXT_PUBLIC_WS_BASE`
+	- Base URL for WebSocket connections (battle/match updates).
+	- Example: `ws://localhost:8000`
 
+### Optional variables
 
-Go to: https://console.cloud.google.com/auth/overview
+- `BACKEND_URL`
+	- Backend origin used in Next.js server/proxy configuration.
+	- Default example: `http://localhost:8000`
+- `API_SECRET`
+	- Optional secret for `app/api/protected/route.ts` (mainly used in tests).
+	- Default example: `secret-token`
 
-- On the top left next to the Google Cloud Brand click the button and select your created project if not already selected.
+## Google OAuth Setup
 
-- In the overview page in the middle is a button "first Steps" click it
+This guide explains how to create a Google OAuth client for local development.
 
-- Give the App a name for example "QOO" then give it a email (normally this is the mail the users get if they need support for your app)
+### 1. Create or select a Google Cloud project
 
-- Press NExt
+1. Open https://console.cloud.google.com/cloud-resource-manager
+2. Create a new project.
+3. Enter a project name and click **Create**.
+4. Wait until the project is fully created.
 
-- Select Extern for Target group
+### 2. Configure the OAuth consent screen
 
-- Give your email (can be the same as the support ) for contact data
+1. Open https://console.cloud.google.com/auth/overview
+2. In the top-left project selector, choose your project.
+3. Click **Get started** (or **First steps**) in the OAuth overview.
+4. Enter an app name (for example: `QOO`).
+5. Enter a support email address.
+6. Click **Next**.
+7. Select **External** as user type.
+8. Enter a developer contact email.
+9. Finish and create the consent screen configuration.
 
--  Press Next and accept and create
+### 3. Create an OAuth client
 
-- After that you need to create the OAuth-Client
+1. In the OAuth overview, create a new OAuth client.
+2. For application type, select **Web application**.
+3. Enter a name (for example: `QOO-OAuth`).
+4. Add the following authorized origin for local development:
+	- `http://localhost:3000`
+5. Click **Create**.
 
--On the Far right in the first box on the Overview page you can create the client
+### 4. Copy credentials to environment files
 
+After creation, Google shows the client credentials in a popup.
 
-- First you need to select the kind of Software. In this case select Webapp.
+Use the **Client ID** in both backend and frontend environment files:
 
-- Give it a name for example "Qoo-OAuth"
+- `backend/.env`
+- `frontend/quizzard-of-oz/.env`
 
-- After that you need to add authorised Sources for local development you need to add **http://localhost:3000**
+Set:
 
-- Click create
-
-- Then a popup opens in this you need to get the client key and the client-ID
-
-- The Client-ID then needs to be in both .env files (backend/frontend). Into GOOGLE_CLIENT_ID. 
+- `GOOGLE_CLIENT_ID=<your-client-id>`
 
 
 

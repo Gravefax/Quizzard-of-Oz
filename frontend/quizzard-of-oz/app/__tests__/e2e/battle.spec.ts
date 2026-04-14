@@ -120,6 +120,32 @@ test.describe("Battle Match ID Validation", () => {
 test.describe("Battle Navigation", () => {
   test("Battle page shows the connecting state", async ({ page }) => {
     const testMatchId = "test-match-001";
+
+    await page.addInitScript(() => {
+      class MockWebSocket {
+        url: string;
+        readyState = 0;
+        lastSent: string | null = null;
+        onopen: ((event: Event) => void) | null = null;
+        onmessage: ((event: MessageEvent) => void) | null = null;
+        onerror: ((event: Event) => void) | null = null;
+        onclose: ((event: CloseEvent) => void) | null = null;
+
+        constructor(url: string) {
+          this.url = url;
+        }
+
+        send(data: string) {
+          this.lastSent = data;
+        }
+
+        close() {
+          this.onclose?.(new CloseEvent("close"));
+        }
+      }
+
+      globalThis.WebSocket = MockWebSocket as unknown as typeof WebSocket;
+    });
     
     await page.goto(`/battle/${testMatchId}`, { waitUntil: "domcontentloaded" }).catch(() => {
       // Expected to fail without backend

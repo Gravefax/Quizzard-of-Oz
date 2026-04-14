@@ -209,6 +209,13 @@ test.describe("Battle Page Accessibility", () => {
       // Expected to fail without backend
     });
 
+    // Wait for either arena-wrap or score-header to be in DOM
+    try {
+      await page.locator('.arena-wrap, .score-header').first().waitFor({ timeout: 2000 });
+    } catch {
+      // May not appear if backend is unavailable
+    }
+    
     const html = await page.content();
     
     expect(html.includes("arena-wrap") || html.includes("score-header")).toBe(true);

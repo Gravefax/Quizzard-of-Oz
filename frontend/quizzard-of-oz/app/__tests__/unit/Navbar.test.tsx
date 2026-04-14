@@ -3,13 +3,13 @@ import { render, screen, waitFor, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import Navbar from "@/app/Navbar";
 import useAuthStore from "@/app/stores/authStore";
-import { logout, refreshAccessToken } from "@/app/api/auth";
+import { logout, refreshAccessToken } from "@/app/lib/auth/authClient";
 
 vi.mock("@/app/components/login-button/LoginButton", () => ({
   default: () => <button>Login</button>,
 }));
 
-vi.mock("@/app/api/auth", () => ({
+vi.mock("@/app/lib/auth/authClient", () => ({
   refreshAccessToken: vi.fn(),
   logout: vi.fn(),
 }));

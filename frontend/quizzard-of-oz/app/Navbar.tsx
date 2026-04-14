@@ -5,42 +5,45 @@ import Link from "next/link";
 import LoginButton from "@/app/components/login-button/LoginButton";
 import UserMenu from "@/app/components/user-menu/UserMenu";
 import useAuthStore from "@/app/stores/authStore";
-import { refreshAccessToken, logout } from "@/app/api/auth";
+import { refreshAccessToken, logout } from "@/app/lib/auth/authClient";
 
 export default function Navbar() {
-  const authStore = useAuthStore();
-  const credential = authStore.getCredential();
+  const credential = useAuthStore((state) => state.credential);
+  const clearCredential = useAuthStore((state) => state.clearCredential);
+  const setCredential = useAuthStore((state) => state.setCredential);
   const isLoggedIn = !!credential;
   const displayName = credential?.username ?? credential?.email ?? "User";
 
   useEffect(() => {
     let isMounted = true;
-    if (authStore.getCredential()) {
+    // Only attempt refresh if no credential
+    if (credential) {
       return () => {
         isMounted = false;
       };
     }
 
+    // Attempt to restore session from refresh token
     refreshAccessToken()
       .then((res) => {
         if (!isMounted) return;
-        authStore.setCredential({
+        setCredential({
           email: res.email,
           username: res.username ?? res.email,
           expiresAt: res.expires_at,
         });
       })
       .catch(() => {
-        /* Ignore missing/expired refresh token */
+        // Ignore missing/expired refresh token - user stays logged out
       });
 
     return () => {
       isMounted = false;
     };
-  }, [authStore]);
+  }, [credential, setCredential]);
 
   function handleLogout() {
-    logout().finally(() => authStore.clearCredential());
+    logout().finally(() => clearCredential());
   }
 
   return (

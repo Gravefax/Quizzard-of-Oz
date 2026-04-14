@@ -1,7 +1,16 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Navbar from "./Navbar";
-import {GoogleOAuthProvider} from "@react-oauth/google";
+import GoogleAuthProvider from "./providers/GoogleAuthProvider";
+import { googleClientId } from "./lib/auth/authClient";
+
+
+
+if (!googleClientId || googleClientId === "your_client_id_here") {
+  throw new Error(
+    "Missing GOOGLE_CLIENT_ID. Set a real Google OAuth Web Client ID in frontend/quizzard-of-oz/.env"
+  );
+}
 
 export const metadata: Metadata = {
   title: "Quizard of Oz",
@@ -16,10 +25,10 @@ export default function RootLayout({
   return (
     <html lang="de" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
-        <GoogleOAuthProvider clientId={process.env.GOOGLE_CLIENT_ID!}>
+        <GoogleAuthProvider clientId={googleClientId}>
             <Navbar />
             {children}
-        </GoogleOAuthProvider>
+        </GoogleAuthProvider>
       </body>
     </html>
   );

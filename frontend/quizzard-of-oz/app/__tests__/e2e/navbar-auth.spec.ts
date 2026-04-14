@@ -60,6 +60,24 @@ test.describe("Navbar Auth Menü", () => {
       logoutCalls += 1;
       await route.fulfill({ status: 204, body: "" });
     });
+    
+    // After logout, ensure refresh endpoint returns 401 to prevent re-login
+    let hasLoggedOut = false;
+    await page.route("**/auth/google/refresh", async (route) => {
+      if (hasLoggedOut) {
+        await route.fulfill({ status: 401, body: "" });
+      } else {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            email: "user@example.com",
+            username: "DummyUser",
+            expires_at: 9999999999,
+          }),
+        });
+      }
+    });
 
     await page.goto("/");
 
@@ -67,7 +85,13 @@ test.describe("Navbar Auth Menü", () => {
     await page.getByRole("menuitem", { name: /abmelden/i }).click();
 
     await expect.poll(() => logoutCalls).toBe(1);
-    await expect(page.getByRole("button", { name: /dummyuser/i })).toHaveCount(0);
+    
+    // Mark as logged out and wait for state update
+    hasLoggedOut = true;
+    await page.waitForTimeout(500);
+    
+    // Wait for user button to disappear
+    await expect(page.getByRole("button", { name: /dummyuser/i })).toHaveCount(0, { timeout: 3000 });
     await expect(page.getByRole("menuitem", { name: /abmelden/i })).toHaveCount(0);
   });
 });

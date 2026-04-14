@@ -2,14 +2,11 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import LoginButton from "@/app/components/login-button/LoginButton";
-import { loginWithGoogle } from "@/app/lib/auth/authActions";
+import { loginWithGoogle } from "@/app/lib/auth/authClient";
 
 const mockSetCredential = vi.fn();
 
 vi.mock("@react-oauth/google", () => ({
-  GoogleOAuthProvider: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="google-provider">{children}</div>
-  ),
   GoogleLogin: ({
     onSuccess,
     onError,
@@ -25,7 +22,7 @@ vi.mock("@react-oauth/google", () => ({
   ),
 }));
 
-vi.mock("@/app/lib/auth/authActions", () => ({
+vi.mock("@/app/lib/auth/authClient", () => ({
   loginWithGoogle: vi.fn(),
 }));
 
@@ -50,10 +47,9 @@ describe("LoginButton", () => {
     vi.restoreAllMocks();
   });
 
-  it("renders google login inside provider", () => {
+  it("renders the google login button", () => {
     render(<LoginButton />);
 
-    expect(screen.getByTestId("google-provider")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /google success/i })).toBeInTheDocument();
   });
 

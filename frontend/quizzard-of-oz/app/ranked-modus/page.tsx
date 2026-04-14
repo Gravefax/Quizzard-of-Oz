@@ -1,17 +1,85 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import Queue from '@/app/components/Queue';
 import LoginButton from '@/app/components/login-button/LoginButton';
 import useAuthStore from '@/app/stores/authStore';
+
+function LoginCardContent() {
+  return (
+    <div className="login-card flex flex-col items-center gap-6 px-10 py-10 w-full max-w-sm text-center">
+      {/* Icon */}
+      <div
+        style={{
+          fontSize: '3rem',
+          animation: 'shieldPulse 3s ease-in-out infinite',
+        }}
+      >
+        ⚔
+      </div>
+
+      {/* Title */}
+      <div>
+        <h2
+          style={{
+            fontFamily: "'Bebas Neue', Impact, 'Arial Black', sans-serif",
+            fontSize: '2rem',
+            letterSpacing: '0.1em',
+            color: '#FFD0B0',
+          }}
+        >
+          Login erforderlich
+        </h2>
+        <p
+          className="mt-2 text-sm leading-relaxed"
+          style={{ color: 'rgba(140,200,230,0.5)' }}
+        >
+          Ranked Battle erfordert einen Account,
+          <br />um dein Rang zu verfolgen.
+        </p>
+      </div>
+
+      {/* Divider */}
+      <div
+        style={{
+          width: '100%',
+          height: '1px',
+          background: 'linear-gradient(90deg, transparent, rgba(255,60,20,0.25), transparent)',
+        }}
+      />
+
+      {/* Google Login */}
+      <div>
+        <p
+          className="text-xs mb-3"
+          style={{ color: 'rgba(140,200,230,0.35)', letterSpacing: '0.06em' }}
+        >
+          Mit Google anmelden
+        </p>
+        <LoginButton />
+      </div>
+    </div>
+  );
+}
 
 export default function RankedPage() {
   const router = useRouter();
   const credential = useAuthStore((state) => state.credential);
   const isLoggedIn = !!credential;
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   if (isLoggedIn) {
     return <Queue ranked />;
+  }
+
+  // Don't render until client-side to avoid SSR errors
+  if (!mounted) {
+    return null;
   }
 
   return (
@@ -47,7 +115,6 @@ export default function RankedPage() {
       `}</style>
 
       <div className="min-h-[calc(100vh-73px)] flex flex-col items-center justify-center px-4 relative">
-
         <button
           className="back-btn absolute top-6 left-6 px-4 py-2 text-sm flex items-center gap-1.5"
           onClick={() => router.push('/')}
@@ -55,59 +122,7 @@ export default function RankedPage() {
           ← Zurück
         </button>
 
-        <div className="login-card flex flex-col items-center gap-6 px-10 py-10 w-full max-w-sm text-center">
-
-          {/* Icon */}
-          <div
-            style={{
-              fontSize: '3rem',
-              animation: 'shieldPulse 3s ease-in-out infinite',
-            }}
-          >
-            ⚔
-          </div>
-
-          {/* Title */}
-          <div>
-            <h2
-              style={{
-                fontFamily: "'Bebas Neue', Impact, 'Arial Black', sans-serif",
-                fontSize: '2rem',
-                letterSpacing: '0.1em',
-                color: '#FFD0B0',
-              }}
-            >
-              Login erforderlich
-            </h2>
-            <p
-              className="mt-2 text-sm leading-relaxed"
-              style={{ color: 'rgba(140,200,230,0.5)' }}
-            >
-              Ranked Battle erfordert einen Account,
-              <br />um dein Rang zu verfolgen.
-            </p>
-          </div>
-
-          {/* Divider */}
-          <div
-            style={{
-              width: '100%',
-              height: '1px',
-              background: 'linear-gradient(90deg, transparent, rgba(255,60,20,0.25), transparent)',
-            }}
-          />
-
-          {/* Google Login */}
-          <div>
-            <p
-              className="text-xs mb-3"
-              style={{ color: 'rgba(140,200,230,0.35)', letterSpacing: '0.06em' }}
-            >
-              Mit Google anmelden
-            </p>
-            <LoginButton />
-          </div>
-        </div>
+        <LoginCardContent />
       </div>
     </>
   );

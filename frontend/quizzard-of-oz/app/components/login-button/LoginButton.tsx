@@ -1,14 +1,20 @@
 "use client";
 
-import {GoogleCredentialResponse, GoogleLogin, GoogleOAuthProvider} from "@react-oauth/google";
-import authConfig from "@/auth.config";
-import { loginWithGoogle } from "@/app/lib/auth/authActions";
+import dynamic from "next/dynamic";
+import { loginWithGoogle } from "@/app/lib/auth/authClient";
 import useAuthStore from "@/app/stores/authStore";
 import AuthCredential from "@/app/models/AuthCredential";
 
+type GoogleCredentialResponse = {
+    credential?: string;
+};
+
+const GoogleLogin = dynamic(
+    () => import("@react-oauth/google").then((mod) => mod.GoogleLogin),
+    { ssr: false }
+);
 
 export default function LoginButton() {
-    const clientId = authConfig.clientId;
     const authStore = useAuthStore();
 
     const toCredential = (result: { email?: string; username?: string; expires_at?: number }): AuthCredential => ({
@@ -29,8 +35,9 @@ export default function LoginButton() {
             const result = await loginWithGoogle(idToken);
             authStore.setCredential(toCredential(result));
         } catch (err) {
-            if (err instanceof Error && err.message === "UNAUTHORIZED") {
-                console.error("Token ungueltig oder abgelaufen");
+            if (err instanceof Error && err.message.startsWith("UNAUTHORIZED:")) {
+                const reason = err.message.replace("UNAUTHORIZED:", "");
+                console.error(`Token ungueltig oder abgelaufen: ${reason}`);
                 return;
             }
 
@@ -43,8 +50,6 @@ export default function LoginButton() {
     };
     
     return (
-        <GoogleOAuthProvider clientId={clientId}>
-            <GoogleLogin onSuccess={handleLoginSuccess} onError={handleLoginError}></GoogleLogin>
-        </GoogleOAuthProvider>
+        <GoogleLogin onSuccess={handleLoginSuccess} onError={handleLoginError}></GoogleLogin>
     );
 }

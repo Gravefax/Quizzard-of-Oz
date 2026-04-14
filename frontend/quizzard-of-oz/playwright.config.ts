@@ -1,4 +1,14 @@
 import { defineConfig, devices } from "@playwright/test";
+import path from "node:path";
+import os from "node:os";
+
+// Cross-platform backend command that activates venv first
+const isWindows = os.platform() === "win32";
+const backendDir = path.resolve(__dirname, "..", "..", "backend");
+const activateScript = isWindows ? String.raw`.venv\Scripts\activate.bat` : ".venv/bin/activate";
+const backendCommand = isWindows
+  ? `cmd /c "cd /d ${backendDir} && ${activateScript} && python -m uvicorn main:app --host 0.0.0.0 --port 8000"`
+  : `bash -c "source ${backendDir}/${activateScript} && python -m uvicorn main:app --host 0.0.0.0 --port 8000"`;
 
 export default defineConfig({
   testDir: "./app/__tests__/e2e",
@@ -25,10 +35,11 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
     },
     {
-      command: "cd ../../backend && .venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000",
+      command: backendCommand,
       url: "http://127.0.0.1:8000/health",
       reuseExistingServer: !process.env.CI,
       timeout: 30000,
+      cwd: backendDir,
     },
   ],
 });

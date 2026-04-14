@@ -151,7 +151,8 @@ test.describe("Battle Navigation", () => {
       // Expected to fail without backend
     });
 
-    await expect(page.getByText(/verbinde mit battle/i)).toBeVisible();
+    await expect(page.locator(".arena-wrap")).toBeVisible();
+    await expect(page.getByText(/verbinde mit battle|warte auf gegner/i)).toBeVisible();
   });
 });
 

@@ -1,7 +1,6 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
 import Queue from '@/app/components/Queue';
 import LoginButton from '@/app/components/login-button/LoginButton';
 import useAuthStore from '@/app/stores/authStore';
@@ -67,19 +66,9 @@ export default function RankedPage() {
   const router = useRouter();
   const credential = useAuthStore((state) => state.credential);
   const isLoggedIn = !!credential;
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   if (isLoggedIn) {
     return <Queue ranked />;
-  }
-
-  // Don't render until client-side to avoid SSR errors
-  if (!mounted) {
-    return null;
   }
 
   return (

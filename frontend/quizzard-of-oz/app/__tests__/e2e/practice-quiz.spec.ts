@@ -84,7 +84,12 @@ test.describe("Practice Quiz", () => {
         status: 200,
         contentType: "application/json",
         body: JSON.stringify(
-          QUESTIONS.map(({ correctAnswer, ...question }) => question),
+          QUESTIONS.map(({ id, question, answers, category }) => ({
+            id,
+            question,
+            answers,
+            category,
+          })),
         ),
       });
     });

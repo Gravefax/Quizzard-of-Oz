@@ -88,7 +88,9 @@ export default function BattleArena({ matchId }: BattleArenaProps) {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const phaseRef = useRef<Phase>('connecting');
 
-  phaseRef.current = phase;
+  useEffect(() => {
+    phaseRef.current = phase;
+  }, [phase]);
 
   // ── Timer Management ──
 
@@ -268,7 +270,7 @@ export default function BattleArena({ matchId }: BattleArenaProps) {
       intentionalClose = true;
       ws.close();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [matchId]);
 
   // ── User Actions ──

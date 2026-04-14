@@ -146,7 +146,7 @@ def login(
 
     except ValueError as exc:
         logger.warning("Google token verification failed: %s", exc)
-        raise HTTPException(status_code=401, detail=f"Invalid token: {exc}") from exc
+        raise HTTPException(status_code=401, detail="Invalid token") from exc
 
 
 @router.get(

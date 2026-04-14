@@ -47,17 +47,17 @@ describe("LoginButton", () => {
     vi.restoreAllMocks();
   });
 
-  it("renders the google login button", () => {
+  it("renders the google login button", async () => {
     render(<LoginButton />);
 
-    expect(screen.getByRole("button", { name: /google success/i })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /google success/i })).toBeInTheDocument();
   });
 
   it("maps login response and stores credential after successful login", async () => {
     const user = userEvent.setup();
     render(<LoginButton />);
 
-    await user.click(screen.getByRole("button", { name: /google success/i }));
+    await user.click(await screen.findByRole("button", { name: /google success/i }));
 
     await waitFor(() => {
       expect(loginWithGoogle).toHaveBeenCalledWith("token-123");
@@ -78,7 +78,7 @@ describe("LoginButton", () => {
     const user = userEvent.setup();
     render(<LoginButton />);
 
-    await user.click(screen.getByRole("button", { name: /google success/i }));
+    await user.click(await screen.findByRole("button", { name: /google success/i }));
 
     await waitFor(() => {
       expect(mockSetCredential).toHaveBeenCalledWith({
@@ -93,7 +93,7 @@ describe("LoginButton", () => {
     const user = userEvent.setup();
     render(<LoginButton />);
 
-    await user.click(screen.getByRole("button", { name: /google missing token/i }));
+    await user.click(await screen.findByRole("button", { name: /google missing token/i }));
 
     expect(loginWithGoogle).not.toHaveBeenCalled();
     expect(mockSetCredential).not.toHaveBeenCalled();
@@ -101,16 +101,16 @@ describe("LoginButton", () => {
   });
 
   it("handles unauthorized login errors", async () => {
-    vi.mocked(loginWithGoogle).mockRejectedValue(new Error("UNAUTHORIZED"));
+    vi.mocked(loginWithGoogle).mockRejectedValue(new Error("UNAUTHORIZED:INVALID_TOKEN"));
 
     const user = userEvent.setup();
     render(<LoginButton />);
 
-    await user.click(screen.getByRole("button", { name: /google success/i }));
+    await user.click(await screen.findByRole("button", { name: /google success/i }));
 
     await waitFor(() => {
       expect(mockSetCredential).not.toHaveBeenCalled();
-      expect(console.error).toHaveBeenCalledWith("Token ungueltig oder abgelaufen");
+      expect(console.error).toHaveBeenCalledWith("Token ungueltig oder abgelaufen: INVALID_TOKEN");
     });
   });
 
@@ -120,12 +120,12 @@ describe("LoginButton", () => {
     const user = userEvent.setup();
     render(<LoginButton />);
 
-    await user.click(screen.getByRole("button", { name: /google success/i }));
+    await user.click(await screen.findByRole("button", { name: /google success/i }));
     await waitFor(() => {
       expect(console.error).toHaveBeenCalledWith("Login fehlgeschlagen", expect.any(Error));
     });
 
-    await user.click(screen.getByRole("button", { name: /google error/i }));
+    await user.click(await screen.findByRole("button", { name: /google error/i }));
     expect(console.error).toHaveBeenCalledWith("Google Login fehlgeschlagen");
   });
 });

@@ -2,15 +2,10 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Navbar from "./Navbar";
 import GoogleAuthProvider from "./providers/GoogleAuthProvider";
+import ConfigErrorFallback from "./components/ConfigErrorFallback";
 import { googleClientId } from "./lib/auth/authClient";
 
-
-
-if (!googleClientId || googleClientId === "your_client_id_here") {
-  throw new Error(
-    "Missing GOOGLE_CLIENT_ID. Set a real Google OAuth Web Client ID in frontend/quizzard-of-oz/.env"
-  );
-}
+const hasGoogleClientId = !!googleClientId && googleClientId !== "your_client_id_here";
 
 export const metadata: Metadata = {
   title: "Quizard of Oz",
@@ -25,10 +20,16 @@ export default function RootLayout({
   return (
     <html lang="de" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
-        <GoogleAuthProvider clientId={googleClientId}>
+        {hasGoogleClientId ? (
+          <GoogleAuthProvider clientId={googleClientId}>
             <Navbar />
             {children}
-        </GoogleAuthProvider>
+          </GoogleAuthProvider>
+        ) : (
+          <ConfigErrorFallback
+            message="GOOGLE_CLIENT_ID ist nicht gesetzt. Bitte setze eine gueltige Google OAuth Web Client ID in frontend/quizzard-of-oz/.env."
+          />
+        )}
       </body>
     </html>
   );

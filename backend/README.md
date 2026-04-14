@@ -25,6 +25,9 @@ Trivia integration variables:
 
 Copy `backend/.env.example` to `backend/.env` and adjust values for your machine.
 
+
+
+
 ## Local Run
 
 From `backend/`:

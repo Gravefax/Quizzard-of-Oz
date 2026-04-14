@@ -1,36 +1,49 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-## Getting Started
 
-First, run the development server:
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+# Google Api Token
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- Go to: https://console.cloud.google.com/cloud-resource-manager
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Create a project.
+- Give it a name an press create.
+- Wait until the project is created.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-## Learn More
+Go to: https://console.cloud.google.com/auth/overview
 
-To learn more about Next.js, take a look at the following resources:
+- On the top left next to the Google Cloud Brand click the button and select your created project if not already selected.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- In the overview page in the middle is a button "first Steps" click it
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Give the App a name for example "QOO" then give it a email (normally this is the mail the users get if they need support for your app)
 
-## Deploy on Vercel
+- Press NExt
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Select Extern for Target group
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Give your email (can be the same as the support ) for contact data
+
+-  Press Next and accept and create
+
+- After that you need to create the OAuth-Client
+
+-On the Far right in the first box on the Overview page you can create the client
+
+
+- First you need to select the kind of Software. In this case select Webapp.
+
+- Give it a name for example "Qoo-OAuth"
+
+- After that you need to add authorised Sources for local development you need to add **http://localhost:3000**
+
+- Click create
+
+- Then a popup opens in this you need to get the client key and the client-ID
+
+- The Client-ID then needs to be in both .env files (backend/frontend). Into GOOGLE_CLIENT_ID. 
+
+
+
+
+

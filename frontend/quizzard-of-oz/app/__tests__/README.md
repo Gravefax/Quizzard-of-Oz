@@ -15,15 +15,15 @@ Dieser Ordner enthält Unit- und Integrationstests, die mit **Vitest** ausgefüh
 ## Ausführen
 
 ```bash
-npm test              # alle Tests einmalig
-npm run test:watch    # im Watch-Modus
-npm run test:coverage # mit Coverage-Report
+pnpm test              # alle Tests einmalig
+pnpm run test:watch    # im Watch-Modus
+pnpm run test:coverage # mit Coverage-Report
 ```
 
 ## E2E Ausführen
 
 ```bash
-npm run test:e2e                   # alle E2E-Tests
-npx playwright test --ui           # interaktiver UI-Modus
-npx playwright install chromium    # Browser einmalig installieren
+pnpm test:e2e                       # alle E2E-Tests
+pnpm playwright test --ui           # interaktiver UI-Modus
+pnpm playwright install chromium    # Browser einmalig installieren
 ```

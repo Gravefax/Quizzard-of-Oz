@@ -33,7 +33,7 @@ async def queue_ws(
         return
 
     await websocket.accept()
-    await matchmaking.join(websocket, user)
+    await matchmaking.join(websocket, user, db)
 
 
 @router.websocket("/ws/{match_id}")

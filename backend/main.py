@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import app.models  # noqa: F401
 from app.database import engine, Base
 from app.routers import quiz
-from app.routers import user, auth, battle
+from app.routers import user, auth, battle, ranking
 from app.routers import trivia
 from app.services.trivia_service import close_trivia_resources
 
@@ -40,6 +40,7 @@ app.include_router(user.router)
 app.include_router(auth.router)
 app.include_router(quiz.router)
 app.include_router(battle.router)
+app.include_router(ranking.router)
 app.include_router(trivia.router)
 
 

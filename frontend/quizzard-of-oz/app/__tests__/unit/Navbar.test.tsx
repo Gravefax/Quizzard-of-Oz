@@ -33,6 +33,11 @@ describe("Navbar", () => {
     expect(screen.getByRole("button", { name: /login/i })).toBeInTheDocument();
   });
 
+  it("renders the leaderboard link", () => {
+    render(<Navbar />);
+    expect(screen.getByRole("link", { name: /leaderboard/i })).toBeInTheDocument();
+  });
+
   it("shows username when logged in", () => {
     act(() => {
       useAuthStore.setState({

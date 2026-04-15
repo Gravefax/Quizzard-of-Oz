@@ -66,13 +66,23 @@ export default function Navbar() {
       >
         Quizzard of Oz
       </Link>
-      {isLoggedIn ? (
-        <UserMenu displayName={displayName} onLogout={handleLogout} />
-      ) : (
-        <div className="relative">
-          <LoginButton />
-        </div>
-      )}
+      <div className="flex items-center gap-3">
+        <Link
+          href="/leaderboard"
+          className="login-btn inline-flex items-center gap-2 px-6 py-2 font-medium rounded-lg"
+          style={{ textDecoration: "none" }}
+        >
+          <span>🏆</span>
+          <span>Leaderboard</span>
+        </Link>
+        {isLoggedIn ? (
+          <UserMenu displayName={displayName} onLogout={handleLogout} />
+        ) : (
+          <div className="relative">
+            <LoginButton />
+          </div>
+        )}
+      </div>
     </header>
   );
 }

@@ -9,27 +9,38 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush }),
 }));
 
+vi.mock("@/app/lib/api/ranking", () => ({
+  fetchLeaderboard: vi.fn().mockResolvedValue({
+    page: 1,
+    page_size: 50,
+    total_players: 0,
+    entries: [],
+  }),
+}));
+
 describe("LandingPage", () => {
   it("renders heading", () => {
     render(<LandingPage />);
     expect(screen.getByRole("heading", { name: /quizzard of oz/i })).toBeInTheDocument();
   });
 
-  it("renders Ranked Battle and Übung buttons", () => {
+  it("renders Ranked Battle, Uebung and Leaderboard buttons", () => {
     render(<LandingPage />);
     expect(screen.getByRole("button", { name: /ranked battle/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /übung/i })).toBeInTheDocument();
-    expect(screen.getAllByRole("button")).toHaveLength(2);
+    expect(screen.getByRole("button", { name: /(uebung|übung)/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /leaderboard/i })).toBeInTheDocument();
   });
 
-  it("navigates to ranked and training modes", async () => {
+  it("navigates to ranked, training and leaderboard pages", async () => {
     const user = userEvent.setup();
     render(<LandingPage />);
 
     await user.click(screen.getByRole("button", { name: /ranked battle/i }));
-    await user.click(screen.getByRole("button", { name: /übung/i }));
+    await user.click(screen.getByRole("button", { name: /(uebung|übung)/i }));
+    await user.click(screen.getByRole("button", { name: /leaderboard/i }));
 
     expect(mockPush).toHaveBeenCalledWith("/ranked-modus");
     expect(mockPush).toHaveBeenCalledWith("/trainings-modus");
+    expect(mockPush).toHaveBeenCalledWith("/leaderboard");
   });
 });

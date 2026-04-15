@@ -29,6 +29,12 @@ def _make_user(user_id=None, username="Player1"):
     return user
 
 
+def _make_ranking(elo_rating=1000):
+    ranking = MagicMock()
+    ranking.elo_rating = elo_rating
+    return ranking
+
+
 class TestMatchmakingService:
     """Tests for MatchmakingService."""
     
@@ -74,11 +80,14 @@ class TestMatchmakingService:
         service = MatchmakingService()
         ws = _make_websocket()
         user = _make_user()
+        db = MagicMock()
         
         # Mock receive_text to raise disconnect immediately
         ws.receive_text.side_effect = WebSocketDisconnect(code=1000)
         
-        await service.join(ws, user)
+        with patch("app.services.matchmaking_service.get_user_ranking") as mock_ranking:
+            mock_ranking.return_value = _make_ranking(1000)
+            await service.join(ws, user, db)
         
         # Should send "queued" message
         ws.send_json.assert_called()
@@ -160,11 +169,14 @@ class TestMatchmakingService:
         
         ws = _make_websocket()
         user = _make_user()
+        db = MagicMock()
         
         # Set up immediate disconnect
         ws.receive_text.side_effect = WebSocketDisconnect(code=1000)
         
-        await service.join(ws, user)
+        with patch("app.services.matchmaking_service.get_user_ranking") as mock_ranking:
+            mock_ranking.return_value = _make_ranking(1000)
+            await service.join(ws, user, db)
         
         # After join completes, queue should be empty (player removed)
         assert len(service._queue) == 0
@@ -182,3 +194,36 @@ class TestMatchmakingService:
         assert len(service._queue) == 1
         assert service._queue[0]["ws"] == ws
         assert service._queue[0]["user"] == user
+
+    def test_allowed_elo_delta_starts_with_base_range(self):
+        service = MatchmakingService()
+        now = 200.0
+        assert service._allowed_elo_delta(queued_at=now, now=now) == 75
+
+    def test_allowed_elo_delta_grows_every_five_seconds(self):
+        service = MatchmakingService()
+        queued_at = 100.0
+
+        assert service._allowed_elo_delta(queued_at=queued_at, now=104.9) == 75
+        assert service._allowed_elo_delta(queued_at=queued_at, now=105.0) == 125
+        assert service._allowed_elo_delta(queued_at=queued_at, now=110.0) == 175
+
+    def test_attempt_match_prefers_smallest_elo_difference(self):
+        service = MatchmakingService()
+        ws1, ws2, ws3, ws4 = (_make_websocket(), _make_websocket(), _make_websocket(), _make_websocket())
+        u1, u2, u3, u4 = (_make_user(username="u1"), _make_user(username="u2"), _make_user(username="u3"), _make_user(username="u4"))
+
+        service._queue = [
+            {"ws": ws1, "user": u1, "elo": 1000, "queued_at": 0.0, "seq": 0},
+            {"ws": ws2, "user": u2, "elo": 1070, "queued_at": 0.0, "seq": 1},
+            {"ws": ws3, "user": u3, "elo": 1010, "queued_at": 0.0, "seq": 2},
+            {"ws": ws4, "user": u4, "elo": 1190, "queued_at": 0.0, "seq": 3},
+        ]
+
+        with patch("app.services.matchmaking_service.time.monotonic", return_value=0.0):
+            matched = service._attempt_match_locked()
+
+        assert matched is not None
+        left, right = matched
+        assert abs(int(left["elo"]) - int(right["elo"])) == 10
+

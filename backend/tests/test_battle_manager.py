@@ -1,5 +1,5 @@
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
@@ -495,3 +495,27 @@ async def test_disconnect_notifies_remaining_player_and_cleans_up_empty_match():
     await manager.disconnect(ws2, "match-1", user2)
 
     assert "match-1" not in manager._matches
+
+
+@pytest.mark.asyncio
+async def test_end_game_triggers_ranking_update():
+    manager = BattleManager(FakeQuizService())
+    ws1 = _make_websocket()
+    ws2 = _make_websocket()
+    winner = _make_user(username="Winner")
+    loser = _make_user(username="Loser")
+    state = MatchState(
+        players=[{"ws": ws1, "user": winner}, {"ws": ws2, "user": loser}],
+        round_wins={str(winner.id): 3, str(loser.id): 1},
+    )
+    manager._matches["match-1"] = state
+
+    db = MagicMock()
+
+    with patch("app.services.battle_manager.SessionLocal", return_value=db):
+        with patch("app.services.battle_manager.apply_match_result") as mock_apply:
+            await manager._end_game("match-1", state)
+
+    mock_apply.assert_called_once_with(db, winner_id=winner.id, loser_id=loser.id)
+    assert "match-1" not in manager._matches
+

@@ -1,6 +1,9 @@
 'use client';
 
+import {JSX, useEffect, useState} from 'react';
 import { useRouter } from 'next/navigation';
+import { fetchLeaderboard } from '@/app/lib/api/ranking';
+import type { LeaderboardEntry } from '@/app/models/Leaderboard';
 
 type ColorType = 'cyan' | 'fire' | 'gold';
 
@@ -40,6 +43,30 @@ const AMB_DATA: Array<{ id: string; char: string; size: string; top: string; lef
 
 export default function LandingPage() {
   const router = useRouter();
+  const [topPlayers, setTopPlayers] = useState<LeaderboardEntry[]>([]);
+  const [topLoading, setTopLoading] = useState(true);
+
+  let topPlayersContent: JSX.Element;
+  if (topLoading) {
+    topPlayersContent = (
+      <p style={{ color: 'rgba(140,200,230,0.6)', fontSize: '0.85rem' }}>Lade Rangliste ...</p>
+    );
+  } else if (topPlayers.length === 0) {
+    topPlayersContent = (
+      <p style={{ color: 'rgba(140,200,230,0.6)', fontSize: '0.85rem' }}>Noch keine Eintraege verfuegbar.</p>
+    );
+  } else {
+    topPlayersContent = (
+      <ol className="space-y-1.5">
+        {topPlayers.map((player) => (
+          <li key={player.user_id} className="flex items-center justify-between rounded-md px-2 py-1" style={{ background: 'rgba(0,0,0,0.16)' }}>
+            <span style={{ color: 'rgba(220,245,255,0.9)', fontSize: '0.86rem' }}>#{player.rank} {player.username}</span>
+            <span style={{ color: 'rgba(110,215,255,0.88)', fontWeight: 700, fontSize: '0.85rem' }}>{player.elo_rating}</span>
+          </li>
+        ))}
+      </ol>
+    );
+  }
 
   function handleRanked() {
     router.push('/ranked-modus');
@@ -48,6 +75,37 @@ export default function LandingPage() {
   function handleUebung() {
     router.push('/trainings-modus');
   }
+
+  function handleLeaderboard() {
+    router.push('/leaderboard');
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadTopPlayers() {
+      try {
+        const data = await fetchLeaderboard(1);
+        if (!cancelled) {
+          setTopPlayers(data.entries.slice(0, 3));
+        }
+      } catch {
+        if (!cancelled) {
+          setTopPlayers([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setTopLoading(false);
+        }
+      }
+    }
+
+    void loadTopPlayers();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <>
@@ -214,6 +272,24 @@ export default function LandingPage() {
           box-shadow: 0 16px 40px rgba(255,200,0,0.1);
         }
 
+        .leaderboard-card {
+          background: linear-gradient(145deg, rgba(0,212,255,0.08) 0%, rgba(0,80,120,0.08) 100%);
+          border: 1px solid rgba(0,212,255,0.3);
+          border-radius: 1rem;
+        }
+
+        .leaderboard-btn {
+          background: linear-gradient(145deg, rgba(0,212,255,0.13) 0%, rgba(0,120,180,0.1) 100%);
+          border: 1px solid rgba(0,212,255,0.42);
+          border-radius: 1rem;
+          transition: transform 0.22s ease, box-shadow 0.22s ease;
+        }
+
+        .leaderboard-btn:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 16px 40px rgba(0,212,255,0.16);
+        }
+
         /* ── Typography ── */
         .arena-title {
           font-family: 'Bebas Neue', 'Impact', 'Arial Black', sans-serif;
@@ -347,6 +423,15 @@ export default function LandingPage() {
             </p>
           </div>
 
+          {/* ── Top 3 preview ── */}
+          <div className="w-full max-w-sm mb-4 leaderboard-card px-4 py-3">
+            <div className="flex items-center justify-between mb-2">
+              <span style={{ color: 'rgba(185,230,250,0.92)', fontWeight: 700, letterSpacing: '0.04em' }}>Top 3</span>
+              <span style={{ color: 'rgba(120,190,220,0.7)', fontSize: '0.7rem', letterSpacing: '0.08em' }}>LIVE LEADERBOARD</span>
+            </div>
+            {topPlayersContent}
+          </div>
+
           {/* ── Action buttons ── */}
           <div className="flex flex-col items-center gap-4 w-full max-w-sm">
 
@@ -405,6 +490,28 @@ export default function LandingPage() {
                 </div>
                 {/* Arrow */}
                 <div style={{ flexShrink: 0, color: 'rgba(255,200,0,0.35)', fontSize: '1rem' }}>›</div>
+              </div>
+            </button>
+
+            {/* LEADERBOARD */}
+            <button
+              className="leaderboard-btn w-full"
+              style={{ padding: '14px 20px' }}
+              onClick={handleLeaderboard}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '42px', height: '42px', borderRadius: '50%', background: 'rgba(0,212,255,0.14)', border: '1px solid rgba(0,212,255,0.35)', fontSize: '1.1rem' }}>
+                  🏆
+                </div>
+                <div style={{ textAlign: 'left', flex: 1 }}>
+                  <div style={{ color: 'rgba(190,240,255,0.92)', fontSize: '0.95rem', fontWeight: 600, letterSpacing: '0.04em', marginBottom: '2px' }}>
+                    Leaderboard
+                  </div>
+                  <div style={{ color: 'rgba(130,205,235,0.62)', fontSize: '0.7rem', letterSpacing: '0.08em' }}>
+                    Top Spieler ansehen
+                  </div>
+                </div>
+                <div style={{ flexShrink: 0, color: 'rgba(110,215,255,0.65)', fontSize: '1rem' }}>›</div>
               </div>
             </button>
           </div>

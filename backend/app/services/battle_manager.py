@@ -108,14 +108,14 @@ Message Protocol:
     }
 
 Logging:
-  All significant events are logged with match_id, user_id, username, and
-  client IP for post-match debugging. Use: tail -f logs/uvicorn.error.log
+  All significant events are logged without user-controlled values.
+  Logs contain only internal state such as round numbers, player counts,
+  and error classes for operational debugging. Use: tail -f logs/uvicorn.error.log
 """
 
 from __future__ import annotations
 
 import asyncio
-import base64
 import json
 import logging
 import secrets
@@ -124,7 +124,9 @@ from dataclasses import dataclass, field
 from fastapi import WebSocket
 from sqlalchemy.orm import Session
 
+from app.database import SessionLocal
 from app.models.user import User
+from app.services.ranking_service import apply_match_result
 from app.services.ws_auth import authenticate_ws
 from app.services.quiz_service import QuizService, get_quiz_service
 from app.services.trivia_client import (
@@ -148,20 +150,6 @@ CATEGORIES_TO_OFFER  = 3  # Number of categories the picker can choose from
 
 logger = logging.getLogger("uvicorn.error")
 _quiz = get_quiz_service()
-
-
-def _ws_id(websocket: WebSocket) -> str:
-    """Stable short id for correlating websocket lifecycle logs."""
-    return hex(id(websocket))
-
-
-def _safe_log_value(value: object) -> str:
-    """Return alphanumeric values as-is; encode everything else for safe logging."""
-    text = str(value)
-    if text.isalnum():
-        return text
-    return base64.b64encode(text.encode("utf-8")).decode("ascii")
-
 
 @dataclass
 class MatchState:
@@ -200,32 +188,22 @@ class BattleManager:
         state = self._matches.setdefault(match_id, MatchState())
 
         logger.info(
-            "Battle connect requested match_id=%s user_id=%s username=%s ws=%s",
-            match_id,
-            user.id,
-            user.username,
-            _ws_id(websocket),
+            "Battle connect requested active_players=%s",
+            len(state.players),
         )
 
         async with state.lock:
             if len(state.players) >= 2:
                 logger.warning(
-                    "Battle connect rejected: match full match_id=%s user_id=%s username=%s ws=%s",
-                    match_id,
-                    user.id,
-                    user.username,
-                    _ws_id(websocket),
+                    "Battle connect rejected: match full active_players=%s",
+                    len(state.players),
                 )
                 await websocket.close(code=_CLOSE_FULL, reason="Match is full")
                 return False
 
             if any(p["user"].id == user.id for p in state.players):
                 logger.warning(
-                    "Battle connect rejected: duplicate connection match_id=%s user_id=%s username=%s ws=%s",
-                    match_id,
-                    user.id,
-                    user.username,
-                    _ws_id(websocket),
+                    "Battle connect rejected: duplicate connection",
                 )
                 await websocket.close(code=_CLOSE_DUPLICATE, reason="Already connected")
                 return False
@@ -235,10 +213,7 @@ class BattleManager:
 
             if len(state.players) < 2:
                 logger.info(
-                    "Battle waiting for opponent match_id=%s user_id=%s username=%s players=%s",
-                    match_id,
-                    user.id,
-                    user.username,
+                    "Battle waiting for opponent players=%s",
                     len(state.players),
                 )
                 try:
@@ -246,27 +221,19 @@ class BattleManager:
                     return True
                 except Exception:
                     logger.warning(
-                        "Battle waiting message failed: socket disconnected match_id=%s user_id=%s username=%s ws=%s",
-                        match_id,
-                        user.id,
-                        user.username,
-                        _ws_id(websocket),
+                        "Battle waiting message failed: socket disconnected",
                     )
                     state.players[:] = [p for p in state.players if p["ws"] is not websocket]
                     if not state.players:
                         self._matches.pop(match_id, None)
                     return False
 
-        logger.info("Battle match ready match_id=%s players=%s", match_id, len(state.players))
+        logger.info("Battle match ready players=%s", len(state.players))
         try:
             await self._start_game(state, match_id)
         except Exception:
             logger.warning(
-                "Battle game start aborted: WebSocket closed during startup match_id=%s user_id=%s username=%s ws=%s",
-                match_id,
-                user.id,
-                user.username,
-                _ws_id(websocket),
+                "Battle game start aborted: websocket closed during startup",
             )
             async with state.lock:
                 state.players[:] = [p for p in state.players if p["ws"] is not websocket]
@@ -278,11 +245,7 @@ class BattleManager:
         state = self._matches.get(match_id)
         if not state:
             logger.info(
-                "Battle disconnect ignored: match not found match_id=%s user_id=%s username=%s ws=%s",
-                match_id,
-                user.id,
-                user.username,
-                _ws_id(websocket),
+                "Battle disconnect ignored: match not found",
             )
             return
 
@@ -297,16 +260,13 @@ class BattleManager:
             })
 
         logger.info(
-            "Battle disconnected match_id=%s user_id=%s username=%s remaining_players=%s",
-            match_id,
-            user.id,
-            user.username,
+            "Battle disconnected remaining_players=%s",
             len(remaining),
         )
 
         if not remaining:
             self._matches.pop(match_id, None)
-            logger.info("Battle match cleaned up match_id=%s", match_id)
+            logger.info("Battle match cleaned up")
 
     # ── Incoming client messages ─────────────────────────────────────────── #
 
@@ -340,11 +300,9 @@ class BattleManager:
 
         p1, p2 = state.players
         logger.info(
-            "Battle game start match_id=%s player1=%s player2=%s picker=%s",
-            match_id,
-            p1["user"].username,
-            p2["user"].username,
-            state.players[state.picker_idx]["user"].username,
+            "Battle game start players=%s picker_idx=%s",
+            len(state.players),
+            state.picker_idx,
         )
 
         for current, opponent in ((p1, p2), (p2, p1)):
@@ -380,8 +338,7 @@ class BattleManager:
             TriviaUpstreamPayloadError,
         ) as exc:
             logger.error(
-                "Battle round preparation failed match_id=%s round=%s error_type=%s",
-                _safe_log_value(match_id),
+                "Battle round preparation failed round=%s error_type=%s",
                 state.current_round,
                 type(exc).__name__,
             )
@@ -390,8 +347,7 @@ class BattleManager:
 
         if not offered:
             logger.error(
-                "Battle round preparation failed match_id=%s round=%s reason=no_categories",
-                _safe_log_value(match_id),
+                "Battle round preparation failed round=%s reason=no_categories",
                 state.current_round,
             )
             await self._abort_match(match_id, state, _PREPARE_QUESTIONS_ERROR)
@@ -459,8 +415,7 @@ class BattleManager:
             TriviaUpstreamPayloadError,
         ) as exc:
             logger.error(
-                "Battle category load failed match_id=%s round=%s error_type=%s",
-                _safe_log_value(match_id),
+                "Battle category load failed round=%s error_type=%s",
                 state.current_round,
                 type(exc).__name__,
             )
@@ -576,8 +531,7 @@ class BattleManager:
         next_picker_name = state.players[state.picker_idx]["user"].username
 
         logger.info(
-            "Battle round result match_id=%s round=%s score=%s:%s wins=%s:%s",
-            match_id,
+            "Battle round result round=%s score=%s:%s wins=%s:%s",
             state.current_round,
             s1,
             s2,
@@ -625,9 +579,7 @@ class BattleManager:
         winner      = p1["user"].username if w1 >= w2 else p2["user"].username
 
         logger.info(
-            "Battle game over match_id=%s winner=%s wins=%s:%s",
-            match_id,
-            winner,
+            "Battle game over wins=%s:%s",
             w1,
             w2,
         )
@@ -643,6 +595,20 @@ class BattleManager:
                 "opponent_wins": state.round_wins.get(oid, 0),
             })
 
+        winner_user = p1["user"] if w1 >= w2 else p2["user"]
+        loser_user = p2["user"] if w1 >= w2 else p1["user"]
+
+        try:
+            db = SessionLocal()
+            try:
+                apply_match_result(db, winner_id=winner_user.id, loser_id=loser_user.id)
+            finally:
+                db.close()
+        except Exception:
+            logger.exception(
+                "Battle ranking update failed",
+            )
+
         self._matches.pop(match_id, None)
 
     async def _abort_match(self, match_id: str, state: MatchState, reason: str) -> None:
@@ -655,10 +621,7 @@ class BattleManager:
                 await player["ws"].close(code=_CLOSE_INTERNAL, reason=reason)
             except Exception:
                 logger.warning(
-                    "Battle abort close failed match_id=%s user_id=%s username=%s",
-                    match_id,
-                    player["user"].id,
-                    player["user"].username,
+                    "Battle abort close failed",
                 )
 
         self._matches.pop(match_id, None)

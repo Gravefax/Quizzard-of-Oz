@@ -5,7 +5,7 @@ on:
     branches:
       - main
       - dev
-      - revers-proxy
+
     paths:
       - "backend/**"
       - "frontend/**"

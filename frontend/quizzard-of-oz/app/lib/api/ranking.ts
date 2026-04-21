@@ -1,6 +1,6 @@
 import type { LeaderboardResponse } from "@/app/models/Leaderboard";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE ?? "/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE!;
 
 async function fetchLeaderboard(page = 1): Promise<LeaderboardResponse> {
   const res = await fetch(`${API_BASE_URL}/ranking/leaderboard?page=${page}`, {

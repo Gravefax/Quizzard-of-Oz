@@ -1,10 +1,8 @@
 import LoginResponse from "@/app/models/LoginResponse";
 
-const DEFAULT_API_BASE_URL = "/api";
-
 export const googleClientId = process.env.GOOGLE_CLIENT_ID!;
 
-const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE ?? DEFAULT_API_BASE_URL;
+const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE!;
 
 export async function loginWithGoogle(idToken: string): Promise<LoginResponse> {
   const res = await fetch(`${apiBaseUrl}/auth/google/login`, {

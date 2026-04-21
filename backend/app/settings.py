@@ -3,7 +3,9 @@ from __future__ import annotations
 import os
 from functools import lru_cache
 
-from pydantic import Field
+import json
+
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -18,6 +20,16 @@ class AppSettings(BaseSettings):
     )
 
     cors_origins: list[str] = Field(default=["http://localhost:3000", "https://localhost:3443"])
+
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, v: object) -> object:
+        if isinstance(v, str):
+            v = v.strip()
+            if v.startswith("["):
+                return json.loads(v)
+            return [o.strip() for o in v.split(",") if o.strip()]
+        return v
 
 
 def load_app_settings(env_file: str | None = None) -> AppSettings:

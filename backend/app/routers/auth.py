@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 from uuid import UUID
 from typing import Annotated
@@ -16,8 +17,10 @@ from app.crud import user as crud_user
 from app.schemas.login_response import LoginResponse
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+logger = logging.getLogger(__name__)
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+GOOGLE_CLOCK_SKEW_SECONDS = int(os.getenv("GOOGLE_CLOCK_SKEW_SECONDS", "10"))
 
 SESSION_EXP_MINUTES = int(os.getenv("SESSION_EXP_MINUTES", str(60 * 24 * 14)))
 COOKIE_SECURE = os.getenv("COOKIE_SECURE", "false").lower() == "true"
@@ -112,6 +115,7 @@ def login(
             token,
             google_requests.Request(),
             GOOGLE_CLIENT_ID or None,
+            clock_skew_in_seconds=GOOGLE_CLOCK_SKEW_SECONDS,
         )
 
         user = crud_user.get_user_by_google_sub(db, payload["sub"])
@@ -141,6 +145,7 @@ def login(
         )
 
     except ValueError as exc:
+        logger.warning("Google token verification failed: %s", exc)
         raise HTTPException(status_code=401, detail="Invalid token") from exc
 
 

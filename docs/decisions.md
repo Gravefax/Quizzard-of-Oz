@@ -72,3 +72,88 @@ Accepted
 - Positive: pnpm is fast and efficient with a smaller disk footprint
 - Negative: it has a smaller ecosystem footprint than npm
 - Neutral: adoption continues to grow and the tooling is actively maintained
+
+
+## ADR 4: Database Technology
+
+**Context**
+
+The project needs a persistent database for users, sessions, and match data.
+The main decision is NoSQL versus relational storage. The team evaluated MongoDB
+for NoSQL and MariaDB/PostgreSQL for relational options.
+
+**Decision**
+
+The project will use a relational database. The domain model is strongly
+structured (users, matches, scores, and session relations), and consistency is
+important for game state and ranking data. PostgreSQL was selected because it
+is reliable, well-known by the team, and provides strong SQL capabilities for
+future analytics and reporting needs.
+
+**Status**
+
+Accepted
+
+**Consequences**
+
+- Positive: strong data integrity guarantees, rich querying, and mature
+  operational tooling
+- Negative: schema migrations and relational modeling add design and
+  maintenance overhead
+- Neutral: development workflows include SQL and migration tooling as standard
+  practice
+
+
+## ADR 5: ORM vs Writing SQL Queries
+
+**Context**
+
+The backend needs a consistent and maintainable way to access relational data.
+The team evaluated two approaches: writing raw SQL queries for all operations
+or using an ORM with typed schemas and validation.
+
+**Decision**
+
+The project will use an ORM-first approach with SQLAlchemy for data access and
+Pydantic for request/response and domain validation. Raw SQL can still be used
+for performance-critical or highly specialized queries when needed.
+
+**Status**
+
+Accepted
+
+**Consequences**
+
+- Positive: improves developer productivity, consistency, and readability in
+  CRUD and relationship-heavy operations
+- Negative: adds ORM abstraction overhead and requires careful query tuning to
+  avoid performance pitfalls
+- Neutral: team workflows include SQLAlchemy models and Pydantic schemas as
+  standard backend patterns
+
+## ADR 6: WebSocket vs API Polling for Game Communication
+
+**Context**
+
+The project needs a communication pattern for the multiplayer game mode.
+Gameplay events such as match state updates, countdowns, and answer submissions
+must be delivered with low latency and in near real time.
+
+**Decision**
+
+The project will use WebSockets as the primary communication channel for battle
+mode runtime events. HTTP API endpoints remain in use for non-realtime
+operations such as authentication, setup, and historical data retrieval.
+
+**Status**
+
+Accepted
+
+**Consequences**
+
+- Positive: supports bidirectional low-latency communication and improves
+  realtime user experience in matches
+- Negative: introduces additional complexity for connection lifecycle,
+  reconnect handling, scaling, and monitoring
+- Neutral: requires team familiarity with event-driven patterns while existing
+  REST endpoints continue to be used where appropriate

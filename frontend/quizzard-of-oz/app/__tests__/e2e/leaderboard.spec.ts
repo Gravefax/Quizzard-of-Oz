@@ -86,7 +86,7 @@ test.describe("Leaderboard page", () => {
 
   test("opens via landing page and shows separate wins/losses columns", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: /leaderboard/i }).click();
+    await page.getByRole("link", { name: /leaderboard/i }).click();
 
     await expect(page).toHaveURL(/\/leaderboard$/);
     await expect(page.getByRole("columnheader", { name: /wins/i })).toBeVisible();

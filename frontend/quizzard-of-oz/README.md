@@ -1,36 +1,79 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-## Getting Started
+## Frontend Environment Variables
 
-First, run the development server:
+Create a local environment file before starting the frontend:
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+1. Copy `.env.example` to `.env`
+2. Adjust values if needed
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Required variables
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- `GOOGLE_CLIENT_ID`
+	- Google OAuth client ID used by login and Google OAuth provider.
+	- Example: `your_client_id_here`
+- `NEXT_PUBLIC_API_BASE`
+	- Base URL for API requests from the frontend.
+	- Use `/api` for local setup behind the Next.js proxy.
+	- Example: `/api`
+- `NEXT_PUBLIC_WS_BASE`
+	- Base URL for WebSocket connections (battle/match updates).
+	- Example: `ws://localhost:8000`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Optional variables
 
-## Learn More
+- `BACKEND_URL`
+	- Backend origin used in Next.js server/proxy configuration.
+	- Default example: `http://localhost:8000`
+- `API_SECRET`
+	- Optional secret for `app/api/protected/route.ts` (mainly used in tests).
+	- Default example: `secret-token`
 
-To learn more about Next.js, take a look at the following resources:
+## Google OAuth Setup
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+This guide explains how to create a Google OAuth client for local development.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 1. Create or select a Google Cloud project
 
-## Deploy on Vercel
+1. Open https://console.cloud.google.com/cloud-resource-manager
+2. Create a new project.
+3. Enter a project name and click **Create**.
+4. Wait until the project is fully created.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### 2. Configure the OAuth consent screen
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Open https://console.cloud.google.com/auth/overview
+2. In the top-left project selector, choose your project.
+3. Click **Get started** (or **First steps**) in the OAuth overview.
+4. Enter an app name (for example: `QOO`).
+5. Enter a support email address.
+6. Click **Next**.
+7. Select **External** as user type.
+8. Enter a developer contact email.
+9. Finish and create the consent screen configuration.
+
+### 3. Create an OAuth client
+
+1. In the OAuth overview, create a new OAuth client.
+2. For application type, select **Web application**.
+3. Enter a name (for example: `QOO-OAuth`).
+4. Add the following authorized origin for local development:
+	- `http://localhost:3000`
+5. Click **Create**.
+
+### 4. Copy credentials to environment files
+
+After creation, Google shows the client credentials in a popup.
+
+Use the **Client ID** in both backend and frontend environment files:
+
+- `backend/.env`
+- `frontend/quizzard-of-oz/.env`
+
+Set:
+
+- `GOOGLE_CLIENT_ID=<your-client-id>`
+
+
+
+
+

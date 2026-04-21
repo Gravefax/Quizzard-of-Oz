@@ -24,23 +24,20 @@ describe("LandingPage", () => {
     expect(screen.getByRole("heading", { name: /quizzard of oz/i })).toBeInTheDocument();
   });
 
-  it("renders Ranked Battle, Uebung and Leaderboard buttons", () => {
+  it("renders Ranked Battle and Uebung buttons", () => {
     render(<LandingPage />);
     expect(screen.getByRole("button", { name: /ranked battle/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /(uebung|übung)/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /leaderboard/i })).toBeInTheDocument();
   });
 
-  it("navigates to ranked, training and leaderboard pages", async () => {
+  it("navigates to ranked and training pages", async () => {
     const user = userEvent.setup();
     render(<LandingPage />);
 
     await user.click(screen.getByRole("button", { name: /ranked battle/i }));
     await user.click(screen.getByRole("button", { name: /(uebung|übung)/i }));
-    await user.click(screen.getByRole("button", { name: /leaderboard/i }));
 
     expect(mockPush).toHaveBeenCalledWith("/ranked-modus");
     expect(mockPush).toHaveBeenCalledWith("/trainings-modus");
-    expect(mockPush).toHaveBeenCalledWith("/leaderboard");
   });
 });

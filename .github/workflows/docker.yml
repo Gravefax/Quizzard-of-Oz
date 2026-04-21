@@ -110,4 +110,5 @@ jobs:
           build-args: |
             BACKEND_URL=http://backend:8000
             NEXT_PUBLIC_API_BASE=/api
+            GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
             GIT_COMMIT=${{ github.sha }}

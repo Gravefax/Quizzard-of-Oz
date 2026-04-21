@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { loginWithGoogle, refreshAccessToken, logout } from "@/app/api/auth";
+import { loginWithGoogle, refreshAccessToken, logout } from "@/app/lib/auth/authClient";
 
 function mockFetchResponse(status: number, body?: unknown): Response {
   return {

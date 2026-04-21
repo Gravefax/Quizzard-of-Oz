@@ -34,7 +34,6 @@ describe("Home page", () => {
     render(<Home />);
     expect(screen.getByRole("button", { name: /ranked battle/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /übung/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /leaderboard/i })).toBeInTheDocument();
   });
 
   it("Ranked button shows login hint", () => {

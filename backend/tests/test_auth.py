@@ -46,6 +46,13 @@ def override_db():
     app.dependency_overrides.clear()
 
 
+@pytest.fixture(autouse=True)
+def clear_client_cookies():
+    client.cookies.clear()
+    yield
+    client.cookies.clear()
+
+
 @pytest.fixture
 def fixed_time():
     return datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
@@ -178,10 +185,8 @@ def test_refresh_missing_cookie():
 
 
 def test_refresh_invalid_cookie_uuid():
-    response = client.get(
-        "/auth/google/refresh",
-        cookies={auth_router.SESSION_COOKIE_NAME: "not-a-uuid"},
-    )
+    client.cookies.set(auth_router.SESSION_COOKIE_NAME, "not-a-uuid")
+    response = client.get("/auth/google/refresh")
     assert response.status_code == 401
     assert response.json()["detail"] == "Invalid session"
 
@@ -194,10 +199,8 @@ def test_refresh_session_not_found(monkeypatch):
         MagicMock(return_value=None),
     )
 
-    response = client.get(
-        "/auth/google/refresh",
-        cookies={auth_router.SESSION_COOKIE_NAME: str(session_id)},
-    )
+    client.cookies.set(auth_router.SESSION_COOKIE_NAME, str(session_id))
+    response = client.get("/auth/google/refresh")
 
     assert response.status_code == 401
     assert response.json()["detail"] == "Session not found"
@@ -217,10 +220,8 @@ def test_refresh_session_expired_deletes_session(monkeypatch, override_db):
     delete_mock = MagicMock()
     monkeypatch.setattr(auth_router.crud_session, "delete_session", delete_mock)
 
-    response = client.get(
-        "/auth/google/refresh",
-        cookies={auth_router.SESSION_COOKIE_NAME: str(session_id)},
-    )
+    client.cookies.set(auth_router.SESSION_COOKIE_NAME, str(session_id))
+    response = client.get("/auth/google/refresh")
 
     assert response.status_code == 403
     assert response.json()["detail"] == "Session expired"
@@ -239,10 +240,8 @@ def test_refresh_user_not_found(monkeypatch, override_db):
     monkeypatch.setattr(auth_router.crud_session, "delete_session", delete_mock)
     monkeypatch.setattr(auth_router.crud_user, "get_user", MagicMock(return_value=None))
 
-    response = client.get(
-        "/auth/google/refresh",
-        cookies={auth_router.SESSION_COOKIE_NAME: str(session_id)},
-    )
+    client.cookies.set(auth_router.SESSION_COOKIE_NAME, str(session_id))
+    response = client.get("/auth/google/refresh")
 
     assert response.status_code == 401
     assert response.json()["detail"] == "User not found"
@@ -264,10 +263,8 @@ def test_refresh_success_extends_session(monkeypatch, fixed_time, override_db):
     monkeypatch.setattr(auth_router.crud_session, "extend_session", extend_mock)
     monkeypatch.setattr(auth_router.crud_user, "get_user", MagicMock(return_value=user))
 
-    response = client.get(
-        "/auth/google/refresh",
-        cookies={auth_router.SESSION_COOKIE_NAME: str(session_id)},
-    )
+    client.cookies.set(auth_router.SESSION_COOKIE_NAME, str(session_id))
+    response = client.get("/auth/google/refresh")
 
     assert response.status_code == 200
     assert response.json() == {
@@ -285,10 +282,8 @@ def test_logout_with_valid_cookie(monkeypatch, override_db):
     delete_mock = MagicMock()
     monkeypatch.setattr(auth_router.crud_session, "delete_session", delete_mock)
 
-    response = client.post(
-        "/auth/logout",
-        cookies={auth_router.SESSION_COOKIE_NAME: str(session_id)},
-    )
+    client.cookies.set(auth_router.SESSION_COOKIE_NAME, str(session_id))
+    response = client.post("/auth/logout")
 
     assert response.status_code == 204
     delete_mock.assert_called_once_with(override_db, session_id)
@@ -299,10 +294,8 @@ def test_logout_with_invalid_cookie(monkeypatch):
     delete_mock = MagicMock()
     monkeypatch.setattr(auth_router.crud_session, "delete_session", delete_mock)
 
-    response = client.post(
-        "/auth/logout",
-        cookies={auth_router.SESSION_COOKIE_NAME: "not-a-uuid"},
-    )
+    client.cookies.set(auth_router.SESSION_COOKIE_NAME, "not-a-uuid")
+    response = client.post("/auth/logout")
 
     assert response.status_code == 204
     delete_mock.assert_not_called()

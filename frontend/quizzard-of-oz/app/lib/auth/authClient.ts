@@ -1,0 +1,69 @@
+import LoginResponse from "@/app/models/LoginResponse";
+
+const DEFAULT_API_BASE_URL = "/api";
+
+export const googleClientId = process.env.GOOGLE_CLIENT_ID!;
+
+const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE ?? DEFAULT_API_BASE_URL;
+
+export async function loginWithGoogle(idToken: string): Promise<LoginResponse> {
+  const res = await fetch(`${apiBaseUrl}/auth/google/login`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${idToken}`,
+    },
+    credentials: "include",
+  });
+
+  if (res.status === 400) {
+    throw new Error("MISSING_TOKEN");
+  }
+
+  if (res.status === 401) {
+    let detail = "UNAUTHORIZED";
+    try {
+      const body = (await res.json()) as { detail?: string };
+      if (body?.detail) {
+        detail = body.detail;
+      }
+    } catch {
+      // Keep default detail when response has no JSON payload.
+    }
+
+    throw new Error(`UNAUTHORIZED:${detail}`);
+  }
+
+  if (!res.ok) {
+    throw new Error(`LOGIN_FAILED_${res.status}`);
+  }
+
+  return (await res.json()) as LoginResponse;
+}
+
+export async function refreshAccessToken(): Promise<LoginResponse> {
+  const res = await fetch(`${apiBaseUrl}/auth/google/refresh`, {
+    method: "GET",
+    credentials: "include",
+  });
+
+  if (res.status === 401) {
+    throw new Error("UNAUTHORIZED");
+  }
+
+  if (res.status === 403) {
+    throw new Error("TOKEN_EXPIRED");
+  }
+
+  if (!res.ok) {
+    throw new Error(`REFRESH_FAILED_${res.status}`);
+  }
+
+  return (await res.json()) as LoginResponse;
+}
+
+export async function logout(): Promise<void> {
+  await fetch(`${apiBaseUrl}/auth/logout`, {
+    method: "POST",
+    credentials: "include",
+  });
+}

@@ -23,27 +23,38 @@ test.describe("Ranked Mode E2E", () => {
   test("Ranked page has specific styling for ranked mode", async ({ page }) => {
     await page.goto("/ranked-modus");
     
-    // Check for ranked (fire) color theme
+    // Wait for the login card to appear (which contains the fire color styling)
+    await page.waitForSelector(".login-card", { timeout: 5000 }).catch(() => {
+      // May not appear if logged in or if queue appears instead
+    });
+    
+    // Wait for page to fully hydrate
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(300);
+    
+    // Check computed styles of the login-card element or check for color in CSS
     const html = await page.content();
-    expect(html).toContain("255,60,20"); // Fire color RGB
+    
+    // Fire color should appear in either the CSS or the HTML
+    const hasFireColor = html.includes("255,60,20") || 
+                        html.includes("rgb(255,60,20)") ||
+                        html.includes("255, 60, 20");
+    
+    expect(hasFireColor).toBe(true);
   });
 
   test("Back button on ranked page navigates to home", async ({ page }) => {
     await page.goto("/ranked-modus");
     
-    // Find and click back button
-    const buttons = await page.getByRole("button").all();
+    // Wait for page to render
+    await page.waitForTimeout(500);
     
-    // Look for button that navigates back
-    for (const button of buttons) {
-      const ariaLabel = await button.getAttribute("aria-label");
-      const text = await button.textContent();
-      
-      if (ariaLabel?.toLowerCase().includes("back") || text?.toLowerCase().includes("zurück")) {
-        await button.click();
-        break;
-      }
-    }
+    // Find and click back button - look for button with text containing Zurück
+    const backButton = page.getByRole("button").filter({ hasText: /zurück/i }).first();
+    await backButton.click();
+    
+    // Wait for navigation
+    await page.waitForTimeout(500);
     
     // Should navigate back to home
     await expect(page).toHaveURL("/");
@@ -52,10 +63,16 @@ test.describe("Ranked Mode E2E", () => {
   test("Page styling persists on refresh", async ({ page }) => {
     await page.goto("/ranked-modus");
     
+    // Wait for page to render
+    await page.waitForTimeout(500);
+    
     const initialHTML = await page.content();
     const hasFireColor1 = initialHTML.includes("255,60,20");
     
     await page.reload();
+    
+    // Wait for page to render after reload
+    await page.waitForTimeout(500);
     
     const refreshedHTML = await page.content();
     const hasFireColor2 = refreshedHTML.includes("255,60,20");

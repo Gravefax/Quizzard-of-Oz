@@ -76,10 +76,6 @@ export default function LandingPage() {
     router.push('/trainings-modus');
   }
 
-  function handleLeaderboard() {
-    router.push('/leaderboard');
-  }
-
   useEffect(() => {
     let cancelled = false;
 
@@ -276,18 +272,6 @@ export default function LandingPage() {
           background: linear-gradient(145deg, rgba(0,212,255,0.08) 0%, rgba(0,80,120,0.08) 100%);
           border: 1px solid rgba(0,212,255,0.3);
           border-radius: 1rem;
-        }
-
-        .leaderboard-btn {
-          background: linear-gradient(145deg, rgba(0,212,255,0.13) 0%, rgba(0,120,180,0.1) 100%);
-          border: 1px solid rgba(0,212,255,0.42);
-          border-radius: 1rem;
-          transition: transform 0.22s ease, box-shadow 0.22s ease;
-        }
-
-        .leaderboard-btn:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 16px 40px rgba(0,212,255,0.16);
         }
 
         /* ── Typography ── */
@@ -493,27 +477,6 @@ export default function LandingPage() {
               </div>
             </button>
 
-            {/* LEADERBOARD */}
-            <button
-              className="leaderboard-btn w-full"
-              style={{ padding: '14px 20px' }}
-              onClick={handleLeaderboard}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '42px', height: '42px', borderRadius: '50%', background: 'rgba(0,212,255,0.14)', border: '1px solid rgba(0,212,255,0.35)', fontSize: '1.1rem' }}>
-                  🏆
-                </div>
-                <div style={{ textAlign: 'left', flex: 1 }}>
-                  <div style={{ color: 'rgba(190,240,255,0.92)', fontSize: '0.95rem', fontWeight: 600, letterSpacing: '0.04em', marginBottom: '2px' }}>
-                    Leaderboard
-                  </div>
-                  <div style={{ color: 'rgba(130,205,235,0.62)', fontSize: '0.7rem', letterSpacing: '0.08em' }}>
-                    Top Spieler ansehen
-                  </div>
-                </div>
-                <div style={{ flexShrink: 0, color: 'rgba(110,215,255,0.65)', fontSize: '1rem' }}>›</div>
-              </div>
-            </button>
           </div>
         </main>
       </div>

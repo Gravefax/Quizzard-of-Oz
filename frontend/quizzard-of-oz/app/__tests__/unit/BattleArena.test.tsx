@@ -31,11 +31,9 @@ type MockWebSocketClass = {
 
 let mockWebSocket!: MockWebSocketInstance;
 let mockWebSocketClass: MockWebSocketClass;
-let originalWsBase: string | undefined;
 let originalApiBase: string | undefined;
 
 beforeEach(() => {
-  originalWsBase = process.env.NEXT_PUBLIC_WS_BASE;
   originalApiBase = process.env.NEXT_PUBLIC_API_BASE;
 
   mockWebSocketClass = class MWS {
@@ -60,12 +58,6 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  if (originalWsBase === undefined) {
-    delete process.env.NEXT_PUBLIC_WS_BASE;
-  } else {
-    process.env.NEXT_PUBLIC_WS_BASE = originalWsBase;
-  }
-
   if (originalApiBase === undefined) {
     delete process.env.NEXT_PUBLIC_API_BASE;
   } else {
@@ -374,20 +366,20 @@ describe("BattleArena Component Tests", () => {
     });
   });
 
-  it("uses NEXT_PUBLIC_WS_BASE when building the websocket url", () => {
-    process.env.NEXT_PUBLIC_WS_BASE = "wss://example.test/ws/";
+  it("uses NEXT_PUBLIC_API_BASE when building the websocket url", () => {
+    process.env.NEXT_PUBLIC_API_BASE = "https://example.test/api/";
 
     renderArena("match-902");
 
-    expect(mockWebSocket.url).toBe("wss://example.test/ws/battle/ws/match-902");
+    expect(mockWebSocket.url).toBe("wss://example.test/api/battle/ws/match-902");
   });
 
-  it("uses a relative NEXT_PUBLIC_API_BASE when building the websocket url", () => {
-    process.env.NEXT_PUBLIC_API_BASE = "/api";
+  it("falls back to window location when NEXT_PUBLIC_API_BASE is unset", () => {
+    delete process.env.NEXT_PUBLIC_API_BASE;
 
     renderArena("match-903");
 
-    expect(mockWebSocket.url).toContain("/api/battle/ws/match-903");
+    expect(mockWebSocket.url).toContain("/battle/ws/match-903");
     expect(mockWebSocket.url.startsWith("ws://")).toBe(true);
   });
 

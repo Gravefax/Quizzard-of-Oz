@@ -1,0 +1,84 @@
+@startuml C3_Backend_Components
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+title C4 Model – Level 3: Backend Components\nFastAPI Backend
+
+Container_Ext(frontend, "Next.js Frontend", "React / Next.js", "Sendet REST- und WebSocket-Anfragen.")
+ContainerDb_Ext(database, "PostgreSQL", "PostgreSQL 18.3", "Primäre Datenbank.")
+System_Ext(google_oauth, "Google OAuth 2.0", "JWT-Validierung.")
+System_Ext(trivia_api, "The Trivia API", "Externer Quizfragen-Lieferant.")
+
+Container_Boundary(backend, "FastAPI Backend") {
+
+    ' ── Routers (Inbound) ──────────────────────────────────────
+    Component(auth_router, "AuthRouter", "FastAPI APIRouter\napp/routers/auth.py", "POST /auth/google/login\nDELETE /auth/logout\nSession-Cookie setzen/löschen.")
+
+    Component(quiz_router, "QuizRouter", "FastAPI APIRouter\napp/routers/quiz.py", "GET /quiz/practice/questions\nPOST /quiz/practice/answer\nFür den Solo-Übungsmodus.")
+
+    Component(battle_router, "BattleRouter", "FastAPI APIRouter + WebSocket\napp/routers/battle.py", "WS /battle/queue (Matchmaking)\nWS /battle/ws/{match_id} (Match-Arena)\nSession-Validierung bei Verbindungsaufbau.")
+
+    Component(ranking_router, "RankingRouter", "FastAPI APIRouter\napp/routers/ranking.py", "GET /ranking/users/{user_id}\nGET /ranking/leaderboard?page=N\nPaginiertes Leaderboard.")
+
+    Component(trivia_router, "TriviaRouter", "FastAPI APIRouter\napp/routers/trivia.py", "GET /api/trivia/questions\nFragen aus lokalem Cache abrufen.")
+
+    ' ── Services (Business Logic) ──────────────────────────────
+    Component(battle_manager, "BattleManagerService", "Python Service\napp/services/battle_manager.py", "Orchestriert den gesamten Match-Lifecycle.\nState-Machine: waiting → picking →\nquestions → finished.\nVerwaltet 5 Runden je Match.")
+
+    Component(matchmaking_svc, "MatchmakingService", "Python Service\napp/services/matchmaking_service.py", "Queue-Verwaltung für Ranked/Unranked.\nElo-basiertes Range-Matching.\nBenachrichtigt beide Spieler bei Match.")
+
+    Component(ranking_svc, "RankingService", "Python Service\napp/services/ranking_service.py", "Elo-Berechnung (K-Faktor=32).\nLeaderboard-Abfragen mit Pagination.")
+
+    Component(quiz_svc, "QuizService", "Python Service\napp/services/quiz_service.py", "Fragenauswahl nach Kategorie.\nAntwortvalidierung & Score-Berechnung.")
+
+    Component(trivia_svc, "TriviaService", "Python Service\napp/services/trivia_service.py", "Question-Cache-Management.\nBatch-Refill (20 Fragen) wenn Cache leer.\nAbstraktion über TriviaClient.")
+
+    Component(trivia_client, "TriviaClient", "httpx AsyncClient\napp/services/trivia_client.py", "HTTP-Client für the-trivia-api.com.\nRetry-Logik (max 2, Backoff 0.25s).\nFilter nach Kategorie & Schwierigkeit.")
+
+    ' ── CRUD Layer (Data Access) ───────────────────────────────
+    Component(user_crud, "UserCRUD", "SQLAlchemy CRUD\napp/crud/user.py", "Nutzer erstellen & abfragen\n(lookup by google_sub).")
+
+    Component(session_crud, "SessionCRUD", "SQLAlchemy CRUD\napp/crud/session.py", "Session erstellen, validieren\nund löschen.")
+
+    Component(ranking_crud, "RankingCRUD", "SQLAlchemy CRUD\napp/crud/ranking.py", "Elo-Rating lesen & schreiben.\nLeaderboard-Abfragen.")
+
+    Component(qcache_crud, "QuestionCacheCRUD", "SQLAlchemy CRUD\napp/crud/question_cache.py", "Gecachte Fragen lesen, schreiben\nund nach Kategorie filtern.")
+}
+
+' ── Externe Verbindungen ────────────────────────────────────────
+Rel(frontend, auth_router, "POST /auth/google/login\nDELETE /auth/logout", "HTTPS / JSON")
+Rel(frontend, quiz_router, "GET questions\nPOST answer", "HTTPS / JSON")
+Rel(frontend, battle_router, "WS Queue\nWS Match", "WebSocket")
+Rel(frontend, ranking_router, "GET ranking/leaderboard", "HTTPS / JSON")
+Rel(frontend, trivia_router, "GET trivia/questions", "HTTPS / JSON")
+
+' ── Router → Service ───────────────────────────────────────────
+Rel(auth_router, user_crud, "Nutzer anlegen/laden")
+Rel(auth_router, session_crud, "Session erstellen/löschen")
+Rel(quiz_router, quiz_svc, "Fragen laden & Antwort prüfen")
+Rel(battle_router, matchmaking_svc, "In Queue eintragen")
+Rel(battle_router, battle_manager, "Match-Events weiterleiten")
+Rel(ranking_router, ranking_svc, "Elo & Leaderboard abfragen")
+Rel(trivia_router, trivia_svc, "Fragen aus Cache laden")
+
+' ── Service → Service ──────────────────────────────────────────
+Rel(battle_manager, quiz_svc, "Fragen für Runde laden")
+Rel(battle_manager, ranking_svc, "Elo nach Match updaten")
+Rel(trivia_svc, trivia_client, "Upstream-API aufrufen\nbei leerem Cache")
+
+' ── CRUD → DB ──────────────────────────────────────────────────
+Rel(user_crud, database, "users Tabelle", "SQL")
+Rel(session_crud, database, "sessions Tabelle", "SQL")
+Rel(ranking_crud, database, "rankings Tabelle", "SQL")
+Rel(qcache_crud, database, "question_cache Tabelle", "SQL")
+
+Rel(quiz_svc, qcache_crud, "Fragen aus Cache lesen")
+Rel(trivia_svc, qcache_crud, "Fragen in Cache schreiben")
+Rel(ranking_svc, ranking_crud, "Elo lesen & schreiben")
+
+' ── Externe Systeme ─────────────────────────────────────────────
+Rel(auth_router, google_oauth, "JWT validieren\n(Public Key)", "HTTPS")
+Rel(trivia_client, trivia_api, "Quizfragen abrufen", "HTTPS / REST")
+
+@enduml

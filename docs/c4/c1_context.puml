@@ -1,0 +1,24 @@
+@startuml C1_Context
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+LAYOUT_WITH_LEGEND()
+
+title C4 Model – Level 1: System Context\nQuizzard of Oz
+
+Person(guest, "Gast-Nutzer", "Spielt den Übungsmodus und\nbetrachtet das Leaderboard\nohne Anmeldung.")
+
+Person(user, "Angemeldeter Nutzer", "Spielt Ranked- und Unranked-\nMultiplayer-Matches, hat ein\nElo-Rating und Spielhistorie.")
+
+System(quizzard, "Quizzard of Oz", "Webbasierte Multiplayer-Quiz-Plattform\nmit Übungsmodus, Ranked- und\nUnranked-Matches sowie Leaderboard.")
+
+System_Ext(google_oauth, "Google OAuth 2.0", "Identity Provider.\nAuthentifiziert Nutzer via\nGoogle-Konto (JWT-basiert).")
+
+System_Ext(trivia_api, "The Trivia API", "Externer Fragenlieferant.\nLiefert Multiple-Choice-Quizfragen\nnach Kategorie und Schwierigkeit.\n(the-trivia-api.com)")
+
+Rel(guest, quizzard, "Nutzt", "HTTPS")
+Rel(user, quizzard, "Nutzt", "HTTPS / WebSocket")
+
+Rel(quizzard, google_oauth, "Validiert Google JWT", "HTTPS")
+Rel(quizzard, trivia_api, "Ruft Quizfragen ab\n(mit Retry-Logik)", "HTTPS / REST")
+
+@enduml

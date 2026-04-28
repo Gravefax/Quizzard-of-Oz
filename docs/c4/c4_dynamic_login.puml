@@ -1,0 +1,32 @@
+@startuml C4_Dynamic_Login
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Dynamic.puml
+
+LAYOUT_WITH_LEGEND()
+
+title C4 Model – Dynamic Diagram: Google OAuth Login-Flow\nQuizzard of Oz
+
+Person(user, "Nutzer", "Klickt auf \"Mit Google anmelden\".")
+
+Container(frontend, "Next.js Frontend", "Next.js / React", "Rendert LoginButton\nvia @react-oauth/google.")
+
+Container(backend, "FastAPI Backend", "Python / FastAPI", "Validiert JWT und\nerstellt Session.")
+
+ContainerDb(database, "PostgreSQL", "PostgreSQL 18.3", "Speichert User & Session.")
+
+System_Ext(google, "Google OAuth 2.0", "Google Identity Provider.")
+
+Rel(user, frontend, "1", "Klickt Login-Button")
+Rel(frontend, google, "2", "OAuth-Popup öffnen (HTTPS)")
+Rel(google, user, "3", "Google-Konto wählen\n& Consent bestätigen")
+Rel(google, frontend, "4", "Google JWT zurückgeben")
+Rel(frontend, backend, "5", "POST /auth/google/login\n{google_token: \"<JWT>\"}")
+Rel(backend, google, "6", "JWT verifizieren\n(Public Key Check, HTTPS)")
+Rel(google, backend, "7", "JWT-Claims: sub, email, name")
+Rel(backend, database, "8", "Nutzer anlegen/aktualisieren\n(users Tabelle)")
+Rel(backend, database, "9", "Session erstellen\n(sessions Tabelle, expires_at)")
+Rel(database, backend, "10", "Session-ID zurückgeben")
+Rel(backend, frontend, "11", "200 OK + HttpOnly-Cookie\n(session_id, 36h TTL)")
+Rel(frontend, frontend, "12", "AuthStore updaten\n(user, isAuthenticated=true)")
+Rel(frontend, user, "13", "UserMenu anzeigen\nWeiterleitung zum Dashboard")
+
+@enduml

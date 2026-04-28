@@ -1,0 +1,80 @@
+@startuml C3_Frontend_Components
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+title C4 Model – Level 3: Frontend Components\nNext.js Frontend
+
+Person_Ext(user, "Nutzer", "Interagiert mit der Web-App\nim Browser.")
+Container_Ext(backend, "FastAPI Backend", "Python / FastAPI", "REST-API und WebSocket-Server.")
+System_Ext(google_oauth, "Google OAuth 2.0", "Google Identity Provider\nfür OAuth-Popup.")
+
+Container_Boundary(frontend, "Next.js Frontend") {
+
+    ' ── Pages ──────────────────────────────────────────────────
+    Component(landing_page, "LandingPage", "Next.js Page\napp/page.tsx", "Startseite mit Moduswahl.\nZeigt Login-Button für\nnicht authentifizierte Nutzer.")
+
+    Component(practice_page, "PracticePage", "Next.js Page\napp/trainings-modus/page.tsx", "Solo-Übungsmodus.\n10 Multiple-Choice-Fragen,\nkein Account erforderlich.")
+
+    Component(ranked_page, "RankedPage", "Next.js Page\napp/ranked-modus/page.tsx", "Einstieg in Matchmaking-Queue\nfür Ranked- und Unranked-Matches.\nErfordert Authentifizierung.")
+
+    Component(leaderboard_page, "LeaderboardPage", "Next.js Page\napp/leaderboard/page.tsx", "Globale Rangliste aller Spieler.\nPaginiert, öffentlich zugänglich.")
+
+    Component(battle_arena_page, "BattleArenaPage", "Next.js Page\napp/battle/[match_id]/page.tsx", "Live-Multiplayer-Match-Interface.\nKategoriewahl, Fragerunden,\nRundenauswertung, Endscreen.")
+
+    ' ── Components ─────────────────────────────────────────────
+    Component(login_button, "LoginButton", "React Component\n@react-oauth/google", "Initiiert Google-OAuth-Flow.\nEmpfängt Google JWT und\nleitet an AuthClient weiter.")
+
+    Component(user_menu, "UserMenu", "React Component", "Zeigt Nutzerprofil und Elo.\nLogout-Funktion.")
+
+    Component(queue_component, "Queue", "React Component", "Matchmaking-Queue-UI.\nZeigt Wartestatus in Echtzeit.\nVerbindet WebSocket zu /battle/queue.")
+
+    Component(battle_components, "BattleComponents", "React Components\n(CategoryPicker, QuestionCard,\nAnswerFeedback, ScoreBoard)", "UI-Elemente für den Match-Ablauf.\nKategorienwahl, Fragen,\nAntwort-Feedback, Punktestand.")
+
+    ' ── State ──────────────────────────────────────────────────
+    Component(auth_store, "AuthStore", "Zustand Store\napp/stores/authStore.ts", "Globaler Auth-State.\nSpeichert User-Credentials,\nSession-Token und User-Profil.")
+
+    ' ── API Clients ────────────────────────────────────────────
+    Component(auth_client, "AuthClient", "TypeScript Client\napp/lib/auth/authClient.ts", "Session-Validierung gegen Backend.\nToken-Management.\nLeitet Google JWT an Backend weiter.")
+
+    Component(quiz_api_client, "QuizApiClient", "Axios Client\napp/lib/api/quiz.ts", "GET /quiz/practice/questions\nPOST /quiz/practice/answer\nFür den Übungsmodus.")
+
+    Component(ranking_api_client, "RankingApiClient", "Axios Client\napp/lib/api/ranking.ts", "GET /ranking/leaderboard\nGET /ranking/users/{id}\nFür Leaderboard & Profil.")
+
+    Component(ws_client, "WebSocketClient", "Browser WebSocket API\napp/lib/utils/wsUrl.ts", "Verbindet zu /battle/queue\nund /battle/ws/{match_id}.\nVerarbeitet Match-Events.")
+}
+
+' ── Nutzer → Pages ─────────────────────────────────────────────
+Rel(user, landing_page, "Öffnet Startseite", "HTTPS")
+Rel(user, practice_page, "Startet Übungsmodus", "HTTPS")
+Rel(user, ranked_page, "Betritt Matchmaking-Queue", "HTTPS")
+Rel(user, leaderboard_page, "Betrachtet Rangliste", "HTTPS")
+Rel(user, battle_arena_page, "Spielt Match", "HTTPS / WebSocket")
+
+' ── Pages → Components ─────────────────────────────────────────
+Rel(landing_page, login_button, "Zeigt Login-Button")
+Rel(landing_page, user_menu, "Zeigt User-Menü (auth)")
+Rel(ranked_page, queue_component, "Rendert Queue-UI")
+Rel(battle_arena_page, battle_components, "Rendert Match-Elemente")
+
+' ── Components → Clients ───────────────────────────────────────
+Rel(login_button, google_oauth, "OAuth-Popup öffnen", "HTTPS")
+Rel(login_button, auth_client, "Google JWT übergeben")
+Rel(queue_component, ws_client, "WS /battle/queue")
+Rel(battle_arena_page, ws_client, "WS /battle/ws/{match_id}")
+Rel(practice_page, quiz_api_client, "Fragen laden & Antwort senden")
+Rel(leaderboard_page, ranking_api_client, "Leaderboard laden")
+Rel(battle_arena_page, ranking_api_client, "Nutzer-Ranking laden")
+
+' ── Clients ↔ State ────────────────────────────────────────────
+Rel(auth_client, auth_store, "Auth-State updaten")
+Rel(user_menu, auth_store, "Auth-State lesen")
+Rel(ranked_page, auth_store, "Session-Token lesen")
+
+' ── Clients → Backend ──────────────────────────────────────────
+Rel(auth_client, backend, "POST /auth/google/login\nSession-Cookie empfangen", "HTTPS / JSON")
+Rel(quiz_api_client, backend, "GET /quiz/practice/questions\nPOST /quiz/practice/answer", "HTTPS / JSON")
+Rel(ranking_api_client, backend, "GET /ranking/leaderboard\nGET /ranking/users/{id}", "HTTPS / JSON")
+Rel(ws_client, backend, "WS /battle/queue\nWS /battle/ws/{match_id}", "WebSocket")
+
+@enduml

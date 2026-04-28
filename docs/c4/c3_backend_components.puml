@@ -3,7 +3,7 @@
 
 LAYOUT_WITH_LEGEND()
 
-title C4 Model – Level 3: Backend Components\nFastAPI Backend
+title C4 Model - Level 3: Backend Components\nFastAPI Backend
 
 Container_Ext(frontend, "Next.js Frontend", "React / Next.js", "Sendet REST- und WebSocket-Anfragen.")
 ContainerDb_Ext(database, "PostgreSQL", "PostgreSQL 18.3", "Primäre Datenbank.")

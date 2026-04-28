@@ -3,7 +3,7 @@
 
 LAYOUT_WITH_LEGEND()
 
-title C4 Model – Level 2: Container\nQuizzard of Oz
+title C4 Model - Level 2: Container\nQuizzard of Oz
 
 Person(guest, "Gast-Nutzer", "Kein Login erforderlich.")
 Person(user, "Angemeldeter Nutzer", "Google-authentifiziert,\nspielt Multiplayer-Modi.")

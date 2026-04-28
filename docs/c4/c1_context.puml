@@ -3,7 +3,7 @@
 
 LAYOUT_WITH_LEGEND()
 
-title C4 Model – Level 1: System Context\nQuizzard of Oz
+title C4 Model - Level 1: System Context\nQuizzard of Oz
 
 Person(guest, "Gast-Nutzer", "Spielt den Übungsmodus und\nbetrachtet das Leaderboard\nohne Anmeldung.")
 

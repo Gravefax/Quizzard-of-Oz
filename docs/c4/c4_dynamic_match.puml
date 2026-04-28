@@ -3,7 +3,7 @@
 
 LAYOUT_WITH_LEGEND()
 
-title C4 Model – Dynamic Diagram: Multiplayer-Match-Flow\nQuizzard of Oz (Ranked / Unranked)
+title C4 Model - Dynamic Diagram: Multiplayer-Match-Flow\nQuizzard of Oz (Ranked / Unranked)
 
 Person(player1, "Spieler 1", "Ranked/Unranked Spieler.")
 Person(player2, "Spieler 2", "Ranked/Unranked Spieler.")
@@ -17,36 +17,36 @@ ContainerDb(database, "PostgreSQL", "PostgreSQL 18.3", "rankings, question_cache
 
 ' ── Phase 1: Matchmaking ───────────────────────────────────────
 Rel(player1, frontend1, "1", "Queue beitreten (Ranked/Unranked)")
-Rel(frontend1, backend, "2", "WS /battle/queue\n{type: \"queued\"}")
+Rel(frontend1, backend, "2", "WS /battle/queue\ntype: queued")
 Rel(player2, frontend2, "3", "Queue beitreten")
-Rel(frontend2, backend, "4", "WS /battle/queue\n{type: \"queued\"}")
+Rel(frontend2, backend, "4", "WS /battle/queue\ntype: queued")
 Rel(backend, backend, "5", "MatchmakingService:\nElo-Range prüfen → Match gefunden")
-Rel(backend, frontend1, "6", "{type: \"matched\",\nmatch_id: \"<uuid>\"}")
-Rel(backend, frontend2, "7", "{type: \"matched\",\nmatch_id: \"<uuid>\"}")
+Rel(backend, frontend1, "6", "type: matched\nmatch_id: [uuid]")
+Rel(backend, frontend2, "7", "type: matched\nmatch_id: [uuid]")
 
 ' ── Phase 2: Match-Verbindung ──────────────────────────────────
-Rel(frontend1, backend, "8", "WS /battle/ws/{match_id}\n(Session-Cookie validieren)")
-Rel(frontend2, backend, "9", "WS /battle/ws/{match_id}\n(Session-Cookie validieren)")
-Rel(backend, frontend1, "10", "{type: \"match_ready\",\nopponent: \"Spieler 2\"}")
-Rel(backend, frontend2, "11", "{type: \"match_ready\",\nopponent: \"Spieler 1\"}")
+Rel(frontend1, backend, "8", "WS /battle/ws/[match_id]\n(Session-Cookie validieren)")
+Rel(frontend2, backend, "9", "WS /battle/ws/[match_id]\n(Session-Cookie validieren)")
+Rel(backend, frontend1, "10", "type: match_ready\nopponent: Spieler 2")
+Rel(backend, frontend2, "11", "type: match_ready\nopponent: Spieler 1")
 
 ' ── Phase 3: Runde (wiederholt bis 3 gewonnene Runden) ────────
-Rel(backend, frontend1, "12", "{type: \"pick_category\",\ncategories: [A, B, C]}\n(Spieler 1 wählt in Runde 1)")
-Rel(frontend1, backend, "13", "{type: \"pick_category\",\ncategory: \"Science\"}")
-Rel(backend, frontend2, "14", "{type: \"category_chosen\",\ncategory: \"Science\"}")
+Rel(backend, frontend1, "12", "type: pick_category\ncategories: [A, B, C]\n(Spieler 1 wählt in Runde 1)")
+Rel(frontend1, backend, "13", "type: pick_category\ncategory: Science")
+Rel(backend, frontend2, "14", "type: category_chosen\ncategory: Science")
 Rel(backend, database, "15", "Fragen aus question_cache laden\n(Kategorie: Science, 3 Fragen)")
-Rel(backend, frontend1, "16", "{type: \"question\", question: {...}}")
-Rel(backend, frontend2, "17", "{type: \"question\", question: {...}}")
-Rel(frontend1, backend, "18", "{type: \"answer\", answer: \"B\"}")
-Rel(frontend2, backend, "19", "{type: \"answer\", answer: \"C\"}")
-Rel(backend, frontend1, "20", "{type: \"answer_result\",\ncorrect: true, score: 1}")
-Rel(backend, frontend2, "21", "{type: \"answer_result\",\ncorrect: false, score: 0}")
-Rel(backend, frontend1, "22", "{type: \"round_result\",\nwinner: \"Spieler 1\", scores: {...}}")
-Rel(backend, frontend2, "23", "{type: \"round_result\",\nwinner: \"Spieler 1\", scores: {...}}")
+Rel(backend, frontend1, "16", "type: question\nquestion: [...]")
+Rel(backend, frontend2, "17", "type: question\nquestion: [...]")
+Rel(frontend1, backend, "18", "type: answer\nanswer: B")
+Rel(frontend2, backend, "19", "type: answer\nanswer: C")
+Rel(backend, frontend1, "20", "type: answer_result\ncorrect: true, score: 1")
+Rel(backend, frontend2, "21", "type: answer_result\ncorrect: false, score: 0")
+Rel(backend, frontend1, "22", "type: round_result\nwinner: Spieler 1, scores: [...]")
+Rel(backend, frontend2, "23", "type: round_result\nwinner: Spieler 1, scores: [...]")
 
 ' ── Phase 4: Match-Ende ───────────────────────────────────────
-Rel(backend, frontend1, "24", "{type: \"game_over\",\nwinner: \"Spieler 1\",\nelo_change: +18}")
-Rel(backend, frontend2, "25", "{type: \"game_over\",\nwinner: \"Spieler 1\",\nelo_change: -18}")
+Rel(backend, frontend1, "24", "type: game_over\nwinner: Spieler 1\nelo_change: +18")
+Rel(backend, frontend2, "25", "type: game_over\nwinner: Spieler 1\nelo_change: -18")
 Rel(backend, database, "26", "Elo-Rating updaten\n(K=32, beide Spieler)\nranking Tabelle")
 
 @enduml

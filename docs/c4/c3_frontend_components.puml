@@ -3,7 +3,7 @@
 
 LAYOUT_WITH_LEGEND()
 
-title C4 Model – Level 3: Frontend Components\nNext.js Frontend
+title C4 Model - Level 3: Frontend Components\nNext.js Frontend
 
 Person_Ext(user, "Nutzer", "Interagiert mit der Web-App\nim Browser.")
 Container_Ext(backend, "FastAPI Backend", "Python / FastAPI", "REST-API und WebSocket-Server.")

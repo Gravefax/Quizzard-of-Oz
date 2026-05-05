@@ -157,3 +157,28 @@ Accepted
   reconnect handling, scaling, and monitoring
 - Neutral: requires team familiarity with event-driven patterns while existing
   REST endpoints continue to be used where appropriate
+
+## ADR 7: Authentication with Google OAuth
+
+**Context**
+
+The project currently uses Google OAuth for authentication, but the team is evaluating whether to keep that setup or move to a different authentication approach. A major concern is testability: a custom provider would be easier to control and mock in Playwright than Google OAuth.
+
+**Decision**
+
+The current implementation uses Google OAuth for sign-in, and the backend creates and refreshes application sessions after a successful login. The long-term authentication strategy is still under review, with better automated testability as one of the key decision factors.
+
+**Status**
+
+Pending
+
+**Consequences**
+
+- Positive: reduces custom security work compared with a fully self-managed
+  credential flow.
+- Positive: a custom provider would be easier to mock in Playwright-based end-
+  to-end tests.
+- Negative: continuing with Google keeps the auth flow dependent on an
+  external service and makes browser automation harder to isolate.
+- Neutral: the backend still manages application sessions and authorization
+  for protected routes.

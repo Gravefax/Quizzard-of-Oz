@@ -9,6 +9,7 @@ from app.routers import quiz
 from app.routers import user, auth, battle, ranking
 from app.routers import trivia
 from app.services.trivia_service import close_trivia_resources
+from app.settings import get_app_settings
 
 
 LOG_FORMAT = "%(asctime)s.%(msecs)03d | %(levelname)s | %(name)s | %(message)s"
@@ -35,6 +36,13 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="SQS Team 11 API", lifespan=lifespan)
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=get_app_settings().cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(user.router)
 app.include_router(auth.router)

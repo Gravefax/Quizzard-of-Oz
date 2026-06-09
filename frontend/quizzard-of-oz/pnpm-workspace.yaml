@@ -1,3 +1,4 @@
-ignoredBuiltDependencies:
-  - sharp
-  - unrs-resolver
+# frontend/quizzard-of-oz/pnpm-workspace.yaml
+allowBuilds:
+  sharp: true
+  unrs-resolver: true

@@ -1,0 +1,34 @@
+@startuml C2_Container
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_WITH_LEGEND()
+
+title C4 Model - Level 2: Container\nQuizzard of Oz
+
+Person(guest, "Gast-Nutzer", "Kein Login erforderlich.")
+Person(user, "Angemeldeter Nutzer", "Google-authentifiziert,\nspielt Multiplayer-Modi.")
+
+System_Ext(google_oauth, "Google OAuth 2.0", "Authentifizierung via\nGoogle-Konto (JWT).")
+System_Ext(trivia_api, "The Trivia API", "Externer Quizfragen-\nLieferant (REST).")
+
+System_Boundary(quizzard, "Quizzard of Oz") {
+
+    Container(frontend, "Next.js Frontend", "Next.js 16 / React 19\nTailwind CSS / Zustand\n@react-oauth/google / Axios", "Single-Page-Application.\nRendert Spielmodi, Leaderboard und\nMatch-Interface. Kommuniziert via\nREST und WebSocket mit dem Backend.")
+
+    Container(backend, "FastAPI Backend", "Python 3.12 / FastAPI\nUvicorn ASGI / SQLAlchemy 2.0\nhttpx / websockets", "REST-API und WebSocket-Server.\nEnthält Spiellogik, Matchmaking,\nElo-Rating-System und\nSession-Verwaltung.")
+
+    ContainerDb(database, "PostgreSQL", "PostgreSQL 18.3\n4 Tabellen:\nusers, sessions,\nrankings, question_cache", "Primäre Datenbank.\nSpeichert Nutzer, Sessions,\nElo-Ratings und gecachte\nTrivia-Fragen.")
+}
+
+Rel(guest, frontend, "Nutzt", "HTTPS")
+Rel(user, frontend, "Nutzt", "HTTPS")
+
+Rel(frontend, backend, "REST-Anfragen\n(Login, Fragen, Ranking)", "HTTPS / JSON")
+Rel(frontend, backend, "Echtzeit-Kommunikation\n(Queue, Match)", "WebSocket (wss://)")
+
+Rel(backend, database, "Liest und schreibt\n(SQLAlchemy ORM)", "TCP / SQL")
+
+Rel(backend, google_oauth, "Validiert Google-JWT\n(Public Key Check)", "HTTPS")
+Rel(backend, trivia_api, "Ruft Quizfragen ab\n(async httpx, Retry-Logik)", "HTTPS / REST")
+
+@enduml

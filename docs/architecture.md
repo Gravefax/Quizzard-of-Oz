@@ -85,17 +85,44 @@ The most important functional requirements for the current system are:
 
 ### Business Context
 
-The platform serves players who want either a casual quiz experience or a
-competitive match with persistent ranking. Users interact with a web frontend,
-which communicates with backend services responsible for authentication,
-question sourcing, matchmaking and score tracking.
+Quizzard of Oz is used by public players, authenticated players and project
+stakeholders. External organizations and services provide identity, question
+content, quality checks, documentation hosting and container publication.
+
+| Actor or External Party | Business Interaction |
+| --- | --- |
+| Guest players | Use public product pages, practice mode, leaderboard views and unranked play without creating a persistent account. |
+| Registered players | Sign in with Google, play ranked matches, use persistent profile data and build leaderboard progress through stored rankings and match history. |
+| Development team | Builds and maintains the frontend, backend, persistence layer, CI workflows and architecture documentation. |
+| Reviewers / instructors | Evaluate whether the product, implementation and documentation meet the course requirements and quality expectations. |
+| Google OAuth | Provides the trusted identity used to create or refresh an application session for registered players. |
+| Trivia API provider | Supplies external quiz-question content that the backend normalizes and caches for practice and multiplayer gameplay. |
+| GitHub, SonarCloud, Read the Docs and GHCR | Support repository collaboration, automated quality checks, published documentation and container image distribution. |
 
 ### Technical Context
 
-- Frontend: Next.js application for the website and game flows
-- Backend: Python service layer for APIs, matchmaking and business logic
-- Database: Persistent storage for users, sessions, questions and leaderboard
-- External integration: Trivia provider for question retrieval
+The system boundary contains the Next.js frontend and FastAPI backend. The
+following interfaces connect the system to users, infrastructure and external
+services.
+
+| Interface | Protocol / Mechanism | Purpose and Data Exchanged |
+| --- | --- | --- |
+| Browser to frontend | HTTP/HTTPS | Delivers Next.js pages, JavaScript, styles and static assets for public pages, authentication flows and game screens. |
+| Frontend to backend REST APIs | HTTP JSON through `NEXT_PUBLIC_API_BASE` | Exchanges authentication requests, practice questions and answers, trivia batches, user data, rankings and leaderboard search results. |
+| Frontend to backend battle queue | WebSocket JSON at `/battle/queue` | Connects authenticated players to matchmaking and sends queue or match assignment events. |
+| Frontend to backend battle session | WebSocket JSON at `/battle/ws/{match_id}` | Sends and receives live battle events such as waiting state, category selection, questions, submitted answers, scoring and match results. |
+| Google OAuth to backend authentication | Google ID token in `Authorization: Bearer ...` for `/auth/google/login` | Lets the backend verify identity, create or find the local user and issue a backend-managed session cookie. |
+| Backend-managed session | HttpOnly cookie named by `SESSION_COOKIE_NAME` | Authenticates refresh, logout, protected HTTP requests and WebSocket handshakes without exposing the session identifier to frontend JavaScript. |
+| Backend to PostgreSQL | SQLAlchemy over `psycopg2` / PostgreSQL protocol | Persists users, sessions, rankings, battle-related state and cached trivia questions. |
+| Backend to Trivia API | Outbound HTTPS JSON | Retrieves question data from the external provider and stores normalized questions in the local cache with retry, timeout and refill limits. |
+| Runtime configuration | Environment variables | Supplies API base URLs, Google OAuth client ID, database credentials, CORS origins, cookie settings and Trivia API settings. |
+| CI, documentation and container tooling | GitHub Actions, SonarCloud, Sphinx / Read the Docs and GHCR | Builds and tests the system, publishes documentation, reports quality metrics and publishes frontend/backend container images. |
+
+### Context Diagram
+
+![System context diagram](c4/c1_context.svg)
+
+Diagram source: [docs/c4/c1_context.puml](c4/c1_context.puml)
 
 ## Solution Strategy
 

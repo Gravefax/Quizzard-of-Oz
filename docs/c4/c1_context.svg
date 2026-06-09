@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="640" viewBox="0 0 1080 640" role="img" aria-labelledby="title desc">
+  <title id="title">C4 Model - Level 1: System Context - Quizzard of Oz</title>
+  <desc id="desc">Rendered C4 context diagram based on docs/c4/c1_context.puml, showing guest users, authenticated users, Quizzard of Oz, Google OAuth 2.0, and The Trivia API.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0 0L10 5L0 10Z" fill="#334155"/>
+    </marker>
+    <style>
+      .bg { fill: #fffaf7; }
+      .person { fill: #08427b; stroke: #052e56; stroke-width: 2; }
+      .system { fill: #1168bd; stroke: #0b4f8a; stroke-width: 2; }
+      .external { fill: #999999; stroke: #6b7280; stroke-width: 2; }
+      .legend { fill: #ffffff; stroke: #cbd5e1; stroke-width: 1.5; }
+      .title { font: 700 22px Arial, sans-serif; fill: #0f172a; }
+      .label { font: 700 16px Arial, sans-serif; fill: #ffffff; }
+      .text { font: 13px Arial, sans-serif; fill: #ffffff; }
+      .legend-title { font: 700 13px Arial, sans-serif; fill: #0f172a; }
+      .legend-text { font: 12px Arial, sans-serif; fill: #334155; }
+      .line { fill: none; stroke: #334155; stroke-width: 1.7; marker-end: url(#arrow); }
+      .caption { font: 12px Arial, sans-serif; fill: #1f2937; }
+      .protocol { font: 11px Arial, sans-serif; fill: #475569; }
+    </style>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1080" height="640"/>
+  <text class="title" x="300" y="42">C4 Model - Level 1: System Context</text>
+  <text class="title" x="425" y="72">Quizzard of Oz</text>
+
+  <rect class="person" x="64" y="145" width="205" height="112" rx="8"/>
+  <text class="label" x="119" y="177">Gast-Nutzer</text>
+  <text class="text" x="92" y="206">Spielt den Uebungsmodus</text>
+  <text class="text" x="86" y="224">und betrachtet das Leaderboard</text>
+  <text class="text" x="114" y="242">ohne Anmeldung.</text>
+
+  <rect class="person" x="64" y="352" width="205" height="122" rx="8"/>
+  <text class="label" x="94" y="384">Angemeldeter Nutzer</text>
+  <text class="text" x="92" y="413">Spielt Ranked- und Unranked-</text>
+  <text class="text" x="85" y="431">Multiplayer-Matches, hat ein</text>
+  <text class="text" x="93" y="449">Elo-Rating und Spielhistorie.</text>
+
+  <rect class="system" x="420" y="235" width="250" height="145" rx="8"/>
+  <text class="label" x="489" y="270">Quizzard of Oz</text>
+  <text class="text" x="462" y="302">Webbasierte Multiplayer-</text>
+  <text class="text" x="454" y="320">Quiz-Plattform mit Uebungsmodus,</text>
+  <text class="text" x="454" y="338">Ranked- und Unranked-Matches</text>
+  <text class="text" x="492" y="356">sowie Leaderboard.</text>
+
+  <rect class="external" x="812" y="145" width="205" height="112" rx="8"/>
+  <text class="label" x="851" y="177">Google OAuth 2.0</text>
+  <text class="text" x="857" y="206">Identity Provider.</text>
+  <text class="text" x="831" y="224">Authentifiziert Nutzer via</text>
+  <text class="text" x="844" y="242">Google-Konto (JWT-basiert).</text>
+
+  <rect class="external" x="812" y="352" width="205" height="140" rx="8"/>
+  <text class="label" x="860" y="384">The Trivia API</text>
+  <text class="text" x="843" y="413">Externer Fragenlieferant.</text>
+  <text class="text" x="832" y="431">Liefert Multiple-Choice-</text>
+  <text class="text" x="831" y="449">Quizfragen nach Kategorie</text>
+  <text class="text" x="846" y="467">und Schwierigkeit.</text>
+  <text class="text" x="855" y="485">(the-trivia-api.com)</text>
+
+  <path class="line" d="M269 201C329 201 361 248 420 278"/>
+  <text class="caption" x="310" y="207">Nutzt</text>
+  <text class="protocol" x="314" y="224">HTTPS</text>
+
+  <path class="line" d="M269 413C330 413 360 364 420 335"/>
+  <text class="caption" x="303" y="392">Nutzt</text>
+  <text class="protocol" x="296" y="409">HTTPS / WebSocket</text>
+
+  <path class="line" d="M670 276C730 245 753 203 812 201"/>
+  <text class="caption" x="697" y="215">Validiert Google JWT</text>
+  <text class="protocol" x="738" y="232">HTTPS</text>
+
+  <path class="line" d="M670 336C730 366 754 420 812 422"/>
+  <text class="caption" x="698" y="387">Ruft Quizfragen ab</text>
+  <text class="caption" x="708" y="404">(mit Retry-Logik)</text>
+  <text class="protocol" x="730" y="421">HTTPS / REST</text>
+
+  <rect class="legend" x="64" y="542" width="365" height="66" rx="6"/>
+  <text class="legend-title" x="84" y="568">Legend</text>
+  <rect class="person" x="84" y="582" width="16" height="12" rx="2"/>
+  <text class="legend-text" x="108" y="593">Person</text>
+  <rect class="system" x="168" y="582" width="16" height="12" rx="2"/>
+  <text class="legend-text" x="192" y="593">Software system</text>
+  <rect class="external" x="312" y="582" width="16" height="12" rx="2"/>
+  <text class="legend-text" x="336" y="593">External system</text>
+</svg>

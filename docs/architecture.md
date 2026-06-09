@@ -120,7 +120,9 @@ services.
 
 ### Context Diagram
 
-![System context diagram](images/system_context.svg)
+![System context diagram](c4/c1_context.svg)
+
+Diagram source: [docs/c4/c1_context.puml](c4/c1_context.puml)
 
 ## Solution Strategy
 

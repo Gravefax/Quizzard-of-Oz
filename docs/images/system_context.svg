@@ -1,0 +1,127 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="720" viewBox="0 0 1180 720" role="img" aria-labelledby="title desc">
+  <title id="title">Quizzard of Oz system context diagram</title>
+  <desc id="desc">Context diagram showing browser users, the Quizzard of Oz frontend and backend, PostgreSQL, Google OAuth, Trivia API, GitHub, SonarCloud, Read the Docs, and GHCR with labeled interfaces.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0 0L10 5L0 10Z" fill="#475569"/>
+    </marker>
+    <style>
+      .bg { fill: #fffaf7; }
+      .boundary { fill: #fff7f3; stroke: #d9485f; stroke-width: 2; rx: 18; }
+      .box { fill: #ffffff; stroke: #94a3b8; stroke-width: 1.5; rx: 10; }
+      .system-box { fill: #fff1ec; stroke: #b91c3d; stroke-width: 2; rx: 12; }
+      .external { fill: #f8fafc; stroke: #64748b; stroke-width: 1.5; rx: 10; }
+      .storage { fill: #eef2ff; stroke: #4f46e5; stroke-width: 1.5; rx: 10; }
+      .title { font: 700 20px Arial, sans-serif; fill: #0f172a; }
+      .label { font: 700 14px Arial, sans-serif; fill: #0f172a; }
+      .text { font: 12px Arial, sans-serif; fill: #334155; }
+      .small { font: 11px Arial, sans-serif; fill: #475569; }
+      .line { fill: none; stroke: #475569; stroke-width: 1.5; marker-end: url(#arrow); }
+      .line2 { fill: none; stroke: #64748b; stroke-width: 1.3; stroke-dasharray: 5 4; marker-end: url(#arrow); }
+      .caption { font: 11px Arial, sans-serif; fill: #334155; }
+    </style>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1180" height="720"/>
+  <text class="title" x="36" y="42">System Context</text>
+
+  <rect class="box" x="40" y="110" width="180" height="82"/>
+  <text class="label" x="68" y="142">Guest players</text>
+  <text class="text" x="68" y="164">Public pages, practice,</text>
+  <text class="text" x="68" y="181">leaderboard, unranked</text>
+
+  <rect class="box" x="40" y="235" width="180" height="86"/>
+  <text class="label" x="64" y="267">Registered players</text>
+  <text class="text" x="64" y="289">Google sign-in, ranked</text>
+  <text class="text" x="64" y="306">matches, profile, ranking</text>
+
+  <rect class="box" x="40" y="452" width="180" height="82"/>
+  <text class="label" x="62" y="484">Team and reviewers</text>
+  <text class="text" x="62" y="506">Development, review,</text>
+  <text class="text" x="62" y="523">quality and docs checks</text>
+
+  <rect class="boundary" x="310" y="85" width="470" height="500"/>
+  <text class="title" x="438" y="124">Quizzard of Oz</text>
+  <text class="small" x="430" y="143">System boundary</text>
+
+  <rect class="system-box" x="355" y="178" width="180" height="105"/>
+  <text class="label" x="408" y="210">Frontend</text>
+  <text class="text" x="388" y="232">Next.js / React</text>
+  <text class="text" x="377" y="250">Pages, game screens,</text>
+  <text class="text" x="383" y="267">browser API clients</text>
+
+  <rect class="system-box" x="555" y="178" width="180" height="105"/>
+  <text class="label" x="611" y="210">Backend</text>
+  <text class="text" x="606" y="232">FastAPI</text>
+  <text class="text" x="590" y="250">REST APIs, WebSockets,</text>
+  <text class="text" x="590" y="267">auth, gameplay services</text>
+
+  <rect class="system-box" x="445" y="362" width="200" height="86"/>
+  <text class="label" x="489" y="394">Question cache</text>
+  <text class="text" x="479" y="416">Normalized trivia data</text>
+  <text class="text" x="481" y="433">used by quiz sessions</text>
+
+  <rect class="external" x="890" y="86" width="200" height="78"/>
+  <text class="label" x="939" y="117">Google OAuth</text>
+  <text class="text" x="929" y="139">User identity and</text>
+  <text class="text" x="937" y="156">ID token checks</text>
+
+  <rect class="external" x="890" y="210" width="200" height="78"/>
+  <text class="label" x="941" y="241">Trivia API</text>
+  <text class="text" x="930" y="263">External question</text>
+  <text class="text" x="943" y="280">content as JSON</text>
+
+  <rect class="external" x="890" y="350" width="200" height="88"/>
+  <text class="label" x="928" y="382">GitHub Actions</text>
+  <text class="text" x="922" y="404">Build, test, lint,</text>
+  <text class="text" x="923" y="421">coverage artifacts</text>
+
+  <rect class="external" x="890" y="472" width="200" height="92"/>
+  <text class="label" x="913" y="503">SonarCloud / RTD / GHCR</text>
+  <text class="text" x="923" y="525">Quality metrics, docs,</text>
+  <text class="text" x="935" y="542">container images</text>
+
+  <rect class="storage" x="455" y="620" width="180" height="64"/>
+  <text class="label" x="500" y="649">PostgreSQL</text>
+  <text class="text" x="487" y="670">Users, sessions, ranking, cache</text>
+
+  <path class="line" d="M220 151H355"/>
+  <text class="caption" x="238" y="137">HTTP/HTTPS pages</text>
+  <text class="caption" x="246" y="166">public gameplay</text>
+
+  <path class="line" d="M220 276H355"/>
+  <text class="caption" x="236" y="259">HTTP JSON</text>
+  <text class="caption" x="236" y="293">WebSocket JSON events</text>
+
+  <path class="line" d="M535 224H555"/>
+  <text class="caption" x="501" y="212">REST JSON</text>
+  <text class="caption" x="498" y="244">session cookie</text>
+
+  <path class="line" d="M535 255H555"/>
+  <text class="caption" x="494" y="272">WebSocket</text>
+
+  <path class="line" d="M645 178C705 132 798 122 890 124"/>
+  <text class="caption" x="718" y="102">Google ID token verification</text>
+
+  <path class="line" d="M735 248H890"/>
+  <text class="caption" x="764" y="235">HTTPS JSON questions</text>
+  <text class="caption" x="764" y="263">timeouts / retries</text>
+
+  <path class="line" d="M645 395C754 370 803 361 890 386"/>
+  <text class="caption" x="727" y="359">CI workflows</text>
+
+  <path class="line" d="M645 426C758 459 807 498 890 520"/>
+  <text class="caption" x="708" y="481">Sphinx docs, coverage, images</text>
+
+  <path class="line" d="M545 448V620"/>
+  <text class="caption" x="558" y="541">SQL via SQLAlchemy / psycopg2</text>
+
+  <path class="line2" d="M220 493C286 493 300 493 360 493"/>
+  <text class="caption" x="238" y="480">Repository, docs, review feedback</text>
+
+  <path class="line2" d="M645 362C676 334 690 305 700 283"/>
+  <text class="caption" x="676" y="329">cache refill</text>
+
+  <path class="line2" d="M445 362C424 331 416 304 416 283"/>
+  <text class="caption" x="348" y="338">cached questions</text>
+</svg>

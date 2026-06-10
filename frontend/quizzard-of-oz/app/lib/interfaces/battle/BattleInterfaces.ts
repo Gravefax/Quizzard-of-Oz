@@ -43,6 +43,8 @@ export interface GameOverData {
   youWon:        boolean;
   yourWins:      number;
   opponentWins:  number;
+  forfeit?:      boolean;
+  message?:      string;
 }
 
 export interface RoundOutcomeMeta {

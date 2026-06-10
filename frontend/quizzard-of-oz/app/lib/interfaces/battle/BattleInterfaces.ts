@@ -33,6 +33,7 @@ export interface QuestionData {
 export interface AnswerResultData {
   correct:            boolean;
   correctAnswer:      string;
+  yourAnswer:         string;
   yourScoreThisRound: number;
 }
 

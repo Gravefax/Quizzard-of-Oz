@@ -44,9 +44,11 @@ interface BattleArenaProps {
  * 5. **Waiting for Category** → Opponent selecting
  * 6. **Category Chosen** → Animation showing selected category
  * 7. **Question** → Answer-selection phase (up to 3 per round, 20s each)
- * 8. **Answered** → Waiting for opponent to finish their answer
- * 9. **Round Result** → Score comparison and next picker announcement
- * 10. **Game Over** → Winner and final scores (first to 3 wins)
+ * 8. **Answered** → Waiting for opponent (spinner, solution still hidden)
+ * 9. **Reveal** → Correct answer highlighted for both players simultaneously,
+ *    server advances to the next question automatically after a few seconds
+ * 10. **Round Result** → Score comparison and next picker announcement
+ * 11. **Game Over** → Winner and final scores (first to 3 wins)
  *
  * ### WebSocket Message Types (incoming):
  * - `waiting_for_opponent` → Waiting phase
@@ -55,7 +57,8 @@ interface BattleArenaProps {
  * - `waiting_for_category` → Opponent choosing
  * - `category_chosen` → Category display
  * - `question` → New question
- * - `answer_result` → Feedback on answer
+ * - `answer_received` → Own answer acknowledged, waiting for opponent
+ * - `question_result` → Solution reveal once both answered or time ran out
  * - `round_result` → End of round
  * - `game_over` → Battle complete
  * - `opponent_disconnected` → Opponent left
@@ -223,14 +226,20 @@ export default function BattleArena({ matchId }: BattleArenaProps) {
           startTimer(20);
           break;
 
-        case 'answer_result':
+        case 'answer_received':
+          // Own answer stored server-side; solution stays hidden until both answered.
+          setPhase('answered');
+          break;
+
+        case 'question_result':
           stopTimer();
           setAnswerResult({
             correct: msg.correct as boolean,
             correctAnswer: msg.correct_answer as string,
+            yourAnswer: msg.your_answer as string,
             yourScoreThisRound: msg.your_score_this_round as number,
           });
-          setPhase('answered');
+          setPhase('reveal');
           break;
 
         case 'round_result':
@@ -369,13 +378,14 @@ export default function BattleArena({ matchId }: BattleArenaProps) {
 
           {phase === 'category_chosen' && <CategoryChosenPhase category={chosenCategory} />}
 
-          {(phase === 'question' || phase === 'answered') && question && (
+          {(phase === 'question' || phase === 'answered' || phase === 'reveal') && question && (
             <QuestionPhase
               question={question}
               timeLeft={timeLeft}
               selectedAnswer={selectedAnswer}
               answerResult={answerResult}
               isAnswered={phase === 'answered'}
+              isRevealed={phase === 'reveal'}
               onSubmitAnswer={submitAnswer}
             />
           )}

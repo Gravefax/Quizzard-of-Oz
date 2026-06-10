@@ -31,7 +31,11 @@ Match Flow (State Machine):
      → Phase: "picking"
   5. picker chooses category → _handle_category_pick()
      → Phase: "questions", send "category_chosen", first question
-  6. both players answer 3 questions (question → answer_result → next question)
+  6. both players answer 3 questions:
+     question → answer_received (ack, no solution) → once both answered or the
+     question deadline (QUESTION_TIME_SECONDS) expires → question_result reveals
+     the correct answer to both players simultaneously → after REVEAL_SECONDS
+     the next question is sent automatically. Missing answers count as wrong.
   7. After 3 questions → _end_round()
      → Determine round winner, update round_wins, send "round_result"
   8. If a player reached ROUNDS_TO_WIN (3) → _end_game()
@@ -82,10 +86,15 @@ Message Protocol:
       "answers": [str, ...],
       "category": str
     }
-    answer_result: {
+    answer_received: {
+      "your_answer": str
+    }
+    question_result: {
       "correct": bool,
       "correct_answer": str,
-      "your_score_this_round": int
+      "your_answer": str,
+      "your_score_this_round": int,
+      "reveal_seconds": int
     }
     round_result: {
       "round": int,
@@ -151,9 +160,11 @@ _CLOSE_INTERNAL  = 1011  # Internal question preparation failure
 _PREPARE_QUESTIONS_ERROR = "Unable to prepare questions"
 
 # Game configuration constants
-QUESTIONS_PER_ROUND  = 3  # Questions per round (both players answer)
-ROUNDS_TO_WIN        = 3  # Best-of-5 format: first player to 3 round wins
-CATEGORIES_TO_OFFER  = 3  # Number of categories the picker can choose from
+QUESTIONS_PER_ROUND   = 3   # Questions per round (both players answer)
+ROUNDS_TO_WIN         = 3   # Best-of-5 format: first player to 3 round wins
+CATEGORIES_TO_OFFER   = 3   # Number of categories the picker can choose from
+QUESTION_TIME_SECONDS = 20  # Server-side answer deadline per question
+REVEAL_SECONDS        = 4   # Both players see the correct answer this long
 
 logger = logging.getLogger("uvicorn.error")
 _quiz = get_quiz_service()
@@ -170,8 +181,12 @@ class MatchState:
     question_idx:    int            = 0                              # Current question index (0-2)
     round_scores:    dict[str, int] = field(default_factory=dict)   # user_id (str) → correct answers this round (0-3)
     current_answers: dict[str, str] = field(default_factory=dict)   # user_id (str) → answer letter (A/B/C/D)
+    current_correct: dict[str, bool] = field(default_factory=dict)  # user_id (str) → answered correctly this question
     offered_categories: list[str]   = field(default_factory=list)   # Categories offered to the picker this round
     used_question_ids: set[str]     = field(default_factory=set)    # Avoid repeated questions inside one match
+    revealing:       bool           = False                          # True while question_result reveal is in progress
+    question_timer_task: asyncio.Task | None = None                 # Per-question deadline task
+    advance_task:    asyncio.Task | None = None                     # Delayed advance after reveal
     lock:            asyncio.Lock   = field(default_factory=asyncio.Lock)  # Protects all mutations
 
 
@@ -275,6 +290,10 @@ class BattleManager:
         if forfeit_winner is not None:
             await self._forfeit_match(match_id, state, remaining, forfeit_winner, user)
             return
+
+        # A running match cannot continue with one player; stop pending timers.
+        self._cancel_task(state.question_timer_task)
+        self._cancel_task(state.advance_task)
 
         for p in remaining:
             try:
@@ -508,12 +527,14 @@ class BattleManager:
                 "round":    state.current_round,
             })
 
-        await self._send_current_question(state)
+        await self._send_current_question(state, match_id)
 
-    async def _send_current_question(self, state: MatchState) -> None:
-        """Clear current_answers and send the current question to both players."""
-        q                    = state.round_questions[state.question_idx]
+    async def _send_current_question(self, state: MatchState, match_id: str = "unknown") -> None:
+        """Clear answers, send the current question to both players, start deadline."""
+        q                     = state.round_questions[state.question_idx]
         state.current_answers = {}
+        state.current_correct = {}
+        state.revealing       = False
 
         logger.debug("Battle question sent")
 
@@ -528,21 +549,23 @@ class BattleManager:
                 "category":        q.category,
             })
 
+        self._cancel_task(state.question_timer_task)
+        state.question_timer_task = asyncio.create_task(
+            self._question_timeout(match_id, state, state.question_idx)
+        )
+
     async def _handle_answer(
         self, match_id: str, state: MatchState, user: User, data: dict
     ) -> None:
-        """Validate answer, check correctness, increment score, advance if both answered."""
+        """Validate and record answer; reveal the solution once both answered."""
         uid    = str(user.id)
         q_id   = data.get("question_id", "")
         answer = data.get("answer", "")
 
-        correct         = False
-        correct_answer  = ""
-        advance         = False
-        done_with_round = False
+        finish = False
 
         async with state.lock:
-            if state.phase != "questions":
+            if state.phase != "questions" or state.revealing:
                 logger.warning("Battle answer ignored: wrong phase")
                 return
             if uid in state.current_answers:
@@ -554,32 +577,94 @@ class BattleManager:
 
             state.current_answers[uid] = answer
 
-            result = self._quiz.check_answer(q_id, answer)
+            correct = False
+            result  = self._quiz.check_answer(q_id, answer)
             if result:
-                correct, correct_answer = result
+                correct = result[0]
                 if correct:
                     state.round_scores[uid] = state.round_scores.get(uid, 0) + 1
+            state.current_correct[uid] = correct
 
             if len(state.current_answers) == len(state.players):
-                advance         = True
-                state.question_idx += 1
-                done_with_round = state.question_idx >= len(state.round_questions)
+                state.revealing = True
+                finish          = True
 
         logger.debug("Battle answer processed")
 
         ws = next(p["ws"] for p in state.players if str(p["user"].id) == uid)
         await ws.send_json({
-            "type":                  "answer_result",
-            "correct":               correct,
-            "correct_answer":        correct_answer,
-            "your_score_this_round": state.round_scores.get(uid, 0),
+            "type":        "answer_received",
+            "your_answer": answer,
         })
 
-        if advance:
-            if done_with_round:
-                await self._end_round(match_id, state)
-            else:
-                await self._send_current_question(state)
+        if finish:
+            self._cancel_task(state.question_timer_task)
+            state.question_timer_task = None
+            await self._finish_question(match_id, state)
+
+    async def _question_timeout(self, match_id: str, state: MatchState, q_idx: int) -> None:
+        """Deadline per question: missing answers count as wrong, then reveal."""
+        await asyncio.sleep(QUESTION_TIME_SECONDS)
+
+        async with state.lock:
+            if state.phase != "questions" or state.revealing or state.question_idx != q_idx:
+                return
+
+            for p in state.players:
+                uid = str(p["user"].id)
+                if uid not in state.current_answers:
+                    state.current_answers[uid] = ""
+                    state.current_correct[uid] = False
+
+            state.revealing = True
+
+        logger.info("Battle question deadline reached")
+        await self._finish_question(match_id, state)
+
+    async def _finish_question(self, match_id: str, state: MatchState) -> None:
+        """Reveal the correct answer to both players, then advance after delay."""
+        q = state.round_questions[state.question_idx]
+
+        for p in state.players:
+            uid = str(p["user"].id)
+            await p["ws"].send_json({
+                "type":                  "question_result",
+                "correct":               state.current_correct.get(uid, False),
+                "correct_answer":        q.correct_answer,
+                "your_answer":           state.current_answers.get(uid, ""),
+                "your_score_this_round": state.round_scores.get(uid, 0),
+                "reveal_seconds":        REVEAL_SECONDS,
+            })
+
+        async with state.lock:
+            state.question_idx += 1
+            done_with_round = state.question_idx >= len(state.round_questions)
+
+        self._cancel_task(state.advance_task)
+        state.advance_task = asyncio.create_task(
+            self._advance_after_reveal(match_id, state, done_with_round)
+        )
+
+    async def _advance_after_reveal(
+        self, match_id: str, state: MatchState, done_with_round: bool
+    ) -> None:
+        """Hold the reveal for REVEAL_SECONDS, then continue the match."""
+        await asyncio.sleep(REVEAL_SECONDS)
+
+        if self._matches.get(match_id) is not state or len(state.players) < 2:
+            logger.info("Battle advance skipped: match no longer active")
+            return
+
+        if done_with_round:
+            await self._end_round(match_id, state)
+        else:
+            await self._send_current_question(state, match_id)
+
+    @staticmethod
+    def _cancel_task(task: asyncio.Task | None) -> None:
+        """Cancel a pending asyncio task if it is still running."""
+        if task and not task.done():
+            task.cancel()
 
     async def _end_round(self, match_id: str, state: MatchState) -> None:
         """Determine round winner, update wins, send result, or start next round."""
@@ -647,6 +732,8 @@ class BattleManager:
     async def _end_game(self, match_id: str, state: MatchState) -> None:
         """Send game_over to both players and delete match from memory."""
         state.phase = "finished"
+        self._cancel_task(state.question_timer_task)
+        self._cancel_task(state.advance_task)
         p1, p2      = state.players
         id1         = str(p1["user"].id)
         id2         = str(p2["user"].id)
@@ -690,6 +777,8 @@ class BattleManager:
     async def _abort_match(self, match_id: str, state: MatchState, reason: str) -> None:
         """Close all sockets and remove the match when question preparation fails."""
         state.phase = "finished"
+        self._cancel_task(state.question_timer_task)
+        self._cancel_task(state.advance_task)
         players = list(state.players)
 
         for player in players:

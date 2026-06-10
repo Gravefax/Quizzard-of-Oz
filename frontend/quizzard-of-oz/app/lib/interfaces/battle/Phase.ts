@@ -7,6 +7,7 @@ export type Phase =
   | 'category_chosen'
   | 'question'
   | 'answered'
+  | 'reveal'
   | 'round_result'
   | 'game_over'
   | 'opponent_disconnected'

@@ -87,6 +87,7 @@ export default function BattleArena({ matchId }: BattleArenaProps) {
   const [timeLeft, setTimeLeft] = useState(20);
   const [errorMsg, setErrorMsg] = useState('');
   const [pickerName, setPickerName] = useState('');
+  const [showSurrenderConfirm, setShowSurrenderConfirm] = useState(false);
 
   // ── Refs for WebSocket & Timer ──
   const wsRef = useRef<WebSocket | null>(null);
@@ -269,6 +270,8 @@ export default function BattleArena({ matchId }: BattleArenaProps) {
             youWon: msg.you_won as boolean,
             yourWins: msg.your_wins as number,
             opponentWins: msg.opponent_wins as number,
+            forfeit: (msg.forfeit as boolean | undefined) ?? false,
+            message: msg.message as string | undefined,
           });
           setPhase('game_over');
           break;
@@ -343,6 +346,26 @@ export default function BattleArena({ matchId }: BattleArenaProps) {
     router.push('/');
   }
 
+  // ── Surrender ──
+
+  // Surrender is only allowed while the match is actively running — not while
+  // matchmaking, between rounds, or after the game ended.
+  const canSurrender =
+    phase === 'pick_category' ||
+    phase === 'waiting_for_category' ||
+    phase === 'question' ||
+    phase === 'answered' ||
+    phase === 'reveal';
+
+  /**
+   * Confirms the surrender: counts as a loss with Elo penalty,
+   * the opponent receives the full win.
+   */
+  function confirmSurrender() {
+    setShowSurrenderConfirm(false);
+    send({ type: 'surrender' });
+  }
+
   // ── Render ──
 
   return (
@@ -403,7 +426,75 @@ export default function BattleArena({ matchId }: BattleArenaProps) {
           )}
 
           {phase === 'error' && <ErrorPhase errorMessage={errorMsg} onReturnToLobby={returnToLobby} />}
+
+          {/* ── Surrender (active match only) ── */}
+          {canSurrender && (
+            <button
+              type="button"
+              className="surrender-btn"
+              onClick={() => setShowSurrenderConfirm(true)}
+            >
+              🏳 Aufgeben
+            </button>
+          )}
         </div>
+
+        {/* ── Surrender Confirmation Dialog ── */}
+        {showSurrenderConfirm && (
+          <dialog
+            aria-modal="true"
+            aria-label="Aufgeben bestätigen"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              zIndex: 50,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'rgba(0,0,0,0.65)',
+              backdropFilter: 'blur(3px)',
+            }}
+          >
+            <div
+              className="arena-card"
+              style={{ padding: '28px 32px', maxWidth: '360px', textAlign: 'center' }}
+            >
+              <div
+                style={{
+                  fontFamily: "'Bebas Neue', Impact, sans-serif",
+                  fontSize: '1.4rem',
+                  letterSpacing: '0.1em',
+                  color: 'rgba(255,100,60,0.9)',
+                  marginBottom: '12px',
+                }}
+              >
+                Wirklich aufgeben?
+              </div>
+              <div
+                style={{
+                  color: 'rgba(220,235,248,0.75)',
+                  fontSize: '0.85rem',
+                  lineHeight: 1.5,
+                  marginBottom: '22px',
+                }}
+              >
+                Wirklich aufgeben? Du verlierst ELO-Punkte.
+              </div>
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                <button type="button" className="dialog-btn-danger" onClick={confirmSurrender}>
+                  Aufgeben
+                </button>
+                <button
+                  type="button"
+                  className="dialog-btn-neutral"
+                  onClick={() => setShowSurrenderConfirm(false)}
+                >
+                  Abbrechen
+                </button>
+              </div>
+            </div>
+          </dialog>
+        )}
       </div>
     </>
   );

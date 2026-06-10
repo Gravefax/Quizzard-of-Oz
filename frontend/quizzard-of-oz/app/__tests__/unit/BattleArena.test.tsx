@@ -645,3 +645,100 @@ describe("BattleArena Component Tests", () => {
     });
   });
 });
+
+describe("Surrender", () => {
+  const startQuestionPhase = async () => {
+    await emitMessage({
+      type: "match_ready",
+      your_username: "Alice",
+      opponent_username: "Bob",
+      you_pick_first: true,
+      rounds_to_win: 3,
+    });
+    await emitMessage({
+      type: "question",
+      question_number: 1,
+      total_questions: 3,
+      question_id: "q1",
+      text: "What is H2O?",
+      answers: ["Water", "Oxygen", "Hydrogen", "Salt"],
+      category: "Science",
+    });
+  };
+
+  it("shows surrender button only during an active match", async () => {
+    renderArena("match-950");
+
+    await emitMessage({ type: "waiting_for_opponent" });
+    expect(screen.queryByRole("button", { name: /aufgeben/i })).not.toBeInTheDocument();
+
+    await startQuestionPhase();
+    expect(screen.getByRole("button", { name: /aufgeben/i })).toBeInTheDocument();
+
+    await emitMessage({
+      type: "round_result",
+      round: 1,
+      outcome: "win",
+      your_score: 2,
+      opponent_score: 1,
+      your_total_wins: 1,
+      opponent_total_wins: 0,
+      next_picker: "Bob",
+      game_over: false,
+    });
+    expect(screen.queryByRole("button", { name: /aufgeben/i })).not.toBeInTheDocument();
+  });
+
+  it("asks for confirmation and sends surrender only after confirming", async () => {
+    const user = userEvent.setup();
+    renderArena("match-951");
+    await startQuestionPhase();
+
+    await user.click(screen.getByRole("button", { name: /aufgeben/i }));
+
+    expect(screen.getByRole("dialog", { name: /aufgeben bestätigen/i })).toBeInTheDocument();
+    expect(
+      screen.getByText(/wirklich aufgeben\? du verlierst elo-punkte\./i)
+    ).toBeInTheDocument();
+    expect(mockWebSocket.send).not.toHaveBeenCalledWith(
+      JSON.stringify({ type: "surrender" })
+    );
+
+    await user.click(screen.getByRole("button", { name: /^aufgeben$/i }));
+
+    expect(mockWebSocket.send).toHaveBeenCalledWith(JSON.stringify({ type: "surrender" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("cancel keeps the match running and sends nothing", async () => {
+    const user = userEvent.setup();
+    renderArena("match-952");
+    await startQuestionPhase();
+
+    await user.click(screen.getByRole("button", { name: /aufgeben/i }));
+    await user.click(screen.getByRole("button", { name: /abbrechen/i }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(mockWebSocket.send).not.toHaveBeenCalledWith(
+      JSON.stringify({ type: "surrender" })
+    );
+  });
+
+  it("shows SURRENDER headline after surrendering", async () => {
+    renderArena("match-953");
+    await startQuestionPhase();
+
+    await emitMessage({
+      type: "game_over",
+      winner: "Bob",
+      you_won: false,
+      your_wins: 1,
+      opponent_wins: 2,
+      forfeit: true,
+      message: "Du hast aufgegeben – dein Gegner gewinnt.",
+    });
+
+    expect(screen.getByText("SURRENDER")).toBeInTheDocument();
+    expect(screen.getByText(/du hast aufgegeben/i)).toBeInTheDocument();
+  });
+});

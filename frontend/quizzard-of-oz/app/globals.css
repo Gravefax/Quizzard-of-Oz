@@ -51,13 +51,17 @@
   --font-mono: var(--font-geist-mono, ui-monospace), SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace;
 }
 
-html,
-body {
+html {
   height: 100%;
-  overflow: hidden;
+  /* Scrollbar nur bei Bedarf – Inhalte dürfen auf kleinen Bildschirmen nie abgeschnitten werden */
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 body {
+  /* min-height statt height: body wächst mit dem Inhalt, sonst staucht das
+     Flex-Layout (flex-col) die Seiten-Wrapper und Inhalte werden abgeschnitten */
+  min-height: 100%;
   background: linear-gradient(
     135deg,
     var(--oz-gradient-start)  0%,

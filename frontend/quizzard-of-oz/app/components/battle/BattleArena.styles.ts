@@ -63,7 +63,7 @@ export const BATTLE_ARENA_STYLES = `
 
   /* ── Container & Layout ── */
   .arena-wrap {
-    min-height: calc(100vh - 73px);
+    flex: 1;
     display: flex;
     flex-direction: column;
     position: relative;

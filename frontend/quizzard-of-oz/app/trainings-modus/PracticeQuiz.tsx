@@ -72,7 +72,7 @@ export default function PracticeQuiz() {
   const question = questions[currentIndex];
 
   return (
-    <main className="relative z-10 flex flex-col items-center justify-center min-h-[calc(100vh-73px)] px-4 py-12">
+    <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-12">
 
       {/* ── Idle ── */}
       {state === 'idle' && (

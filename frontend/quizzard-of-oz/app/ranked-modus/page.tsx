@@ -103,7 +103,7 @@ export default function RankedPage() {
         }
       `}</style>
 
-      <div className="min-h-[calc(100vh-73px)] flex flex-col items-center justify-center px-4 relative">
+      <div className="flex-1 flex flex-col items-center justify-center px-4 py-8 relative">
         <button
           className="back-btn absolute top-6 left-6 px-4 py-2 text-sm flex items-center gap-1.5"
           onClick={() => router.push('/')}

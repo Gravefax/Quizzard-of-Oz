@@ -13,7 +13,7 @@ export default function GlobalError({ error, reset }: ErrorProps) {
   }, [error]);
 
   return (
-    <main className="relative z-10 flex flex-col items-center justify-center min-h-[calc(100vh-73px)] px-4">
+    <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-8">
       <div className="flex flex-col items-center gap-6 text-center max-w-sm">
         <div className="text-5xl">⚠️</div>
         <div>

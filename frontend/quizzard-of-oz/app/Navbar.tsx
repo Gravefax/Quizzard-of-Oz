@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import LoginButton from "@/app/components/login-button/LoginButton";
 import UserMenu from "@/app/components/user-menu/UserMenu";
@@ -13,11 +13,12 @@ export default function Navbar() {
   const setCredential = useAuthStore((state) => state.setCredential);
   const isLoggedIn = !!credential;
   const displayName = credential?.username ?? credential?.email ?? "User";
+  const hasExplicitlyLoggedOut = useRef(false);
 
   useEffect(() => {
     let isMounted = true;
-    // Only attempt refresh if no credential
-    if (credential) {
+    // Only attempt refresh if no credential and the user has not logged out on purpose
+    if (credential || hasExplicitlyLoggedOut.current) {
       return () => {
         isMounted = false;
       };
@@ -43,6 +44,7 @@ export default function Navbar() {
   }, [credential, setCredential]);
 
   function handleLogout() {
+    hasExplicitlyLoggedOut.current = true;
     logout().finally(() => clearCredential());
   }
 

@@ -27,7 +27,7 @@ export default function RootLayout({
           </GoogleAuthProvider>
         ) : (
           <ConfigErrorFallback
-            message="GOOGLE_CLIENT_ID ist nicht gesetzt. Bitte setze eine gueltige Google OAuth Web Client ID in frontend/quizzard-of-oz/.env."
+            message="NEXT_PUBLIC_GOOGLE_CLIENT_ID ist nicht gesetzt. Bitte setze eine gueltige Google OAuth Web Client ID in frontend/quizzard-of-oz/.env.local."
           />
         )}
       </body>

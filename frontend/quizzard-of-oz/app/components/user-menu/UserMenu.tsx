@@ -60,15 +60,6 @@ export default function UserMenu({ displayName, onLogout }: Readonly<UserMenuPro
           <button
             type="button"
             role="menuitem"
-            onClick={() => setIsOpen(false)}
-            className="w-full px-4 py-3 text-left text-sm transition-colors hover:bg-white/10"
-            style={{ color: "rgba(var(--oz-violet-text-rgb), 0.95)" }}
-          >
-            Einstellungen
-          </button>
-          <button
-            type="button"
-            role="menuitem"
             onClick={() => {
               setIsOpen(false);
               onLogout();

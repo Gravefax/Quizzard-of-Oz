@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import LoginButton from "@/app/components/login-button/LoginButton";
 import UserMenu from "@/app/components/user-menu/UserMenu";
@@ -14,6 +14,32 @@ export default function Navbar() {
   const isLoggedIn = !!credential;
   const displayName = credential?.username ?? credential?.email ?? "User";
   const hasExplicitlyLoggedOut = useRef(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (!mobileMenuRef.current?.contains(event.target as Node)) {
+        setMobileOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMobileOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [mobileOpen]);
 
   useEffect(() => {
     let isMounted = true;
@@ -68,7 +94,8 @@ export default function Navbar() {
       >
         Quizzard of Oz
       </Link>
-      <div className="flex items-center gap-3">
+      {/* Desktop navigation — unchanged ab md */}
+      <div className="hidden md:flex items-center gap-3">
         <Link
           href="/leaderboard"
           className="login-btn inline-flex items-center gap-2 px-6 py-2 font-medium rounded-lg"
@@ -84,6 +111,78 @@ export default function Navbar() {
             <LoginButton />
           </div>
         )}
+      </div>
+
+      {/* Mobile: Burger-Menü */}
+      <div ref={mobileMenuRef} className="md:hidden">
+        <button
+          type="button"
+          aria-label={mobileOpen ? "Menü schließen" : "Menü öffnen"}
+          aria-haspopup="menu"
+          aria-expanded={mobileOpen}
+          onClick={() => setMobileOpen((prev) => !prev)}
+          className="login-btn flex items-center justify-center w-10 h-10 rounded-lg text-lg"
+        >
+          {mobileOpen ? "✕" : "☰"}
+        </button>
+
+        {mobileOpen ? (
+          <div
+            role="menu"
+            className="absolute right-4 top-full mt-2 w-60 rounded-lg border overflow-hidden shadow-lg backdrop-blur-sm"
+            style={{
+              background: "rgba(var(--oz-menu-bg-rgb), 0.92)",
+              borderColor: "rgba(var(--oz-violet-light-rgb), 0.35)",
+              boxShadow: "0 14px 28px rgba(var(--oz-violet-shadow-rgb), 0.28)",
+            }}
+          >
+            <Link
+              href="/leaderboard"
+              role="menuitem"
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center gap-2 px-4 py-3 text-sm transition-colors hover:bg-white/10"
+              style={{ color: "rgba(var(--oz-violet-text-rgb), 1)", textDecoration: "none" }}
+            >
+              <span>🏆</span>
+              <span>Leaderboard</span>
+            </Link>
+            {isLoggedIn ? (
+              <>
+                <div
+                  className="px-4 py-3 text-sm"
+                  style={{
+                    borderTop: "1px solid rgba(var(--oz-violet-light-rgb), 0.25)",
+                    color: "rgba(var(--oz-violet-text-rgb), 0.65)",
+                  }}
+                >
+                  {displayName}
+                </div>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setMobileOpen(false);
+                    handleLogout();
+                  }}
+                  className="w-full px-4 py-3 text-left text-sm transition-colors hover:bg-white/10"
+                  style={{
+                    borderTop: "1px solid rgba(var(--oz-violet-light-rgb), 0.25)",
+                    color: "rgba(var(--oz-gold-light-rgb), 0.95)",
+                  }}
+                >
+                  Abmelden
+                </button>
+              </>
+            ) : (
+              <div
+                className="px-4 py-3"
+                style={{ borderTop: "1px solid rgba(var(--oz-violet-light-rgb), 0.25)" }}
+              >
+                <LoginButton />
+              </div>
+            )}
+          </div>
+        ) : null}
       </div>
     </header>
   );

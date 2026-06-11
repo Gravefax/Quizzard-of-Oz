@@ -122,13 +122,13 @@ export default function PracticeQuiz() {
           }}
         />
 
-        {/* Center depth orb */}
+        {/* Center depth orb — adapts to theme */}
         <div
           className="absolute"
           style={{
             width: '500px', height: '500px',
             top: '50%', left: '50%',
-            background: 'radial-gradient(circle, rgba(255,200,0,0.03) 0%, rgba(0,18,40,0.4) 50%, transparent 100%)',
+            background: 'radial-gradient(circle, rgba(255,200,0,0.03) 0%, rgba(var(--oz-depth-bg-rgb),0.25) 55%, transparent 100%)',
             animation: 'orbPulse 7s ease-in-out infinite',
           }}
         />
@@ -158,7 +158,7 @@ export default function PracticeQuiz() {
             <div>
               <h1 className="arena-title" style={{ fontSize: '3rem' }}>Übungsmodus</h1>
               <span className={practiceStyles['neon-line-gold']} />
-              <p className="text-sm mt-3" style={{ color: 'rgba(140,200,230,0.5)' }}>
+              <p className="text-sm mt-3" style={{ color: 'rgba(var(--oz-text-secondary-rgb),0.65)' }}>
                 10 Fragen aus verschiedenen Kategorien – ohne Zeitdruck, ohne Druck.
               </p>
             </div>
@@ -170,7 +170,7 @@ export default function PracticeQuiz() {
 
         {/* ── Loading ── */}
         {state === 'loading' && (
-          <div className="text-center" style={{ color: 'rgba(140,200,230,0.6)' }}>
+          <div className="text-center" style={{ color: 'rgba(var(--oz-text-secondary-rgb),0.7)' }}>
             <div
               className="text-4xl mb-4 animate-pulse"
               style={{ filter: 'drop-shadow(0 0 14px rgba(255,200,0,0.5))' }}
@@ -182,7 +182,7 @@ export default function PracticeQuiz() {
                 fontFamily: "'Bebas Neue', sans-serif",
                 letterSpacing: '0.1em',
                 fontSize: '1.1rem',
-                color: 'rgba(255,228,140,0.6)',
+                color: 'rgba(255,200,0,0.7)',
               }}
             >
               Fragen werden geladen…
@@ -198,7 +198,7 @@ export default function PracticeQuiz() {
               <h2 className="arena-title" style={{ fontSize: '2rem', color: '#fca5a5' }}>
                 Verbindungsfehler
               </h2>
-              <p className="text-sm mt-2" style={{ color: 'rgba(140,200,230,0.5)' }}>
+              <p className="text-sm mt-2" style={{ color: 'rgba(var(--oz-text-secondary-rgb),0.65)' }}>
                 Der Server ist nicht erreichbar. Stelle sicher, dass das Backend läuft.
               </p>
             </div>
@@ -208,7 +208,7 @@ export default function PracticeQuiz() {
               style={{
                 background: 'rgba(255,200,0,0.1)',
                 border: '1px solid rgba(255,200,0,0.3)',
-                color: 'rgba(255,228,140,0.85)',
+                color: 'rgba(200,140,0,0.9)',
               }}
             >
               Erneut versuchen
@@ -223,10 +223,10 @@ export default function PracticeQuiz() {
             {/* Progress header */}
             <div
               className="flex items-center justify-between text-xs mb-1"
-              style={{ color: 'rgba(140,200,230,0.5)' }}
+              style={{ color: 'rgba(var(--oz-text-secondary-rgb),0.6)' }}
             >
               <span>Frage {currentIndex + 1} / {questions.length}</span>
-              <span style={{ color: 'rgba(255,200,0,0.7)' }}>{score} richtig</span>
+              <span style={{ color: 'rgba(255,200,0,0.8)' }}>{score} richtig</span>
             </div>
 
             {/* Progress bar */}
@@ -247,7 +247,7 @@ export default function PracticeQuiz() {
             <div
               className="rounded-2xl p-6"
               style={{
-                background: 'rgba(10,18,32,0.78)',
+                background: 'rgba(var(--oz-card-bg-rgb),0.78)',
                 border: '1px solid rgba(255,200,0,0.16)',
                 backdropFilter: 'blur(12px)',
                 WebkitBackdropFilter: 'blur(12px)',
@@ -255,13 +255,13 @@ export default function PracticeQuiz() {
             >
               <div
                 className="text-xs font-medium uppercase mb-3"
-                style={{ color: 'rgba(255,200,0,0.52)', letterSpacing: '0.2em' }}
+                style={{ color: 'rgba(255,200,0,0.6)', letterSpacing: '0.2em' }}
               >
                 {question.category}
               </div>
               <p
                 className="text-lg font-medium leading-relaxed"
-                style={{ color: 'rgba(220,245,255,0.9)' }}
+                style={{ color: 'rgba(var(--oz-text-bright-rgb),0.92)' }}
               >
                 {question.text}
               </p>
@@ -271,8 +271,8 @@ export default function PracticeQuiz() {
             <div className="grid grid-cols-1 gap-3">
               {question.answers.map((answer) => {
                 let borderColor = 'rgba(255,200,0,0.16)';
-                let bg = 'rgba(255,255,255,0.03)';
-                let textColor = 'rgba(220,245,255,0.85)';
+                let bg = 'rgba(var(--oz-card-bg-rgb),0.45)';
+                let textColor = 'rgba(var(--oz-text-primary-rgb),0.85)';
 
                 if (state === 'answered') {
                   if (answer === answerResult?.correct_answer) {
@@ -324,7 +324,7 @@ export default function PracticeQuiz() {
                 style={{
                   background: 'rgba(255,200,0,0.13)',
                   border: '1px solid rgba(255,200,0,0.35)',
-                  color: 'rgba(255,228,140,0.9)',
+                  color: 'rgba(200,140,0,0.95)',
                   opacity: state === 'answered' ? 1 : 0,
                   pointerEvents: state === 'answered' ? 'auto' : 'none',
                   transition: 'opacity 0.2s ease',
@@ -350,7 +350,7 @@ export default function PracticeQuiz() {
                 {score} / {questions.length}
               </h2>
               <span className={practiceStyles['neon-line-gold']} />
-              <p className="text-sm mt-3" style={{ color: 'rgba(140,200,230,0.6)' }}>
+              <p className="text-sm mt-3" style={{ color: 'rgba(var(--oz-text-secondary-rgb),0.7)' }}>
                 {getScoreMessage()}
               </p>
             </div>
@@ -361,7 +361,7 @@ export default function PracticeQuiz() {
               <button
                 onClick={() => router.push('/')}
                 className="text-sm py-2"
-                style={{ color: 'rgba(140,200,230,0.38)' }}
+                style={{ color: 'rgba(var(--oz-text-secondary-rgb),0.45)' }}
               >
                 ← Zur Startseite
               </button>

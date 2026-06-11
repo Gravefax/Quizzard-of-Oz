@@ -7,7 +7,7 @@
 }
 
 .login-card {
-  background: rgba(10,18,32,0.75);
+  background: rgba(var(--oz-card-bg-rgb),0.75);
   border: 1px solid rgba(255,60,20,0.22);
   border-radius: 1.5rem;
   backdrop-filter: blur(18px);

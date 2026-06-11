@@ -2,7 +2,7 @@
 /* Alle Hintergrund-Keyframes (scanDown, ambFloat0/1, orbPulse) kommen aus shared.css */
 
 .lb-header-card {
-  background: rgba(10,18,32,0.75);
+  background: rgba(var(--oz-card-bg-rgb),0.75);
   border: 1px solid rgba(255,200,0,0.22);
   border-radius: 1.25rem;
   backdrop-filter: blur(18px);
@@ -20,7 +20,7 @@
 }
 
 .lb-table-card {
-  background: rgba(8,15,28,0.78);
+  background: rgba(var(--oz-card-bg-alt-rgb),0.78);
   border: 1px solid rgba(255,200,0,0.14);
   border-radius: 1.25rem;
   overflow: hidden;
@@ -30,18 +30,18 @@
 
 .lb-search-input {
   width: 100%;
-  background: rgba(5,8,15,0.7);
+  background: rgba(var(--oz-card-bg-rgb),0.7);
   border: 1px solid rgba(255,200,0,0.2);
   border-radius: 0.625rem;
   padding: 8px 12px;
   font-size: 0.875rem;
-  color: rgba(220,245,255,0.9);
+  color: rgba(var(--oz-text-primary-rgb),0.9);
   outline: none;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .lb-search-input::placeholder {
-  color: rgba(140,200,230,0.3);
+  color: rgba(var(--oz-text-muted-rgb),0.3);
 }
 
 .lb-search-input:focus {

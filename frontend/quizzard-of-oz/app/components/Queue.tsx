@@ -31,7 +31,7 @@ export default function Queue({ ranked = false }: QueueProps) {
 
   const accent = ranked
     ? { rgb: '255,60,20', dim: 'rgba(255,60,20,0.55)', muted: 'rgba(255,140,90,0.5)' }
-    : { rgb: '0,212,255',  dim: 'rgba(0,212,255,0.55)',  muted: 'rgba(140,200,230,0.5)' };
+    : { rgb: '0,212,255',  dim: 'rgba(0,212,255,0.55)',  muted: 'rgba(var(--oz-text-secondary-rgb),0.6)' };
 
   function startTimer() {
     setQueueSeconds(0);
@@ -188,8 +188,8 @@ export default function Queue({ ranked = false }: QueueProps) {
               >
                 👤
               </div>
-              <div style={{ color: `rgba(160,215,240,0.8)`, fontSize: '0.8rem', fontWeight: 600, letterSpacing: '0.08em' }}>Du</div>
-              <div style={{ color: `rgba(${accent.rgb},0.5)`, fontSize: '0.65rem', marginTop: '4px', letterSpacing: '0.1em' }}>BEREIT</div>
+              <div style={{ color: `rgba(var(--oz-text-secondary-rgb),0.88)`, fontSize: '0.8rem', fontWeight: 600, letterSpacing: '0.08em' }}>Du</div>
+              <div style={{ color: `rgba(${accent.rgb},0.65)`, fontSize: '0.65rem', marginTop: '4px', letterSpacing: '0.1em' }}>BEREIT</div>
             </div>
 
             {/* VS column */}
@@ -212,15 +212,15 @@ export default function Queue({ ranked = false }: QueueProps) {
 
             <div className={`${queueStyles['player-card-empty']} flex-1 p-5 text-center flex flex-col items-center justify-center`}>
               <div className="text-3xl mb-3" style={{ opacity: 0.25 }}>?</div>
-              <div style={{ color: `rgba(160,215,240,0.28)`, fontSize: '0.8rem', fontWeight: 600, letterSpacing: '0.08em' }}>Gegner</div>
-              <div style={{ color: `rgba(160,215,240,0.18)`, fontSize: '0.65rem', marginTop: '4px', letterSpacing: '0.1em' }}>WARTEND</div>
+              <div style={{ color: `rgba(var(--oz-text-secondary-rgb),0.45)`, fontSize: '0.8rem', fontWeight: 600, letterSpacing: '0.08em' }}>Gegner</div>
+              <div style={{ color: `rgba(var(--oz-text-secondary-rgb),0.28)`, fontSize: '0.65rem', marginTop: '4px', letterSpacing: '0.1em' }}>WARTEND</div>
             </div>
           </div>
 
           {/* Decorative info row */}
           <div className="flex items-center gap-3 w-full">
             <div className={`${queueStyles['deco-line-h']} flex-1`} />
-            <div style={{ color: `rgba(${accent.rgb},0.38)`, fontSize: '0.65rem', letterSpacing: '0.15em', whiteSpace: 'nowrap' }}>
+            <div style={{ color: `rgba(${accent.rgb},0.6)`, fontSize: '0.65rem', letterSpacing: '0.15em', whiteSpace: 'nowrap' }}>
               {ranked ? 'RANG · PUNKTE · LEADERBOARD' : 'KEIN DRUCK · KEIN RANG · NUR SPASS'}
             </div>
             <div className={`${queueStyles['deco-line-h']} flex-1`} />
@@ -230,7 +230,7 @@ export default function Queue({ ranked = false }: QueueProps) {
             <div className="text-2xl mb-1.5" style={{ filter: `drop-shadow(0 0 10px ${accent.dim})` }}>
               {ranked ? '⚔' : '⚡'}
             </div>
-            <h3 style={{ fontFamily: "'Bebas Neue', Impact, 'Arial Black', sans-serif", fontSize: '1.4rem', letterSpacing: '0.14em', color: 'rgba(160,215,240,0.95)' }}>
+            <h3 style={{ fontFamily: "'Bebas Neue', Impact, 'Arial Black', sans-serif", fontSize: '1.4rem', letterSpacing: '0.14em', color: 'rgba(var(--oz-text-bright-rgb),0.92)' }}>
               Queue beitreten
             </h3>
             <p style={{ color: accent.muted, fontSize: '0.72rem', marginTop: '3px' }}>
@@ -250,7 +250,7 @@ export default function Queue({ ranked = false }: QueueProps) {
             borderRadius: '50%',
             animation: 'spinSlow 0.85s linear infinite',
           }} />
-          <div style={{ color: 'rgba(140,200,230,0.55)', fontSize: '0.9rem', letterSpacing: '0.06em' }}>
+          <div style={{ color: 'rgba(var(--oz-text-secondary-rgb),0.65)', fontSize: '0.9rem', letterSpacing: '0.06em' }}>
             Verbinde mit Server...
           </div>
         </div>
@@ -283,7 +283,7 @@ export default function Queue({ ranked = false }: QueueProps) {
           </div>
 
           <div className="text-center">
-            <div style={{ fontFamily: "'Bebas Neue', Impact, 'Arial Black', sans-serif", fontSize: '1.7rem', letterSpacing: '0.1em', color: 'rgba(160,215,240,0.88)' }}>
+            <div style={{ fontFamily: "'Bebas Neue', Impact, 'Arial Black', sans-serif", fontSize: '1.7rem', letterSpacing: '0.1em', color: 'rgba(var(--oz-text-bright-rgb),0.88)' }}>
               Gegner wird gesucht
             </div>
             <div className="mt-2 font-mono" style={{ fontSize: '1.35rem', color: `rgba(${accent.rgb},0.6)`, letterSpacing: '0.12em' }}>
@@ -294,7 +294,7 @@ export default function Queue({ ranked = false }: QueueProps) {
           {/* Searching info row */}
           <div className="flex items-center gap-3">
             <div className={queueStyles['deco-line-h']} style={{ width: '40px' }} />
-            <span style={{ color: `rgba(${accent.rgb},0.35)`, fontSize: '0.65rem', letterSpacing: '0.15em' }}>SUCHE LÄUFT</span>
+            <span style={{ color: `rgba(${accent.rgb},0.55)`, fontSize: '0.65rem', letterSpacing: '0.15em' }}>SUCHE LÄUFT</span>
             <div className={queueStyles['deco-line-h']} style={{ width: '40px' }} />
           </div>
 
@@ -317,12 +317,12 @@ export default function Queue({ ranked = false }: QueueProps) {
           <div className="px-4 py-2 rounded font-mono text-xs" style={{
             background: `rgba(${accent.rgb},0.06)`,
             border: `1px solid rgba(${accent.rgb},0.18)`,
-            color: 'rgba(140,200,230,0.5)',
+            color: 'rgba(var(--oz-text-secondary-rgb),0.55)',
             letterSpacing: '0.07em',
           }}>
             Match ID: {matchId}
           </div>
-          <div className="flex items-center gap-2 text-sm" style={{ color: 'rgba(140,200,230,0.42)' }}>
+          <div className="flex items-center gap-2 text-sm" style={{ color: 'rgba(var(--oz-text-secondary-rgb),0.5)' }}>
             <div style={{
               width: '14px', height: '14px',
               border: `2px solid rgba(${accent.rgb},0.2)`,
@@ -342,11 +342,11 @@ export default function Queue({ ranked = false }: QueueProps) {
           <div style={{ fontFamily: "'Bebas Neue', Impact, 'Arial Black', sans-serif", fontSize: '1.6rem', letterSpacing: '0.08em', color: 'rgba(255,130,90,0.9)' }}>
             Verbindung fehlgeschlagen
           </div>
-          <p style={{ color: 'rgba(140,200,230,0.48)', fontSize: '0.85rem', lineHeight: 1.6 }}>
+          <p style={{ color: 'rgba(var(--oz-text-secondary-rgb),0.6)', fontSize: '0.85rem', lineHeight: 1.6 }}>
             {errorMsg}
           </p>
           <button className={`${queueStyles['join-btn']} px-8 py-3 text-sm`} onClick={() => setQueueState('idle')}>
-            <span style={{ color: 'rgba(160,215,240,0.85)' }}>Erneut versuchen</span>
+            <span style={{ color: 'rgba(var(--oz-text-bright-rgb),0.88)' }}>Erneut versuchen</span>
           </button>
         </div>
       )}

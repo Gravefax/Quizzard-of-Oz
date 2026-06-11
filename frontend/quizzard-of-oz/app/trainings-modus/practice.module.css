@@ -13,7 +13,7 @@
 }
 
 .practice-card {
-  background: rgba(10,18,32,0.78);
+  background: rgba(var(--oz-card-bg-rgb),0.78);
   border: 1px solid rgba(255,200,0,0.22);
   border-radius: 1.5rem;
   backdrop-filter: blur(18px);
@@ -58,6 +58,7 @@
   transition: all 0.18s ease;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+  color: rgba(var(--oz-text-primary-rgb),0.85);
 }
 
 .practice-answer-btn:not(:disabled):hover {

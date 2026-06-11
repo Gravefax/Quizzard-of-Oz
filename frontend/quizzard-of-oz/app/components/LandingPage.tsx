@@ -50,19 +50,19 @@ export default function LandingPage() {
   let topPlayersContent: JSX.Element;
   if (topLoading) {
     topPlayersContent = (
-      <p style={{ color: 'rgba(140,200,230,0.6)', fontSize: '0.85rem' }}>Lade Rangliste ...</p>
+      <p style={{ color: 'rgba(var(--oz-text-secondary-rgb),0.6)', fontSize: '0.85rem' }}>Lade Rangliste ...</p>
     );
   } else if (topPlayers.length === 0) {
     topPlayersContent = (
-      <p style={{ color: 'rgba(140,200,230,0.6)', fontSize: '0.85rem' }}>Noch keine Eintraege verfuegbar.</p>
+      <p style={{ color: 'rgba(var(--oz-text-secondary-rgb),0.6)', fontSize: '0.85rem' }}>Noch keine Eintraege verfuegbar.</p>
     );
   } else {
     topPlayersContent = (
       <ol className="space-y-1.5">
         {topPlayers.map((player) => (
-          <li key={player.user_id} className="flex items-center justify-between rounded-md px-2 py-1" style={{ background: 'rgba(0,0,0,0.16)' }}>
-            <span style={{ color: 'rgba(220,245,255,0.9)', fontSize: '0.86rem' }}>#{player.rank} {player.username}</span>
-            <span style={{ color: 'rgba(110,215,255,0.88)', fontWeight: 700, fontSize: '0.85rem' }}>{player.elo_rating}</span>
+          <li key={player.user_id} className="flex items-center justify-between rounded-md px-2 py-1" style={{ background: 'rgba(var(--oz-depth-bg-rgb),0.1)' }}>
+            <span style={{ color: 'rgba(var(--oz-text-bright-rgb),0.9)', fontSize: '0.86rem' }}>#{player.rank} {player.username}</span>
+            <span style={{ color: 'rgba(0,212,255,0.88)', fontWeight: 700, fontSize: '0.85rem' }}>{player.elo_rating}</span>
           </li>
         ))}
       </ol>
@@ -154,13 +154,13 @@ export default function LandingPage() {
           }}
         />
 
-        {/* Center depth orb */}
+        {/* Center depth orb — subtle vignette, adapts to theme */}
         <div
           className="absolute rounded-full"
           style={{
             width: '600px', height: '600px',
             top: '50%', left: '50%',
-            background: 'radial-gradient(circle, rgba(0,212,255,0.04) 0%, rgba(0,18,40,0.5) 50%, transparent 100%)',
+            background: 'radial-gradient(circle, rgba(0,212,255,0.03) 0%, rgba(var(--oz-depth-bg-rgb),0.28) 55%, transparent 100%)',
             animation: 'orbPulse 7s ease-in-out infinite',
           }}
         />
@@ -213,7 +213,7 @@ export default function LandingPage() {
           <span className={styles['neon-line']} style={{ width: '200px' }} />
           <p
             className="text-sm md:text-base mt-1 mb-6"
-            style={{ color: 'rgba(140, 200, 230, 0.52)', letterSpacing: '0.04em' }}
+            style={{ color: 'rgba(var(--oz-text-secondary-rgb),0.75)', letterSpacing: '0.04em' }}
           >
             Beweise dein Wissen. Besiege deine Rivalen.
           </p>
@@ -222,8 +222,8 @@ export default function LandingPage() {
         {/* ── Top 3 preview ── */}
         <div className={`w-full max-w-sm mb-4 ${styles['leaderboard-card']} px-4 py-3`}>
           <div className="flex items-center justify-between mb-2">
-            <span style={{ color: 'rgba(185,230,250,0.92)', fontWeight: 700, letterSpacing: '0.04em' }}>Top 3</span>
-            <span style={{ color: 'rgba(120,190,220,0.7)', fontSize: '0.7rem', letterSpacing: '0.08em' }}>LIVE LEADERBOARD</span>
+            <span style={{ color: 'rgba(var(--oz-text-secondary-rgb),0.92)', fontWeight: 700, letterSpacing: '0.04em' }}>Top 3</span>
+            <span style={{ color: 'rgba(var(--oz-text-secondary-rgb),0.55)', fontSize: '0.7rem', letterSpacing: '0.08em' }}>LIVE LEADERBOARD</span>
           </div>
           {topPlayersContent}
         </div>
@@ -247,7 +247,7 @@ export default function LandingPage() {
                 fontFamily: "'Bebas Neue', Impact, 'Arial Black', sans-serif",
                 fontSize: '1.75rem',
                 letterSpacing: '0.16em',
-                color: '#FFD0B0',
+                color: 'rgba(var(--oz-fire-rgb),0.9)',
                 lineHeight: 1,
                 marginBottom: '6px',
               }}
@@ -255,11 +255,11 @@ export default function LandingPage() {
               Ranked Battle
             </div>
             {/* Tagline */}
-            <div style={{ color: 'rgba(255,170,120,0.58)', fontSize: '0.7rem', letterSpacing: '0.12em', marginBottom: '14px' }}>
+            <div style={{ color: 'rgba(255,170,120,0.65)', fontSize: '0.7rem', letterSpacing: '0.12em', marginBottom: '14px' }}>
               COMPETE · RANK · DOMINATE
             </div>
             {/* Login badge */}
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '3px 10px', borderRadius: '999px', background: 'rgba(255,60,20,0.1)', border: '1px solid rgba(255,80,40,0.3)', color: 'rgba(255,160,110,0.6)', fontSize: '0.65rem', letterSpacing: '0.1em' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '3px 10px', borderRadius: '999px', background: 'rgba(255,60,20,0.1)', border: '1px solid rgba(255,80,40,0.3)', color: 'rgba(255,100,50,0.7)', fontSize: '0.65rem', letterSpacing: '0.1em' }}>
               <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: 'rgba(255,100,50,0.7)', display: 'inline-block' }} />{"Login erforderlich"}
             </div>
           </button>
@@ -277,15 +277,15 @@ export default function LandingPage() {
               </div>
               {/* Text */}
               <div style={{ textAlign: 'left', flex: 1 }}>
-                <div style={{ color: 'rgba(255,228,140,0.92)', fontSize: '0.95rem', fontWeight: 600, letterSpacing: '0.04em', marginBottom: '2px' }}>
+                <div style={{ color: 'rgba(200,140,0,0.95)', fontSize: '0.95rem', fontWeight: 600, letterSpacing: '0.04em', marginBottom: '2px' }}>
                   Übung
                 </div>
-                <div style={{ color: 'rgba(255,215,120,0.42)', fontSize: '0.7rem', letterSpacing: '0.08em' }}>
+                <div style={{ color: 'rgba(var(--oz-text-secondary-rgb),0.55)', fontSize: '0.7rem', letterSpacing: '0.08em' }}>
                   Trainingsmodus · Kein Login nötig
                 </div>
               </div>
               {/* Arrow */}
-              <div style={{ flexShrink: 0, color: 'rgba(255,200,0,0.35)', fontSize: '1rem' }}>›</div>
+              <div style={{ flexShrink: 0, color: 'rgba(255,200,0,0.5)', fontSize: '1rem' }}>›</div>
             </div>
           </button>
 

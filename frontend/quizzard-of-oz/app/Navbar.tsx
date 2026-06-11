@@ -5,6 +5,7 @@ import Link from "next/link";
 import LoginButton from "@/app/components/login-button/LoginButton";
 import UserMenu from "@/app/components/user-menu/UserMenu";
 import useAuthStore from "@/app/stores/authStore";
+import useThemeStore from "@/app/stores/themeStore";
 import { refreshAccessToken, logout } from "@/app/lib/auth/authClient";
 
 export default function Navbar() {
@@ -14,6 +15,7 @@ export default function Navbar() {
   const isLoggedIn = !!credential;
   const displayName = credential?.username ?? credential?.email ?? "User";
   const hasExplicitlyLoggedOut = useRef(false);
+  const { theme, toggle: toggleTheme } = useThemeStore();
   const [mobileOpen, setMobileOpen] = useState(false);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
 
@@ -96,6 +98,15 @@ export default function Navbar() {
       </Link>
       {/* Desktop navigation — unchanged ab md */}
       <div className="hidden md:flex items-center gap-3">
+        <button
+          type="button"
+          onClick={toggleTheme}
+          aria-label={theme === 'dark' ? 'Light Mode aktivieren' : 'Dark Mode aktivieren'}
+          title={theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+          className="login-btn flex items-center justify-center w-10 h-10 rounded-lg text-lg"
+        >
+          {theme === 'dark' ? '☀️' : '🌙'}
+        </button>
         <Link
           href="/leaderboard"
           className="login-btn inline-flex items-center gap-2 px-6 py-2 font-medium rounded-lg"
@@ -146,6 +157,19 @@ export default function Navbar() {
               <span>🏆</span>
               <span>Leaderboard</span>
             </Link>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => { toggleTheme(); setMobileOpen(false); }}
+              className="w-full flex items-center gap-2 px-4 py-3 text-sm transition-colors hover:bg-white/10"
+              style={{
+                borderTop: "1px solid rgba(var(--oz-violet-light-rgb), 0.25)",
+                color: "rgba(var(--oz-violet-text-rgb), 1)",
+              }}
+            >
+              <span>{theme === 'dark' ? '☀️' : '🌙'}</span>
+              <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
+            </button>
             {isLoggedIn ? (
               <>
                 <div

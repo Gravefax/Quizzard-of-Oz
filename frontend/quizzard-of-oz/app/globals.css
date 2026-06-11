@@ -38,6 +38,46 @@
   --oz-menu-bg-rgb:       8, 15, 28;
   --oz-white-rgb:         200, 228, 255;
   --oz-surface-heading:   #E0F4FF;
+
+  /* ── Card-Hintergründe (für CSS-Module) ── */
+  --oz-card-bg-rgb:       10, 18, 32;
+  --oz-card-bg-alt-rgb:    8, 15, 28;
+
+  /* ── Text in Karten (für CSS-Module) ── */
+  --oz-text-primary-rgb:  220, 245, 255;
+  --oz-text-muted-rgb:    140, 200, 230;
+  --oz-text-heading-rgb:  220, 245, 255;
+
+  /* ── Inline-Style Theming ── */
+  --oz-depth-bg-rgb:       0,  18,  40;   /* center vignette orb dark */
+  --oz-text-secondary-rgb: 140, 200, 230; /* muted inline text */
+  --oz-text-bright-rgb:    220, 245, 255; /* bright inline text */
+}
+
+/* ── Light Mode Overrides ── */
+html.light {
+  --background:             #EDF5FF;
+  --foreground:             #0C1C30;
+
+  --oz-gradient-start:      #EDF5FF;
+  --oz-gradient-mid-1:      #DFF0FF;
+  --oz-gradient-mid-2:      #E6F4FF;
+  --oz-gradient-end:        #EDF5FF;
+
+  --oz-card-bg-rgb:         255, 255, 255;
+  --oz-card-bg-alt-rgb:     240, 248, 255;
+  --oz-menu-bg-rgb:         225, 242, 255;
+
+  --oz-text-primary-rgb:     10,  30,  55;
+  --oz-text-muted-rgb:       55, 110, 155;
+  --oz-text-heading-rgb:      5,  20,  40;
+  --oz-surface-heading:      #0C1C30;
+  --oz-violet-text-rgb:       0, 100, 150;
+
+  /* ── Inline-Style Theming overrides ── */
+  --oz-depth-bg-rgb:       210, 232, 250; /* vignette orb nearly invisible */
+  --oz-text-secondary-rgb:  40,  90, 140; /* readable navy in light */
+  --oz-text-bright-rgb:      8,  25,  50; /* dark primary text in light */
 }
 
 @theme inline {

@@ -69,7 +69,7 @@ export default function LeaderboardPage() {
   if (loading) {
     tableBodyContent = (
       <tr>
-        <td colSpan={6} className="px-4 py-10 text-center" style={{ color: 'rgba(140,200,230,0.6)' }}>
+        <td colSpan={6} className="px-4 py-10 text-center" style={{ color: 'rgba(var(--oz-text-secondary-rgb),0.65)' }}>
           Lade Leaderboard …
         </td>
       </tr>
@@ -83,7 +83,7 @@ export default function LeaderboardPage() {
   } else if (entries.length === 0) {
     tableBodyContent = (
       <tr>
-        <td colSpan={6} className="px-4 py-10 text-center" style={{ color: 'rgba(140,200,230,0.5)' }}>
+        <td colSpan={6} className="px-4 py-10 text-center" style={{ color: 'rgba(var(--oz-text-secondary-rgb),0.55)' }}>
           Keine Spieler gefunden.
         </td>
       </tr>
@@ -94,10 +94,10 @@ export default function LeaderboardPage() {
       const rankColor = entry.rank === 1
         ? 'rgba(255,200,0,0.9)'
         : entry.rank === 2
-          ? 'rgba(180,200,220,0.85)'
+          ? 'rgba(var(--oz-text-secondary-rgb),0.85)'
           : entry.rank === 3
-            ? 'rgba(200,140,80,0.85)'
-            : 'rgba(140,200,230,0.55)';
+            ? 'rgba(200,140,80,0.9)'
+            : 'rgba(var(--oz-text-secondary-rgb),0.6)';
 
       return (
         <tr
@@ -111,11 +111,11 @@ export default function LeaderboardPage() {
           <td className="px-4 py-3 font-semibold" style={{ color: rankColor, fontSize: '0.9rem' }}>
             {RANK_MEDAL[entry.rank] ?? `#${entry.rank}`}
           </td>
-          <td className="px-4 py-3" style={{ color: 'rgba(220,245,255,0.9)' }}>{entry.username}</td>
+          <td className="px-4 py-3" style={{ color: 'rgba(var(--oz-text-bright-rgb),0.9)' }}>{entry.username}</td>
           <td className="px-4 py-3 font-bold" style={{ color: 'rgba(255,200,0,0.85)' }}>{entry.elo_rating}</td>
-          <td className="px-4 py-3" style={{ color: 'rgba(52,211,153,0.75)' }}>{entry.wins}</td>
-          <td className="px-4 py-3" style={{ color: 'rgba(248,113,113,0.7)' }}>{entry.losses}</td>
-          <td className="px-4 py-3" style={{ color: 'rgba(140,200,230,0.6)' }}>{entry.total_matches}</td>
+          <td className="px-4 py-3" style={{ color: 'rgba(52,211,153,0.8)' }}>{entry.wins}</td>
+          <td className="px-4 py-3" style={{ color: 'rgba(248,113,113,0.8)' }}>{entry.losses}</td>
+          <td className="px-4 py-3" style={{ color: 'rgba(var(--oz-text-secondary-rgb),0.65)' }}>{entry.total_matches}</td>
         </tr>
       );
     });
@@ -166,13 +166,13 @@ export default function LeaderboardPage() {
             animation: 'ambFloat1 13s ease-in-out 1.5s infinite',
           }}
         />
-        {/* Center orb */}
+        {/* Center depth orb — adapts to theme */}
         <div
           className="absolute"
           style={{
             width: '500px', height: '500px',
             top: '50%', left: '50%',
-            background: 'radial-gradient(circle, rgba(255,200,0,0.03) 0%, rgba(0,18,40,0.4) 50%, transparent 100%)',
+            background: 'radial-gradient(circle, rgba(255,200,0,0.03) 0%, rgba(var(--oz-depth-bg-rgb),0.25) 55%, transparent 100%)',
             animation: 'orbPulse 8s ease-in-out infinite',
           }}
         />
@@ -196,7 +196,7 @@ export default function LeaderboardPage() {
               <h1 className="arena-title" style={{ fontSize: '3.5rem' }}>Leaderboard</h1>
               <p
                 className="mt-1 text-sm"
-                style={{ color: 'rgba(140,200,230,0.55)', letterSpacing: '0.04em' }}
+                style={{ color: 'rgba(var(--oz-text-secondary-rgb),0.65)', letterSpacing: '0.04em' }}
               >
                 Seite {page} von {totalPages} · {totalPlayers} Spieler insgesamt
               </p>
@@ -206,7 +206,7 @@ export default function LeaderboardPage() {
               <label
                 className="mb-1.5 block text-xs uppercase"
                 htmlFor="search-user"
-                style={{ color: 'rgba(255,200,0,0.5)', letterSpacing: '0.1em' }}
+                style={{ color: 'rgba(255,200,0,0.55)', letterSpacing: '0.1em' }}
               >
                 Suche nach Benutzername
               </label>
@@ -223,7 +223,7 @@ export default function LeaderboardPage() {
               />
               <p
                 className="mt-1 text-xs"
-                style={{ color: 'rgba(140,200,230,0.35)' }}
+                style={{ color: 'rgba(var(--oz-text-secondary-rgb),0.45)' }}
               >
                 Sucht serverseitig im gesamten Leaderboard.
               </p>
@@ -235,12 +235,12 @@ export default function LeaderboardPage() {
             <table className="w-full border-collapse text-left text-sm">
               <thead>
                 <tr style={{ background: 'rgba(255,200,0,0.06)', borderBottom: '1px solid rgba(255,200,0,0.14)' }}>
-                  <th className="px-4 py-3 text-xs uppercase" style={{ color: 'rgba(255,200,0,0.65)', letterSpacing: '0.1em', fontWeight: 600 }}>Rang</th>
-                  <th className="px-4 py-3 text-xs uppercase" style={{ color: 'rgba(255,200,0,0.65)', letterSpacing: '0.1em', fontWeight: 600 }}>Spieler</th>
-                  <th className="px-4 py-3 text-xs uppercase" style={{ color: 'rgba(255,200,0,0.65)', letterSpacing: '0.1em', fontWeight: 600 }}>ELO</th>
-                  <th className="px-4 py-3 text-xs uppercase" style={{ color: 'rgba(52,211,153,0.55)', letterSpacing: '0.1em', fontWeight: 600 }}>Wins</th>
-                  <th className="px-4 py-3 text-xs uppercase" style={{ color: 'rgba(248,113,113,0.55)', letterSpacing: '0.1em', fontWeight: 600 }}>Losses</th>
-                  <th className="px-4 py-3 text-xs uppercase" style={{ color: 'rgba(140,200,230,0.45)', letterSpacing: '0.1em', fontWeight: 600 }}>Matches</th>
+                  <th className="px-4 py-3 text-xs uppercase" style={{ color: 'rgba(255,200,0,0.7)',  letterSpacing: '0.1em', fontWeight: 600 }}>Rang</th>
+                  <th className="px-4 py-3 text-xs uppercase" style={{ color: 'rgba(255,200,0,0.7)',  letterSpacing: '0.1em', fontWeight: 600 }}>Spieler</th>
+                  <th className="px-4 py-3 text-xs uppercase" style={{ color: 'rgba(255,200,0,0.7)',  letterSpacing: '0.1em', fontWeight: 600 }}>ELO</th>
+                  <th className="px-4 py-3 text-xs uppercase" style={{ color: 'rgba(52,211,153,0.65)', letterSpacing: '0.1em', fontWeight: 600 }}>Wins</th>
+                  <th className="px-4 py-3 text-xs uppercase" style={{ color: 'rgba(248,113,113,0.65)', letterSpacing: '0.1em', fontWeight: 600 }}>Losses</th>
+                  <th className="px-4 py-3 text-xs uppercase" style={{ color: 'rgba(var(--oz-text-secondary-rgb),0.55)', letterSpacing: '0.1em', fontWeight: 600 }}>Matches</th>
                 </tr>
               </thead>
               <tbody>{tableBodyContent}</tbody>
@@ -259,7 +259,7 @@ export default function LeaderboardPage() {
 
             <span
               className="text-sm"
-              style={{ color: 'rgba(255,200,0,0.55)', fontFamily: "'Bebas Neue', sans-serif", letterSpacing: '0.08em', fontSize: '1rem' }}
+              style={{ color: 'rgba(255,200,0,0.6)', fontFamily: "'Bebas Neue', sans-serif", letterSpacing: '0.08em', fontSize: '1rem' }}
             >
               Seite {page} / {totalPages}
             </span>

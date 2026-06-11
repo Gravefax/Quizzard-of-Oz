@@ -49,7 +49,7 @@ describe("Navbar", () => {
     expect(screen.getByRole("button", { name: /dummyuser/i })).toBeInTheDocument();
   });
 
-  it("opens the user menu with settings and logout actions", async () => {
+  it("opens the user menu with the logout action", async () => {
     act(() => {
       useAuthStore.setState({
         credential: { email: "user@example.com", username: "DummyUser", expiresAt: 123 },
@@ -61,8 +61,8 @@ describe("Navbar", () => {
 
     await user.click(screen.getByRole("button", { name: /dummyuser/i }));
 
-    expect(screen.getByRole("menuitem", { name: /einstellungen/i })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: /abmelden/i })).toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: /einstellungen/i })).not.toBeInTheDocument();
   });
 
   it("falls back to email when username is missing", () => {

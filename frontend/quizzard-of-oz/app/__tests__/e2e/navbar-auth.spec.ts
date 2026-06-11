@@ -39,11 +39,10 @@ test.describe("Navbar Auth Menü", () => {
     const trigger = page.getByRole("button", { name: /dummyuser/i });
 
     await trigger.click();
-    await expect(page.getByRole("menuitem", { name: /einstellungen/i })).toBeVisible();
     await expect(page.getByRole("menuitem", { name: /abmelden/i })).toBeVisible();
 
     await page.keyboard.press("Escape");
-    await expect(page.getByRole("menuitem", { name: /einstellungen/i })).toBeHidden();
+    await expect(page.getByRole("menuitem", { name: /abmelden/i })).toBeHidden();
 
     await trigger.click();
     await expect(page.getByRole("menuitem", { name: /abmelden/i })).toBeVisible();

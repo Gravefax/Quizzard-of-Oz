@@ -21,13 +21,13 @@ describe("auth api", () => {
   });
 
   it("sends login request and returns payload", async () => {
-    const { loginWithGoogle } = await import("@/app/lib/auth/authClient");
+    const { loginWithKeycloak } = await import("@/app/lib/auth/authClient");
     const payload = { email: "user@example.com", username: "DummyUser", expires_at: 123 };
     vi.mocked(fetch).mockResolvedValue(mockFetchResponse(200, payload));
 
-    const result = await loginWithGoogle("token-123");
+    const result = await loginWithKeycloak("token-123");
 
-    expect(fetch).toHaveBeenCalledWith("http://backend.test/auth/google/login", {
+    expect(fetch).toHaveBeenCalledWith("http://backend.test/auth/login", {
       method: "POST",
       headers: { Authorization: "Bearer token-123" },
       credentials: "include",
@@ -36,24 +36,24 @@ describe("auth api", () => {
   });
 
   it("throws MISSING_TOKEN on login 400", async () => {
-    const { loginWithGoogle } = await import("@/app/lib/auth/authClient");
+    const { loginWithKeycloak } = await import("@/app/lib/auth/authClient");
     vi.mocked(fetch).mockResolvedValue(mockFetchResponse(400));
 
-    await expect(loginWithGoogle("token-123")).rejects.toThrow("MISSING_TOKEN");
+    await expect(loginWithKeycloak("token-123")).rejects.toThrow("MISSING_TOKEN");
   });
 
   it("throws UNAUTHORIZED on login 401", async () => {
-    const { loginWithGoogle } = await import("@/app/lib/auth/authClient");
+    const { loginWithKeycloak } = await import("@/app/lib/auth/authClient");
     vi.mocked(fetch).mockResolvedValue(mockFetchResponse(401));
 
-    await expect(loginWithGoogle("token-123")).rejects.toThrow("UNAUTHORIZED");
+    await expect(loginWithKeycloak("token-123")).rejects.toThrow("UNAUTHORIZED");
   });
 
   it("throws LOGIN_FAILED on other non-ok login response", async () => {
-    const { loginWithGoogle } = await import("@/app/lib/auth/authClient");
+    const { loginWithKeycloak } = await import("@/app/lib/auth/authClient");
     vi.mocked(fetch).mockResolvedValue(mockFetchResponse(500));
 
-    await expect(loginWithGoogle("token-123")).rejects.toThrow("LOGIN_FAILED_500");
+    await expect(loginWithKeycloak("token-123")).rejects.toThrow("LOGIN_FAILED_500");
   });
 
   it("sends refresh request and returns payload", async () => {
@@ -63,7 +63,7 @@ describe("auth api", () => {
 
     const result = await refreshAccessToken();
 
-    expect(fetch).toHaveBeenCalledWith("http://backend.test/auth/google/refresh", {
+    expect(fetch).toHaveBeenCalledWith("http://backend.test/auth/refresh", {
       method: "GET",
       credentials: "include",
     });
@@ -103,4 +103,3 @@ describe("auth api", () => {
     });
   });
 });
-

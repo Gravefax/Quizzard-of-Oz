@@ -17,6 +17,28 @@ services:
       timeout: 5s
       retries: 10
 
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.2.5
+    container_name: quizbattle-keycloak
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HTTP_PORT: 8080
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+      KC_HEALTH_ENABLED: "true"
+    volumes:
+      - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/8080' 2>/dev/null && echo healthy || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
   backend:
     build:
       context: ./backend
@@ -25,10 +47,13 @@ services:
     env_file: ./backend/.env
     environment:
       POSTGRES_HOST: postgres
+      KEYCLOAK_URL: http://keycloak:8080
     ports:
       - "8000:8000"
     depends_on:
       postgres:
+        condition: service_healthy
+      keycloak:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\""]
@@ -45,7 +70,9 @@ services:
         # wsUrl.ts derives the WebSocket base from this value as well.
         BACKEND_URL: http://backend:8000
         NEXT_PUBLIC_API_BASE: http://localhost:8000
-        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-265094074564-q5rvdcsdh8kas79smc9mspgd3r90hvr5.apps.googleusercontent.com}
+        NEXT_PUBLIC_KEYCLOAK_URL: "http://localhost:8080"
+        NEXT_PUBLIC_KEYCLOAK_REALM: "quizzard"
+        NEXT_PUBLIC_KEYCLOAK_CLIENT_ID: "quizzard-frontend"
     container_name: quizbattle-frontend
     restart: unless-stopped
     environment:

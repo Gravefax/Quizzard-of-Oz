@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1080" height="640" viewBox="0 0 1080 640" role="img" aria-labelledby="title desc">
   <title id="title">C4 Model - Level 1: System Context - Quizzard of Oz</title>
-  <desc id="desc">Rendered C4 context diagram based on docs/c4/c1_context.puml, showing guest users, authenticated users, Quizzard of Oz, Google OAuth 2.0, and The Trivia API.</desc>
+  <desc id="desc">Rendered C4 context diagram based on docs/c4/c1_context.puml, showing guest users, authenticated users, Quizzard of Oz, Keycloak, and The Trivia API.</desc>
   <defs>
     <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth">
       <path d="M0 0L10 5L0 10Z" fill="#334155"/>
@@ -46,10 +46,10 @@
   <text class="text" x="492" y="356">sowie Leaderboard.</text>
 
   <rect class="external" x="812" y="145" width="205" height="112" rx="8"/>
-  <text class="label" x="851" y="177">Google OAuth 2.0</text>
+  <text class="label" x="868" y="177">Keycloak</text>
   <text class="text" x="857" y="206">Identity Provider.</text>
   <text class="text" x="831" y="224">Authentifiziert Nutzer via</text>
-  <text class="text" x="844" y="242">Google-Konto (JWT-basiert).</text>
+  <text class="text" x="836" y="242">Keycloak-Account (OIDC).</text>
 
   <rect class="external" x="812" y="352" width="205" height="140" rx="8"/>
   <text class="label" x="860" y="384">The Trivia API</text>
@@ -68,7 +68,7 @@
   <text class="protocol" x="296" y="409">HTTPS / WebSocket</text>
 
   <path class="line" d="M670 276C730 245 753 203 812 201"/>
-  <text class="caption" x="697" y="215">Validiert Google JWT</text>
+  <text class="caption" x="688" y="215">Validiert Access Token</text>
   <text class="protocol" x="738" y="232">HTTPS</text>
 
   <path class="line" d="M670 336C730 366 754 420 812 422"/>

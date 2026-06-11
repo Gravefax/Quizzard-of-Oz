@@ -15,7 +15,7 @@ async function gotoAndWait(page: Page) {
 }
 
 async function mockLoggedIn(page: Page) {
-  await page.route("**/auth/google/refresh", async (route) => {
+  await page.route("**/auth/refresh", async (route) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",

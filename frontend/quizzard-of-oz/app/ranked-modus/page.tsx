@@ -52,13 +52,12 @@ function LoginCardContent() {
         }}
       />
 
-      {/* Google Login */}
       <div>
         <p
           className="text-xs mb-3"
           style={{ color: 'var(--oz-battle-sublabel)', letterSpacing: '0.06em' }}
         >
-          Mit Google anmelden
+          Anmelden um zu spielen
         </p>
         <LoginButton />
       </div>

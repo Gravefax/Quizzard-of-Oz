@@ -17,7 +17,7 @@ test.describe("Ranked Mode E2E", () => {
     await page.goto("/ranked-modus");
     
     await expect(page.getByText(/login erforderlich/i)).toBeVisible();
-    await expect(page.getByText(/mit google anmelden/i)).toBeVisible();
+    await expect(page.getByText(/anmelden um zu spielen/i)).toBeVisible();
   });
 
   test("Ranked page has specific styling for ranked mode", async ({ page }) => {

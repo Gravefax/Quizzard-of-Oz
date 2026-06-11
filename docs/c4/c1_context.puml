@@ -11,14 +11,14 @@ Person(user, "Angemeldeter Nutzer", "Spielt Ranked- und Unranked-\nMultiplayer-M
 
 System(quizzard, "Quizzard of Oz", "Webbasierte Multiplayer-Quiz-Plattform\nmit Übungsmodus, Ranked- und\nUnranked-Matches sowie Leaderboard.")
 
-System_Ext(google_oauth, "Google OAuth 2.0", "Identity Provider.\nAuthentifiziert Nutzer via\nGoogle-Konto (JWT-basiert).")
+System_Ext(keycloak, "Keycloak", "Identity Provider.\nAuthentifiziert Nutzer via\nKeycloak-Account (OIDC/PKCE).")
 
 System_Ext(trivia_api, "The Trivia API", "Externer Fragenlieferant.\nLiefert Multiple-Choice-Quizfragen\nnach Kategorie und Schwierigkeit.\n(the-trivia-api.com)")
 
 Rel(guest, quizzard, "Nutzt", "HTTPS")
 Rel(user, quizzard, "Nutzt", "HTTPS / WebSocket")
 
-Rel(quizzard, google_oauth, "Validiert Google JWT", "HTTPS")
+Rel(quizzard, keycloak, "Validiert Access Token (JWKS)", "HTTPS")
 Rel(quizzard, trivia_api, "Ruft Quizfragen ab\n(mit Retry-Logik)", "HTTPS / REST")
 
 @enduml

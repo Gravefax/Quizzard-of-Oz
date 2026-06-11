@@ -7,7 +7,8 @@ import LoginButton from "@/app/components/login-button/LoginButton";
 import UserMenu from "@/app/components/user-menu/UserMenu";
 import useAuthStore from "@/app/stores/authStore";
 import useThemeStore from "@/app/stores/themeStore";
-import { refreshAccessToken, logout } from "@/app/lib/auth/authClient";
+import { loginWithKeycloak, refreshAccessToken, logout } from "@/app/lib/auth/authClient";
+import { useKeycloak } from "@/app/providers/KeycloakProvider";
 import { IconTrophy, IconSun, IconMoon } from "@/app/components/Icons";
 
 export default function Navbar() {
@@ -24,6 +25,7 @@ export default function Navbar() {
   const isBattle = pathname?.startsWith('/battle/') ?? false;
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const pendingAction = useRef<(() => void) | null>(null);
+  const { keycloak, initialized } = useKeycloak();
 
   function withBattleGuard(action: () => void) {
     if (isBattle) {
@@ -65,16 +67,16 @@ export default function Navbar() {
   }, [mobileOpen]);
 
   useEffect(() => {
-    let isMounted = true;
-    // Only attempt refresh if no credential and the user has not logged out on purpose
-    if (credential || hasExplicitlyLoggedOut.current) {
-      return () => {
-        isMounted = false;
-      };
-    }
+    if (!initialized) return;
+    if (credential || hasExplicitlyLoggedOut.current) return;
 
-    // Attempt to restore session from refresh token
-    refreshAccessToken()
+    let isMounted = true;
+
+    const restore = keycloak?.authenticated && keycloak.token
+      ? loginWithKeycloak(keycloak.token)
+      : refreshAccessToken();
+
+    restore
       .then((res) => {
         if (!isMounted) return;
         setCredential({
@@ -84,18 +86,21 @@ export default function Navbar() {
         });
       })
       .catch(() => {
-        // Ignore missing/expired refresh token - user stays logged out
+        // No valid session - user stays logged out
       });
 
     return () => {
       isMounted = false;
     };
-  }, [credential, setCredential]);
+  }, [initialized, keycloak, credential, setCredential]);
 
   function handleLogout() {
     withBattleGuard(() => {
       hasExplicitlyLoggedOut.current = true;
-      logout().finally(() => clearCredential());
+      logout().finally(() => {
+        clearCredential();
+        keycloak?.logout({ redirectUri: window.location.origin });
+      });
     });
   }
 

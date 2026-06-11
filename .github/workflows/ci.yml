@@ -43,7 +43,9 @@ jobs:
         env:
           BACKEND_URL: http://127.0.0.1:8000
           NEXT_PUBLIC_API_BASE: /api
-          NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          NEXT_PUBLIC_KEYCLOAK_URL: http://localhost:8080
+          NEXT_PUBLIC_KEYCLOAK_REALM: quizzard
+          NEXT_PUBLIC_KEYCLOAK_CLIENT_ID: quizzard-frontend
 
   backend-test:
     name: Backend Tests
@@ -195,7 +197,9 @@ jobs:
           POSTGRES_PORT: 12732
           BACKEND_URL: http://127.0.0.1:8000
           NEXT_PUBLIC_API_BASE: /api
-          NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          NEXT_PUBLIC_KEYCLOAK_URL: http://localhost:8080
+          NEXT_PUBLIC_KEYCLOAK_REALM: quizzard
+          NEXT_PUBLIC_KEYCLOAK_CLIENT_ID: quizzard-frontend
 
   sonarcloud:
     name: SonarCloud Analysis

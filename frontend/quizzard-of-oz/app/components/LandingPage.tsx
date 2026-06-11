@@ -57,7 +57,7 @@ export default function LandingPage() {
     );
   } else if (topPlayers.length === 0) {
     topPlayersContent = (
-      <p style={{ color: 'rgba(var(--oz-text-secondary-rgb),0.6)', fontSize: '0.85rem' }}>Noch keine Eintraege verfuegbar.</p>
+      <p style={{ color: 'rgba(var(--oz-text-secondary-rgb),0.6)', fontSize: '0.85rem' }}>Noch keine Eintraege verfügbar.</p>
     );
   } else {
     topPlayersContent = (

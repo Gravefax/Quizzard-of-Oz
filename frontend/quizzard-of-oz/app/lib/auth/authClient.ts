@@ -1,14 +1,16 @@
 import LoginResponse from "@/app/models/LoginResponse";
 
-export const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!;
+export const keycloakUrl = process.env.NEXT_PUBLIC_KEYCLOAK_URL!;
+export const keycloakRealm = process.env.NEXT_PUBLIC_KEYCLOAK_REALM!;
+export const keycloakClientId = process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID!;
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE!;
 
-export async function loginWithGoogle(idToken: string): Promise<LoginResponse> {
-  const res = await fetch(`${apiBaseUrl}/auth/google/login`, {
+export async function loginWithKeycloak(token: string): Promise<LoginResponse> {
+  const res = await fetch(`${apiBaseUrl}/auth/login`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${idToken}`,
+      Authorization: `Bearer ${token}`,
     },
     credentials: "include",
   });
@@ -39,7 +41,7 @@ export async function loginWithGoogle(idToken: string): Promise<LoginResponse> {
 }
 
 export async function refreshAccessToken(): Promise<LoginResponse> {
-  const res = await fetch(`${apiBaseUrl}/auth/google/refresh`, {
+  const res = await fetch(`${apiBaseUrl}/auth/refresh`, {
     method: "GET",
     credentials: "include",
   });

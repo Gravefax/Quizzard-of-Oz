@@ -56,7 +56,7 @@ The most important functional requirements for the current system are:
 | Persistent state is stored in PostgreSQL through SQLAlchemy models. | Users, sessions, rankings and cached questions are modeled relationally so game state and leaderboard data are durable and consistent. This also means schema changes require deliberate modeling and migration discipline. |
 | Ranked and unranked multiplayer sessions require near real-time synchronization. | Battle mode uses WebSocket-style communication for session events, which makes connection lifecycle, reconnect handling, event ordering and future horizontal scaling relevant architectural concerns. |
 | Quiz questions come from an external Trivia API. | The backend must avoid depending on live upstream calls during every round, so question caching, API timeouts, retries and graceful fallback behavior are part of the core architecture. |
-| Authentication uses Google OAuth and backend-managed session cookies. | Login depends on correct OAuth client configuration, token verification and secure cookie handling. Protected routes and E2E tests must account for an external identity provider and application-level session state. |
+| Authentication uses Keycloak (OIDC/PKCE) and backend-managed session cookies. | Login depends on correct Keycloak realm configuration, JWT verification via JWKS and secure cookie handling. Protected routes and E2E tests must account for the identity provider and application-level session state. |
 | Local and deployment workflows use Docker, GitHub Actions, SonarCloud, Sphinx and Read the Docs. | Services and documentation must remain buildable in repeatable environments. Architectural changes should preserve CI checks for backend tests, frontend build and linting, frontend tests, E2E tests, architecture tests and static analysis. |
 
 ### Organizational Constraints
@@ -74,9 +74,9 @@ The most important functional requirements for the current system are:
 
 | Requirement or Constraint | Architectural Impact |
 | --- | --- |
-| The system stores personal or user-related data such as Google subject identifiers, email addresses, usernames, sessions, rankings and match-related state. | Data handling must follow data-protection principles such as purpose limitation, data minimization, storage limitation, integrity and confidentiality. The system should store only data needed for gameplay, authentication and ranking. |
+| The system stores personal or user-related data such as Keycloak subject identifiers, email addresses, usernames, sessions, rankings and match-related state. | Data handling must follow data-protection principles such as purpose limitation, data minimization, storage limitation, integrity and confidentiality. The system should store only data needed for gameplay, authentication and ranking. |
 | Authentication and session data must be protected against unauthorized access. | Session cookies should be HttpOnly, secure in production and scoped appropriately. CORS configuration, secret management and protected-route checks must be treated as security-sensitive architecture concerns. |
-| Google OAuth integration is subject to Google API and OAuth policies. | The system should request only the user information required for login, verify OAuth tokens on the backend, configure OAuth clients per environment and avoid using Google user data outside the documented authentication purpose. |
+| Keycloak is self-hosted and subject to its open-source license and operational responsibilities. | The system should request only the user information required for login, verify access tokens on the backend via JWKS, configure the Keycloak realm per environment and avoid storing unnecessary identity data outside the documented authentication purpose. |
 | Trivia API usage is subject to the provider's terms, licensing and access limits. | The backend keeps upstream trivia identifiers internal, caches only permitted question content and uses retries, timeouts and cache refill limits to respect provider availability and usage constraints. Commercial use or enhanced provider features would require checking the applicable plan. |
 | Open-source dependencies carry licensing obligations. | Frontend and backend dependency choices should remain trackable through package manifests and lock files, and incompatible licenses should be avoided before adding new libraries or deployment components. |
 | Logs, storage and access control must avoid unnecessary exposure of sensitive data. | Application logs should not contain OAuth tokens, session identifiers, passwords or unnecessary personal data. Access to ranked mode, profiles and session-backed actions must remain enforced by backend authorization checks. |
@@ -92,10 +92,10 @@ content, quality checks, documentation hosting and container publication.
 | Actor or External Party | Business Interaction |
 | --- | --- |
 | Guest players | Use public product pages, practice mode, leaderboard views and unranked play without creating a persistent account. |
-| Registered players | Sign in with Google, play ranked matches, use persistent profile data and build leaderboard progress through stored rankings and match history. |
+| Registered players | Sign in via Keycloak, play ranked matches, use persistent profile data and build leaderboard progress through stored rankings and match history. |
 | Development team | Builds and maintains the frontend, backend, persistence layer, CI workflows and architecture documentation. |
 | Reviewers / instructors | Evaluate whether the product, implementation and documentation meet the course requirements and quality expectations. |
-| Google OAuth | Provides the trusted identity used to create or refresh an application session for registered players. |
+| Keycloak | Provides the trusted identity used to create or refresh an application session for registered players. |
 | Trivia API provider | Supplies external quiz-question content that the backend normalizes and caches for practice and multiplayer gameplay. |
 | GitHub, SonarCloud, Read the Docs and GHCR | Support repository collaboration, automated quality checks, published documentation and container image distribution. |
 
@@ -111,11 +111,11 @@ services.
 | Frontend to backend REST APIs | HTTP JSON through `NEXT_PUBLIC_API_BASE` | Exchanges authentication requests, practice questions and answers, trivia batches, user data, rankings and leaderboard search results. |
 | Frontend to backend battle queue | WebSocket JSON at `/battle/queue` | Connects authenticated players to matchmaking and sends queue or match assignment events. |
 | Frontend to backend battle session | WebSocket JSON at `/battle/ws/{match_id}` | Sends and receives live battle events such as waiting state, category selection, questions, submitted answers, scoring and match results. |
-| Google OAuth to backend authentication | Google ID token in `Authorization: Bearer ...` for `/auth/google/login` | Lets the backend verify identity, create or find the local user and issue a backend-managed session cookie. |
+| Keycloak to backend authentication | Keycloak access token in `Authorization: Bearer ...` for `POST /auth/login` | Lets the backend verify identity via JWKS, create or find the local user and issue a backend-managed session cookie. |
 | Backend-managed session | HttpOnly cookie named by `SESSION_COOKIE_NAME` | Authenticates refresh, logout, protected HTTP requests and WebSocket handshakes without exposing the session identifier to frontend JavaScript. |
 | Backend to PostgreSQL | SQLAlchemy over `psycopg2` / PostgreSQL protocol | Persists users, sessions, rankings, battle-related state and cached trivia questions. |
 | Backend to Trivia API | Outbound HTTPS JSON | Retrieves question data from the external provider and stores normalized questions in the local cache with retry, timeout and refill limits. |
-| Runtime configuration | Environment variables | Supplies API base URLs, Google OAuth client ID, database credentials, CORS origins, cookie settings and Trivia API settings. |
+| Runtime configuration | Environment variables | Supplies API base URLs, Keycloak URL/realm/client ID, database credentials, CORS origins, cookie settings and Trivia API settings. |
 | CI, documentation and container tooling | GitHub Actions, SonarCloud, Sphinx / Read the Docs and GHCR | Builds and tests the system, publishes documentation, reports quality metrics and publishes frontend/backend container images. |
 
 ### Context Diagram

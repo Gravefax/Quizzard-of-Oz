@@ -158,27 +158,24 @@ Accepted
 - Neutral: requires team familiarity with event-driven patterns while existing
   REST endpoints continue to be used where appropriate
 
-## ADR 7: Authentication with Google OAuth
+## ADR 7: Authentication with Keycloak
 
 **Context**
 
-The project currently uses Google OAuth for authentication, but the team is evaluating whether to keep that setup or move to a different authentication approach. A major concern is testability: a custom provider would be easier to control and mock in Playwright than Google OAuth.
+The project initially used Google OAuth for authentication. Key concerns were testability (Google's login flow is difficult to automate in Playwright), dependency on an external commercial service and the inability to support custom registration flows with minimal required fields.
 
 **Decision**
 
-The current implementation uses Google OAuth for sign-in, and the backend creates and refreshes application sessions after a successful login. The long-term authentication strategy is still under review, with better automated testability as one of the key decision factors.
+Replace Google OAuth with a self-hosted Keycloak instance (Authorization Code + PKCE flow via `keycloak-js`). Keycloak runs as a Docker service and is automatically configured via a realm import on startup. The backend verifies Keycloak access tokens using JWKS public-key validation (`PyJWT` + `PyJWKClient`). Application sessions remain backend-managed via HttpOnly cookies in PostgreSQL — only the identity provider changes.
 
 **Status**
 
-Pending
+Accepted
 
 **Consequences**
 
-- Positive: reduces custom security work compared with a fully self-managed
-  credential flow.
-- Positive: a custom provider would be easier to mock in Playwright-based end-
-  to-end tests.
-- Negative: continuing with Google keeps the auth flow dependent on an
-  external service and makes browser automation harder to isolate.
-- Neutral: the backend still manages application sessions and authorization
-  for protected routes.
+- Positive: login and registration are fully controllable and mockable in E2E tests without external service dependencies.
+- Positive: registration requires only username and password — no Google account needed.
+- Positive: Keycloak is open-source and self-hosted, removing the dependency on Google API policies.
+- Negative: adds a Keycloak container to the deployment stack, which must be kept healthy and configured.
+- Neutral: the backend continues to manage application sessions and authorization for protected routes.

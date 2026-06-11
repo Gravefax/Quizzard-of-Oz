@@ -96,6 +96,16 @@ export default function BattleArena({ matchId }: BattleArenaProps) {
   const phaseRef = useRef<Phase>('connecting');
   const hadCredentialRef = useRef(false);
 
+  // Declared here (before the useEffect hooks that list it as a dependency) to
+  // avoid a temporal dead zone error when running in environments that preserve
+  // native `const` semantics (e.g. Vitest / Node.js).
+  const canSurrender =
+    phase === 'pick_category' ||
+    phase === 'waiting_for_category' ||
+    phase === 'question' ||
+    phase === 'answered' ||
+    phase === 'reveal';
+
   useEffect(() => {
     phaseRef.current = phase;
   }, [phase]);
@@ -114,6 +124,26 @@ export default function BattleArena({ matchId }: BattleArenaProps) {
       router.push('/');
     }
   }, [credential, router]);
+
+  // ── Browser unload / reload guard ──
+  useEffect(() => {
+    if (!canSurrender) return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [canSurrender]);
+
+  // ── Browser back-button guard ──
+  useEffect(() => {
+    if (!canSurrender) return;
+    window.history.pushState(null, '', window.location.href);
+    const handler = () => {
+      window.history.pushState(null, '', window.location.href);
+      setShowSurrenderConfirm(true);
+    };
+    window.addEventListener('popstate', handler);
+    return () => window.removeEventListener('popstate', handler);
+  }, [canSurrender]);
 
   // ── Timer Management ──
 
@@ -349,15 +379,6 @@ export default function BattleArena({ matchId }: BattleArenaProps) {
   }
 
   // ── Surrender ──
-
-  // Surrender is only allowed while the match is actively running — not while
-  // matchmaking, between rounds, or after the game ended.
-  const canSurrender =
-    phase === 'pick_category' ||
-    phase === 'waiting_for_category' ||
-    phase === 'question' ||
-    phase === 'answered' ||
-    phase === 'reveal';
 
   /**
    * Confirms the surrender: counts as a loss with Elo penalty,

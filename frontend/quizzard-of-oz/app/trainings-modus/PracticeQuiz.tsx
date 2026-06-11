@@ -59,9 +59,9 @@ export default function PracticeQuiz() {
   }
 
   function getScoreIcon() {
-    const color = score === questions.length ? 'rgba(255,200,0,0.9)' : 'rgba(var(--oz-text-secondary-rgb),0.7)';
-    if (score === questions.length) return <IconTrophy size={56} style={{ color: 'rgba(255,200,0,0.9)', filter: 'drop-shadow(0 0 20px rgba(255,200,0,0.55))' }} />;
-    if (score >= questions.length / 2) return <IconStar filled size={56} style={{ color, filter: 'drop-shadow(0 0 16px rgba(255,200,0,0.4))' }} />;
+    const color = score === questions.length ? 'rgba(var(--oz-gold-title-rgb),0.95)' : 'rgba(var(--oz-text-secondary-rgb),0.7)';
+    if (score === questions.length) return <IconTrophy size={56} style={{ color: 'rgba(var(--oz-gold-title-rgb),0.95)', filter: 'drop-shadow(0 0 20px rgba(var(--oz-gold-title-rgb),0.45))' }} />;
+    if (score >= questions.length / 2) return <IconStar filled size={56} style={{ color, filter: 'drop-shadow(0 0 16px rgba(var(--oz-gold-title-rgb),0.35))' }} />;
     return <IconTarget size={56} style={{ color: 'rgba(var(--oz-text-secondary-rgb),0.6)' }} />;
   }
 
@@ -138,7 +138,7 @@ export default function PracticeQuiz() {
 
       {/* ── Persistent back button ── */}
       <button
-        className="back-btn absolute top-6 left-6 z-10 px-4 py-2 text-sm flex items-center gap-1.5"
+        className="back-btn absolute top-6 left-6 z-20 px-4 py-2 text-sm flex items-center gap-1.5"
         onClick={() => router.push('/')}
       >
         ← Zurück
@@ -183,7 +183,7 @@ export default function PracticeQuiz() {
                 fontFamily: "'Bebas Neue', sans-serif",
                 letterSpacing: '0.1em',
                 fontSize: '1.1rem',
-                color: 'rgba(255,200,0,0.7)',
+                color: 'rgba(var(--oz-gold-title-rgb),0.9)',
               }}
             >
               Fragen werden geladen…
@@ -207,9 +207,9 @@ export default function PracticeQuiz() {
               onClick={startQuiz}
               className="px-8 py-3 rounded-xl text-sm font-medium transition-all duration-200"
               style={{
-                background: 'rgba(255,200,0,0.1)',
-                border: '1px solid rgba(255,200,0,0.3)',
-                color: 'rgba(200,140,0,0.9)',
+                background: 'rgba(var(--oz-gold-title-rgb),0.1)',
+                border: '1px solid rgba(var(--oz-gold-title-rgb),0.3)',
+                color: 'rgba(var(--oz-gold-title-rgb),0.95)',
               }}
             >
               Erneut versuchen
@@ -227,7 +227,7 @@ export default function PracticeQuiz() {
               style={{ color: 'rgba(var(--oz-text-secondary-rgb),0.6)' }}
             >
               <span>Frage {currentIndex + 1} / {questions.length}</span>
-              <span style={{ color: 'rgba(255,200,0,0.8)' }}>{score} richtig</span>
+              <span style={{ color: 'rgba(var(--oz-gold-title-rgb),0.9)' }}>{score} richtig</span>
             </div>
 
             {/* Progress bar */}
@@ -256,7 +256,7 @@ export default function PracticeQuiz() {
             >
               <div
                 className="text-xs font-medium uppercase mb-3"
-                style={{ color: 'rgba(255,200,0,0.6)', letterSpacing: '0.2em' }}
+                style={{ color: 'rgba(var(--oz-gold-title-rgb),0.85)', letterSpacing: '0.2em' }}
               >
                 {question.category}
               </div>
@@ -277,13 +277,13 @@ export default function PracticeQuiz() {
 
                 if (state === 'answered') {
                   if (answer === answerResult?.correct_answer) {
-                    borderColor = 'rgba(52,211,153,0.6)';
-                    bg = 'rgba(52,211,153,0.1)';
-                    textColor = '#6ee7b7';
+                    borderColor = 'var(--oz-answer-correct-border)';
+                    bg = 'var(--oz-answer-correct-bg)';
+                    textColor = 'var(--oz-answer-correct-text)';
                   } else if (answer === selectedAnswer && !answerResult?.correct) {
-                    borderColor = 'rgba(248,113,113,0.6)';
-                    bg = 'rgba(248,113,113,0.1)';
-                    textColor = '#fca5a5';
+                    borderColor = 'var(--oz-answer-wrong-border)';
+                    bg = 'var(--oz-answer-wrong-bg)';
+                    textColor = 'var(--oz-answer-wrong-text)';
                   }
                 }
 
@@ -310,7 +310,7 @@ export default function PracticeQuiz() {
               <p
                 className="text-sm font-medium"
                 style={{
-                  color: answerResult?.correct ? '#6ee7b7' : '#fca5a5',
+                  color: answerResult?.correct ? 'var(--oz-answer-correct-text)' : 'var(--oz-answer-wrong-text)',
                   opacity: state === 'answered' && answerResult ? 1 : 0,
                   transition: 'opacity 0.2s ease',
                 }}
@@ -325,7 +325,7 @@ export default function PracticeQuiz() {
                 style={{
                   background: 'rgba(255,200,0,0.13)',
                   border: '1px solid rgba(255,200,0,0.35)',
-                  color: 'rgba(200,140,0,0.95)',
+                  color: 'rgba(var(--oz-gold-title-rgb),0.95)',
                   opacity: state === 'answered' ? 1 : 0,
                   pointerEvents: state === 'answered' ? 'auto' : 'none',
                   transition: 'opacity 0.2s ease',

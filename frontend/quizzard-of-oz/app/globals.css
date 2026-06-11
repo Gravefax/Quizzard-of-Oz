@@ -107,6 +107,14 @@
   --oz-queue-fire-sub:    rgba(255, 140, 90, 0.5);
   --oz-queue-badge-color: rgba(255, 80, 40, 0.85);
   --oz-queue-wartend:     rgba(var(--oz-text-secondary-rgb), 0.28);
+
+  /* ── Answer feedback colors (practice + battle) ── */
+  --oz-answer-correct-text:   rgba(0, 220, 110, 0.95);
+  --oz-answer-correct-bg:     rgba(0, 220, 110, 0.08);
+  --oz-answer-correct-border: rgba(0, 220, 110, 0.5);
+  --oz-answer-wrong-text:     rgba(255, 100, 80, 0.95);
+  --oz-answer-wrong-bg:       rgba(255, 100, 80, 0.08);
+  --oz-answer-wrong-border:   rgba(255, 100, 80, 0.5);
 }
 
 /* ── Light Mode Overrides ──
@@ -197,6 +205,14 @@ html.light {
   --oz-queue-fire-sub:    rgba(155, 78, 38, 0.88);
   --oz-queue-badge-color: rgba(176, 44, 18, 0.95);
   --oz-queue-wartend:     rgba(56, 84, 116, 0.5);
+
+  /* ── Answer feedback colors (light overrides — saturated for white bg) ── */
+  --oz-answer-correct-text:   rgba(0, 110, 60, 1);
+  --oz-answer-correct-bg:     rgba(0, 110, 60, 0.07);
+  --oz-answer-correct-border: rgba(0, 110, 60, 0.45);
+  --oz-answer-wrong-text:     rgba(185, 28, 28, 1);
+  --oz-answer-wrong-bg:       rgba(185, 28, 28, 0.07);
+  --oz-answer-wrong-border:   rgba(185, 28, 28, 0.45);
 }
 
 @theme inline {
@@ -251,4 +267,78 @@ button {
   background: rgba(var(--oz-violet-rgb), 0.32);
   border-color: rgba(var(--oz-violet-light-rgb), 0.85);
   box-shadow: 0 0 18px rgba(var(--oz-violet-light-rgb), 0.18);
+}
+
+/* ── Modern Navbar Buttons ── */
+
+.nav-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+  font-size: 0.875rem;
+  letter-spacing: 0.025em;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.18s cubic-bezier(0.4,0,0.2,1),
+              border-color 0.18s cubic-bezier(0.4,0,0.2,1),
+              box-shadow 0.18s cubic-bezier(0.4,0,0.2,1),
+              transform 0.15s cubic-bezier(0.4,0,0.2,1),
+              color 0.18s ease;
+}
+
+/* Icon-only circular button (theme toggle, mobile burger) */
+.nav-btn-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1.5px solid rgba(var(--oz-violet-light-rgb), 0.22);
+  color: rgba(var(--oz-violet-text-rgb), 0.65);
+  font-size: 1rem;
+}
+.nav-btn-icon:hover {
+  background: rgba(var(--oz-violet-rgb), 0.14);
+  border-color: rgba(var(--oz-violet-light-rgb), 0.6);
+  color: rgba(var(--oz-violet-text-rgb), 1);
+  transform: scale(1.08);
+  box-shadow: 0 0 14px rgba(var(--oz-violet-light-rgb), 0.22),
+              0 0 0 3px rgba(var(--oz-violet-light-rgb), 0.07);
+}
+
+/* Ghost pill button (leaderboard nav link) */
+.nav-btn-ghost {
+  padding: 0.38rem 1.1rem;
+  border-radius: 9999px;
+  background: transparent;
+  border: 1px solid rgba(var(--oz-violet-light-rgb), 0.26);
+  color: rgba(var(--oz-violet-text-rgb), 0.78);
+}
+.nav-btn-ghost:hover {
+  background: rgba(var(--oz-violet-rgb), 0.11);
+  border-color: rgba(var(--oz-violet-light-rgb), 0.62);
+  color: rgba(var(--oz-violet-text-rgb), 1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(var(--oz-violet-rgb), 0.12),
+              0 0 0 1px rgba(var(--oz-violet-light-rgb), 0.1) inset;
+}
+
+/* Filled pill button (user menu trigger) */
+.nav-btn-user {
+  padding: 0.38rem 1.1rem;
+  border-radius: 9999px;
+  background: rgba(var(--oz-violet-rgb), 0.18);
+  border: 1px solid rgba(var(--oz-violet-light-rgb), 0.34);
+  color: rgba(var(--oz-violet-text-rgb), 1);
+  font-weight: 600;
+}
+.nav-btn-user:hover {
+  background: rgba(var(--oz-violet-rgb), 0.3);
+  border-color: rgba(var(--oz-violet-light-rgb), 0.72);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(var(--oz-violet-rgb), 0.18),
+              0 0 22px rgba(var(--oz-violet-light-rgb), 0.14);
 }

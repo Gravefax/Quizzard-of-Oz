@@ -186,7 +186,7 @@ export default function Queue({ ranked = false }: QueueProps) {
 
           {/* Player cards */}
           <div className="flex items-stretch gap-4 w-full">
-            <div className={`${queueStyles['player-card-inner']} flex-1 p-5 text-center`}>
+            <div className={`${queueStyles['player-card-inner']} flex-1 p-5 text-center flex flex-col items-center`}>
               <div
                 className="mb-3"
                 style={{ color: `rgba(${accent.rgb},0.85)`, filter: `drop-shadow(0 0 12px rgba(${accent.rgb},0.4))` }}

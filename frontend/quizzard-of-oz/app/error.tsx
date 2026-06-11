@@ -17,10 +17,10 @@ export default function GlobalError({ error, reset }: ErrorProps) {
       <div className="flex flex-col items-center gap-6 text-center max-w-sm">
         <div className="text-5xl">⚠️</div>
         <div>
-          <h2 className="text-xl font-semibold mb-2" style={{ color: '#fca5a5' }}>
+          <h2 className="text-xl font-semibold mb-2" style={{ color: 'var(--oz-battle-dialog-title)' }}>
             Etwas ist schiefgelaufen
           </h2>
-          <p className="text-sm" style={{ color: 'rgba(196,181,253,0.5)' }}>
+          <p className="text-sm" style={{ color: 'var(--oz-battle-muted)' }}>
             {error.message || 'Ein unerwarteter Fehler ist aufgetreten.'}
           </p>
         </div>
@@ -28,9 +28,9 @@ export default function GlobalError({ error, reset }: ErrorProps) {
           onClick={reset}
           className="px-8 py-3 rounded-xl text-sm font-medium transition-all duration-200"
           style={{
-            background: 'rgba(139,92,246,0.2)',
-            border: '1px solid rgba(167,139,250,0.3)',
-            color: '#ede9fe',
+            background: 'var(--oz-battle-cyan-btn-bg)',
+            border: '1px solid var(--oz-battle-cyan-btn-border)',
+            color: 'var(--oz-battle-cyan-btn-color)',
           }}
         >
           Erneut versuchen

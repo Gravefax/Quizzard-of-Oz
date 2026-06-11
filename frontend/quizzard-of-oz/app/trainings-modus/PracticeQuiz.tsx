@@ -140,6 +140,7 @@ export default function PracticeQuiz() {
       <button
         className="back-btn absolute top-6 left-6 z-20 px-4 py-2 text-sm flex items-center gap-1.5"
         onClick={() => router.push('/')}
+        aria-label={state === 'finished' ? 'Zurück' : 'Zurück zur Startseite'}
       >
         ← Zurück
       </button>
@@ -358,6 +359,7 @@ export default function PracticeQuiz() {
                 onClick={() => router.push('/')}
                 className="text-sm py-2"
                 style={{ color: 'rgba(var(--oz-text-secondary-rgb),0.45)' }}
+                aria-label="Zurück zur Startseite"
               >
                 ← Zur Startseite
               </button>

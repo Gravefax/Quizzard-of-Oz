@@ -186,6 +186,7 @@ export default function LeaderboardPage() {
           <button
             className="back-btn mb-6 px-4 py-2 text-sm flex items-center gap-1.5"
             onClick={() => router.push('/')}
+            aria-label="Zurueck"
           >
             ← Zurück
           </button>
@@ -253,6 +254,7 @@ export default function LeaderboardPage() {
               className={lbStyles['page-btn']}
               onClick={() => setPage((prev) => Math.max(1, prev - 1))}
               disabled={page <= 1 || loading}
+              aria-label="Vorherige Seite"
             >
               ← Vorherige
             </button>
@@ -268,6 +270,7 @@ export default function LeaderboardPage() {
               className={lbStyles['page-btn']}
               onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
               disabled={page >= totalPages || loading}
+              aria-label="Naechste Seite"
             >
               Nächste →
             </button>

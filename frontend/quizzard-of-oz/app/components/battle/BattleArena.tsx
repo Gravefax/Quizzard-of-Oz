@@ -454,6 +454,7 @@ export default function BattleArena({ matchId }: BattleArenaProps) {
               type="button"
               className="surrender-btn"
               onClick={() => setShowSurrenderConfirm(true)}
+              aria-label="Aufgeben bestätigen"
             >
               <IconFlag size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />Aufgeben
             </button>

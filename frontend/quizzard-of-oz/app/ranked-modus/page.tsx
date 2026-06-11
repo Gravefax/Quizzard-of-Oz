@@ -9,9 +9,16 @@ import { IconShield } from '@/app/components/Icons';
 
 function LoginCardContent() {
   return (
-    <div className={`${rankedStyles['login-card']} flex flex-col items-center gap-6 px-10 py-10 w-full max-w-sm text-center`}>
+    <div
+      className={`${rankedStyles['login-card']} flex flex-col items-center gap-6 px-10 py-10 w-full max-w-sm text-center`}
+      style={{ animation: 'cardReveal 0.5s cubic-bezier(0.22,1,0.36,1) both' }}
+      data-rgb-token="255,60,20"
+    >
       {/* Icon */}
-      <div className={rankedStyles['icon-pulse']} style={{ color: 'var(--oz-battle-round-num)' }}>
+      <div
+        className={rankedStyles['icon-pulse']}
+        style={{ color: 'var(--oz-battle-round-num)', animation: 'shieldPulse 3s ease-in-out infinite' }}
+      >
         <IconShield size={48} />
       </div>
 

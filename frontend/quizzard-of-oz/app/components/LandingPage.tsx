@@ -267,6 +267,9 @@ export default function LandingPage() {
             <div style={{ color: 'rgba(var(--oz-fire-tag-rgb),0.95)', fontSize: '0.7rem', letterSpacing: '0.12em', marginBottom: '14px' }}>
               COMPETE · RANK · DOMINATE
             </div>   
+            <div style={{ color: 'rgba(var(--oz-text-secondary-rgb),0.72)', fontSize: '0.72rem', letterSpacing: '0.08em' }}>
+              Login erforderlich
+            </div>
           </button>
 
           {/* ÜBUNG */}

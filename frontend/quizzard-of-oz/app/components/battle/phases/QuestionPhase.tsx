@@ -186,7 +186,7 @@ export function QuestionPhase({
         >
           {(() => {
             if (answerResult.correct) return '✓ Richtig!';
-            if (!selectedAnswer) return '⏱ Zeit abgelaufen.';
+            if (!answerResult.yourAnswer) return '⏱ Zeit abgelaufen.';
             return '✗ Falsch.';
           })()}{' '}
           Nächste Frage gleich...

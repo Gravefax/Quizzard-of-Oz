@@ -11,7 +11,7 @@ import {
   ScoreInfo,
 } from '@/app/lib/interfaces/battle/BattleInterfaces';
 import { Phase } from '@/app/lib/interfaces/battle/Phase';
-import { BATTLE_ARENA_STYLES } from './BattleArena.styles';
+import './BattleArena.css';
 import { BattleArenaHeader } from './BattleArenaHeader';
 import {
   ConnectingPhase,
@@ -371,8 +371,6 @@ export default function BattleArena({ matchId }: BattleArenaProps) {
 
   return (
     <>
-      <style>{BATTLE_ARENA_STYLES}</style>
-
       <div className="arena-wrap">
         <div className="scan-line" />
         <div className="corner-tl" />

@@ -1,0 +1,109 @@
+/* Queue.module.css — Matchmaking-Queue Styles */
+/* Dynamisches Theming über --accent-rgb CSS-Variable (wird per inline style gesetzt) */
+/* Geteilte Keyframes (spinSlow) kommen aus shared.css */
+
+@keyframes radarRing {
+  0%   { transform: scale(0.4); opacity: 0.75; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+
+@keyframes matchReveal {
+  0%   { opacity: 0; transform: translateY(16px) scale(0.95); }
+  100% { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
+@keyframes matchGlow {
+  0%,100% { text-shadow: 0 0 20px rgba(255,210,0,0.45), 0 0 45px rgba(255,210,0,0.18); }
+  50%     { text-shadow: 0 0 35px rgba(255,210,0,0.75), 0 0 80px rgba(255,210,0,0.3); }
+}
+
+@keyframes joinBtnPulse {
+  0%,100% {
+    box-shadow: 0 0 18px rgba(var(--accent-rgb),0.25), 0 0 48px rgba(var(--accent-rgb),0.08);
+    border-color: rgba(var(--accent-rgb),0.52);
+  }
+  50% {
+    box-shadow: 0 0 32px rgba(var(--accent-rgb),0.5), 0 0 80px rgba(var(--accent-rgb),0.18);
+    border-color: rgba(var(--accent-rgb),0.92);
+  }
+}
+
+.join-btn {
+  background: rgba(var(--accent-rgb),0.07);
+  border: 2px solid rgba(var(--accent-rgb),0.52);
+  border-radius: 1rem;
+  animation: joinBtnPulse 2.6s ease-in-out infinite;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.join-btn:hover {
+  background: rgba(var(--accent-rgb),0.16);
+  transform: translateY(-3px) scale(1.015);
+}
+
+.cancel-btn {
+  background: rgba(255,60,20,0.06);
+  border: 1px solid rgba(255,60,20,0.35);
+  border-radius: 0.75rem;
+  color: rgba(255,140,100,0.8);
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.cancel-btn:hover {
+  background: rgba(255,60,20,0.14);
+  border-color: rgba(255,80,40,0.7);
+}
+
+.player-card {
+  border-radius: 1rem;
+  overflow: hidden;
+  position: relative;
+}
+
+.player-card-inner {
+  background: rgba(var(--accent-rgb),0.04);
+  border: 1px solid rgba(var(--accent-rgb),0.18);
+  border-radius: 1rem;
+  position: relative;
+}
+
+.player-card-inner::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(var(--accent-rgb),0.6), transparent);
+  border-radius: 1rem 1rem 0 0;
+}
+
+.player-card-empty {
+  background: rgba(255,255,255,0.015);
+  border: 1px dashed rgba(var(--accent-rgb),0.16);
+  border-radius: 1rem;
+}
+
+.match-reveal {
+  animation: matchReveal 0.55s cubic-bezier(0.22,1,0.36,1) both;
+}
+
+.deco-line-h {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(var(--accent-rgb),0.35), transparent);
+}
+
+.deco-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(var(--accent-rgb),0.5);
+}
+
+/* Animationsklassen für inline-style-inkompatible Animationen */
+
+.radar-ring {
+  animation: radarRing 2.1s ease-out var(--ring-delay, 0s) infinite;
+}
+
+.match-glow {
+  animation: matchGlow 1.2s ease-in-out infinite;
+}

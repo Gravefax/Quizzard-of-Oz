@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 
 import { fetchLeaderboard, searchLeaderboardByUsername } from '@/app/lib/api/ranking';
 import type { LeaderboardEntry } from '@/app/models/Leaderboard';
+import lbStyles from './leaderboard.module.css';
+
+const RANK_MEDAL: Record<number, string> = { 1: '🥇', 2: '🥈', 3: '🥉' };
 
 export default function LeaderboardPage() {
   const router = useRouter();
@@ -66,108 +69,212 @@ export default function LeaderboardPage() {
   if (loading) {
     tableBodyContent = (
       <tr>
-        <td colSpan={6} className="px-4 py-8 text-center text-cyan-100/70">Lade Leaderboard ...</td>
+        <td colSpan={6} className="px-4 py-10 text-center" style={{ color: 'rgba(140,200,230,0.6)' }}>
+          Lade Leaderboard …
+        </td>
       </tr>
     );
   } else if (error) {
     tableBodyContent = (
       <tr>
-        <td colSpan={6} className="px-4 py-8 text-center text-red-200/90">{error}</td>
+        <td colSpan={6} className="px-4 py-10 text-center" style={{ color: '#fca5a5' }}>{error}</td>
       </tr>
     );
   } else if (entries.length === 0) {
     tableBodyContent = (
       <tr>
-        <td colSpan={6} className="px-4 py-8 text-center text-cyan-100/70">Keine Spieler gefunden.</td>
+        <td colSpan={6} className="px-4 py-10 text-center" style={{ color: 'rgba(140,200,230,0.5)' }}>
+          Keine Spieler gefunden.
+        </td>
       </tr>
     );
   } else {
-    tableBodyContent = entries.map((entry) => (
-      <tr key={entry.user_id} className="border-t border-cyan-500/10 text-cyan-50/95">
-        <td className="px-4 py-3">#{entry.rank}</td>
-        <td className="px-4 py-3">{entry.username}</td>
-        <td className="px-4 py-3 font-semibold text-cyan-200">{entry.elo_rating}</td>
-        <td className="px-4 py-3">{entry.wins}</td>
-        <td className="px-4 py-3">{entry.losses}</td>
-        <td className="px-4 py-3">{entry.total_matches}</td>
-      </tr>
-    ));
+    tableBodyContent = entries.map((entry) => {
+      const isTop3 = entry.rank <= 3;
+      const rankColor = entry.rank === 1
+        ? 'rgba(255,200,0,0.9)'
+        : entry.rank === 2
+          ? 'rgba(180,200,220,0.85)'
+          : entry.rank === 3
+            ? 'rgba(200,140,80,0.85)'
+            : 'rgba(140,200,230,0.55)';
+
+      return (
+        <tr
+          key={entry.user_id}
+          style={{
+            borderTop: '1px solid rgba(255,200,0,0.07)',
+            background: isTop3 ? 'rgba(255,200,0,0.025)' : 'transparent',
+            transition: 'background 0.15s ease',
+          }}
+        >
+          <td className="px-4 py-3 font-semibold" style={{ color: rankColor, fontSize: '0.9rem' }}>
+            {RANK_MEDAL[entry.rank] ?? `#${entry.rank}`}
+          </td>
+          <td className="px-4 py-3" style={{ color: 'rgba(220,245,255,0.9)' }}>{entry.username}</td>
+          <td className="px-4 py-3 font-bold" style={{ color: 'rgba(255,200,0,0.85)' }}>{entry.elo_rating}</td>
+          <td className="px-4 py-3" style={{ color: 'rgba(52,211,153,0.75)' }}>{entry.wins}</td>
+          <td className="px-4 py-3" style={{ color: 'rgba(248,113,113,0.7)' }}>{entry.losses}</td>
+          <td className="px-4 py-3" style={{ color: 'rgba(140,200,230,0.6)' }}>{entry.total_matches}</td>
+        </tr>
+      );
+    });
   }
 
   return (
-    <div className="flex-1 px-4 py-8 md:px-8">
-      <div className="mx-auto w-full max-w-5xl">
-        <button
-          className="mb-6 rounded-md border border-cyan-500/30 px-4 py-2 text-sm text-cyan-200/80 transition hover:border-cyan-400/70 hover:bg-cyan-500/10"
-          onClick={() => router.push('/')}
-        >
-          {'<- Zurueck'}
-        </button>
+    <div className="flex-1 flex flex-col relative overflow-hidden">
 
-        <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-cyan-500/25 bg-slate-900/70 p-5 backdrop-blur md:flex-row md:items-end md:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-wide text-cyan-100">Leaderboard</h1>
-            <p className="mt-2 text-sm text-cyan-200/65">Seite {page} von {totalPages} · {totalPlayers} Spieler insgesamt</p>
-          </div>
+      {/* ── Background layer ── */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Dot grid */}
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: `
+              linear-gradient(rgba(255,200,0,0.022) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(255,200,0,0.022) 1px, transparent 1px)
+            `,
+            backgroundSize: '64px 64px',
+          }}
+        />
+        {/* Scan line */}
+        <div
+          className="absolute left-0 right-0"
+          style={{
+            height: '1px',
+            background: 'linear-gradient(90deg, transparent 0%, rgba(255,200,0,0.12) 40%, rgba(255,200,0,0.12) 60%, transparent 100%)',
+            animation: 'scanDown 10s linear 0.5s infinite',
+          }}
+        />
+        {/* Gold orb — left */}
+        <div
+          className="absolute"
+          style={{
+            width: '650px', height: '650px',
+            top: '0%', left: '-20%',
+            background: 'radial-gradient(circle, rgba(255,200,0,0.055) 0%, transparent 65%)',
+            animation: 'ambFloat0 15s ease-in-out infinite',
+          }}
+        />
+        {/* Cyan orb — right */}
+        <div
+          className="absolute"
+          style={{
+            width: '520px', height: '520px',
+            top: '10%', right: '-14%',
+            background: 'radial-gradient(circle, rgba(0,212,255,0.05) 0%, transparent 65%)',
+            animation: 'ambFloat1 13s ease-in-out 1.5s infinite',
+          }}
+        />
+        {/* Center orb */}
+        <div
+          className="absolute"
+          style={{
+            width: '500px', height: '500px',
+            top: '50%', left: '50%',
+            background: 'radial-gradient(circle, rgba(255,200,0,0.03) 0%, rgba(0,18,40,0.4) 50%, transparent 100%)',
+            animation: 'orbPulse 8s ease-in-out infinite',
+          }}
+        />
+      </div>
 
-          <div className="w-full md:w-72">
-            <label className="mb-1 block text-xs uppercase tracking-wide text-cyan-200/65" htmlFor="search-user">
-              Suche nach Benutzername
-            </label>
-            <input
-              id="search-user"
-              type="text"
-              value={search}
-              onChange={(event) => {
-                setSearch(event.target.value);
-                setPage(1);
-              }}
-              placeholder="z. B. QuizMaster"
-              className="w-full rounded-md border border-cyan-500/25 bg-slate-950/60 px-3 py-2 text-sm text-cyan-100 outline-none transition focus:border-cyan-300/80"
-            />
-            <p className="mt-1 text-xs text-cyan-200/45">Sucht serverseitig im gesamten Leaderboard.</p>
-          </div>
-        </div>
+      {/* ── Content ── */}
+      <div className="relative z-10 flex-1 px-4 py-8 md:px-8">
+        <div className="mx-auto w-full max-w-5xl">
 
-        <div className="overflow-hidden rounded-2xl border border-cyan-500/20 bg-slate-900/65">
-          <table className="w-full border-collapse text-left text-sm">
-            <thead className="bg-cyan-900/30 text-cyan-100">
-              <tr>
-                <th className="px-4 py-3">Rang</th>
-                <th className="px-4 py-3">Spieler</th>
-                <th className="px-4 py-3">ELO</th>
-                <th className="px-4 py-3">Wins</th>
-                <th className="px-4 py-3">Losses</th>
-                <th className="px-4 py-3">Matches</th>
-              </tr>
-            </thead>
-            <tbody>{tableBodyContent}</tbody>
-          </table>
-        </div>
-
-        <div className="mt-6 flex items-center justify-between">
+          {/* Back button */}
           <button
-            className="rounded-md border border-cyan-500/30 px-4 py-2 text-sm text-cyan-200/80 transition hover:border-cyan-300 disabled:cursor-not-allowed disabled:opacity-40"
-            onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-            disabled={page <= 1 || loading}
+            className="back-btn mb-6 px-4 py-2 text-sm flex items-center gap-1.5"
+            onClick={() => router.push('/')}
           >
-            Vorherige Seite
+            ← Zurück
           </button>
 
-          <span className="text-sm text-cyan-200/70">Seite {page}</span>
+          {/* Header card */}
+          <div className={`${lbStyles['lb-header-card']} mb-6 p-5 flex flex-col gap-4 md:flex-row md:items-end md:justify-between`}>
+            <div>
+              <h1 className="arena-title" style={{ fontSize: '3.5rem' }}>Leaderboard</h1>
+              <p
+                className="mt-1 text-sm"
+                style={{ color: 'rgba(140,200,230,0.55)', letterSpacing: '0.04em' }}
+              >
+                Seite {page} von {totalPages} · {totalPlayers} Spieler insgesamt
+              </p>
+            </div>
 
-          <button
-            className="rounded-md border border-cyan-500/30 px-4 py-2 text-sm text-cyan-200/80 transition hover:border-cyan-300 disabled:cursor-not-allowed disabled:opacity-40"
-            onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
-            disabled={page >= totalPages || loading}
-          >
-            Naechste Seite
-          </button>
+            <div className="w-full md:w-72">
+              <label
+                className="mb-1.5 block text-xs uppercase"
+                htmlFor="search-user"
+                style={{ color: 'rgba(255,200,0,0.5)', letterSpacing: '0.1em' }}
+              >
+                Suche nach Benutzername
+              </label>
+              <input
+                id="search-user"
+                type="text"
+                value={search}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setPage(1);
+                }}
+                placeholder="z. B. QuizMaster"
+                className={lbStyles['lb-search-input']}
+              />
+              <p
+                className="mt-1 text-xs"
+                style={{ color: 'rgba(140,200,230,0.35)' }}
+              >
+                Sucht serverseitig im gesamten Leaderboard.
+              </p>
+            </div>
+          </div>
+
+          {/* Table */}
+          <div className={lbStyles['lb-table-card']}>
+            <table className="w-full border-collapse text-left text-sm">
+              <thead>
+                <tr style={{ background: 'rgba(255,200,0,0.06)', borderBottom: '1px solid rgba(255,200,0,0.14)' }}>
+                  <th className="px-4 py-3 text-xs uppercase" style={{ color: 'rgba(255,200,0,0.65)', letterSpacing: '0.1em', fontWeight: 600 }}>Rang</th>
+                  <th className="px-4 py-3 text-xs uppercase" style={{ color: 'rgba(255,200,0,0.65)', letterSpacing: '0.1em', fontWeight: 600 }}>Spieler</th>
+                  <th className="px-4 py-3 text-xs uppercase" style={{ color: 'rgba(255,200,0,0.65)', letterSpacing: '0.1em', fontWeight: 600 }}>ELO</th>
+                  <th className="px-4 py-3 text-xs uppercase" style={{ color: 'rgba(52,211,153,0.55)', letterSpacing: '0.1em', fontWeight: 600 }}>Wins</th>
+                  <th className="px-4 py-3 text-xs uppercase" style={{ color: 'rgba(248,113,113,0.55)', letterSpacing: '0.1em', fontWeight: 600 }}>Losses</th>
+                  <th className="px-4 py-3 text-xs uppercase" style={{ color: 'rgba(140,200,230,0.45)', letterSpacing: '0.1em', fontWeight: 600 }}>Matches</th>
+                </tr>
+              </thead>
+              <tbody>{tableBodyContent}</tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          <div className="mt-6 flex items-center justify-between">
+            <button
+              className={lbStyles['page-btn']}
+              onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+              disabled={page <= 1 || loading}
+            >
+              ← Vorherige
+            </button>
+
+            <span
+              className="text-sm"
+              style={{ color: 'rgba(255,200,0,0.55)', fontFamily: "'Bebas Neue', sans-serif", letterSpacing: '0.08em', fontSize: '1rem' }}
+            >
+              Seite {page} / {totalPages}
+            </span>
+
+            <button
+              className={lbStyles['page-btn']}
+              onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+              disabled={page >= totalPages || loading}
+            >
+              Nächste →
+            </button>
+          </div>
+
         </div>
       </div>
     </div>
   );
 }
-
-
-

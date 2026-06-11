@@ -223,10 +223,16 @@ export default function LandingPage() {
         </div>
 
         {/* ── Top 3 preview ── */}
-        <div className={`w-full max-w-sm mb-4 ${styles['leaderboard-card']} px-4 py-3`}>
+        <div
+          className={`w-full max-w-sm mb-4 ${styles['leaderboard-card']} px-4 py-3 cursor-pointer`}
+          onClick={() => router.push('/leaderboard')}
+          role="link"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === 'Enter' && router.push('/leaderboard')}
+        >
           <div className="flex items-center justify-between mb-2">
             <span style={{ color: 'rgba(var(--oz-text-secondary-rgb),0.92)', fontWeight: 700, letterSpacing: '0.04em' }}>Top 3</span>
-            <span style={{ color: 'rgba(var(--oz-text-secondary-rgb),0.55)', fontSize: '0.7rem', letterSpacing: '0.08em' }}>LIVE LEADERBOARD</span>
+            <span style={{ color: 'rgba(var(--oz-text-secondary-rgb),0.55)', fontSize: '0.7rem', letterSpacing: '0.08em' }}>LIVE LEADERBOARD →</span>
           </div>
           {topPlayersContent}
         </div>
@@ -260,11 +266,7 @@ export default function LandingPage() {
             {/* Tagline */}
             <div style={{ color: 'rgba(var(--oz-fire-tag-rgb),0.95)', fontSize: '0.7rem', letterSpacing: '0.12em', marginBottom: '14px' }}>
               COMPETE · RANK · DOMINATE
-            </div>
-            {/* Login badge */}
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '3px 10px', borderRadius: '999px', background: 'rgba(var(--oz-fire-title-rgb),0.1)', border: '1px solid rgba(var(--oz-fire-title-rgb),0.35)', color: 'rgba(var(--oz-fire-title-rgb),0.9)', fontSize: '0.65rem', letterSpacing: '0.1em' }}>
-              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: 'rgba(var(--oz-fire-title-rgb),0.9)', display: 'inline-block' }} />{"Login erforderlich"}
-            </div>
+            </div>   
           </button>
 
           {/* ÜBUNG */}
@@ -284,7 +286,7 @@ export default function LandingPage() {
                   Übung
                 </div>
                 <div style={{ color: 'rgba(var(--oz-text-secondary-rgb),0.7)', fontSize: '0.7rem', letterSpacing: '0.08em' }}>
-                  Trainingsmodus · Kein Login nötig
+                  Trainingsmodus
                 </div>
               </div>
               {/* Arrow */}

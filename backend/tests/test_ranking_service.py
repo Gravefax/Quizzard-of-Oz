@@ -1,8 +1,10 @@
 from datetime import datetime, timezone
+from unittest.mock import MagicMock
 from uuid import uuid4
 
 import pytest
 
+from app.models.match_result import ENDED_AS_FORFEIT, ENDED_AS_NORMAL, MatchResult
 from app.models.ranking import Ranking
 from app.services import ranking_service
 
@@ -30,8 +32,9 @@ def test_apply_match_result_updates_both_players(monkeypatch):
     monkeypatch.setattr(ranking_service.crud_ranking, "get_or_create_ranking", fake_get_or_create)
     monkeypatch.setattr(ranking_service.crud_ranking, "save_rankings", fake_save)
 
+    db = MagicMock()
     updated_winner, updated_loser = ranking_service.apply_match_result(
-        db=object(),
+        db=db,
         winner_id=winner_id,
         loser_id=loser_id,
     )
@@ -50,6 +53,43 @@ def test_apply_match_result_updates_both_players(monkeypatch):
     assert winner.elo_rating == 1016
     assert loser.elo_rating == 984
     assert saved["rankings"] == (winner, loser)
+
+    # A history entry is recorded; regular matches end as "normal".
+    recorded = db.add.call_args.args[0]
+    assert isinstance(recorded, MatchResult)
+    assert recorded.winner_id == winner_id
+    assert recorded.loser_id == loser_id
+    assert recorded.ended_as == ENDED_AS_NORMAL
+
+
+def test_apply_match_result_records_forfeit_in_history(monkeypatch):
+    winner_id = uuid4()
+    loser_id = uuid4()
+    winner = Ranking(user_id=winner_id, elo_rating=1000, wins=0, losses=0, total_matches=0)
+    loser = Ranking(user_id=loser_id, elo_rating=1000, wins=0, losses=0, total_matches=0)
+
+    monkeypatch.setattr(
+        ranking_service.crud_ranking,
+        "get_or_create_ranking",
+        lambda db, user_id: winner if user_id == winner_id else loser,
+    )
+    monkeypatch.setattr(ranking_service.crud_ranking, "save_rankings", lambda db, *r: None)
+
+    db = MagicMock()
+    ranking_service.apply_match_result(
+        db=db,
+        winner_id=winner_id,
+        loser_id=loser_id,
+        ended_as=ENDED_AS_FORFEIT,
+    )
+
+    # Forfeit still counts as a full Elo loss/win …
+    assert winner.elo_rating == 1016
+    assert loser.elo_rating == 984
+    # … but the history entry is labelled as forfeit, not a plain loss.
+    recorded = db.add.call_args.args[0]
+    assert isinstance(recorded, MatchResult)
+    assert recorded.ended_as == ENDED_AS_FORFEIT
 
 
 def test_get_leaderboard_page_assigns_same_rank_on_full_tie(monkeypatch):

@@ -232,6 +232,61 @@ export const BATTLE_ARENA_STYLES = `
     color: rgba(0,212,255,0.95);
   }
 
+  /* ── Surrender ── */
+  .surrender-btn {
+    margin-top: 20px;
+    background: rgba(255,60,20,0.05);
+    border: 1px solid rgba(255,60,20,0.28);
+    border-radius: 0.875rem;
+    padding: 8px 18px;
+    color: rgba(255,100,60,0.75);
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    transition: all 0.18s ease;
+    cursor: pointer;
+  }
+  .surrender-btn:hover {
+    background: rgba(255,60,20,0.14);
+    border-color: rgba(255,90,40,0.7);
+    color: rgba(255,130,80,0.95);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(255,60,20,0.15);
+  }
+  .dialog-btn-danger {
+    background: rgba(255,60,20,0.15);
+    border: 1px solid rgba(255,60,20,0.5);
+    border-radius: 0.875rem;
+    padding: 10px 20px;
+    color: rgba(255,110,70,0.95);
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    transition: all 0.18s ease;
+    cursor: pointer;
+  }
+  .dialog-btn-danger:hover {
+    background: rgba(255,60,20,0.28);
+    border-color: rgba(255,90,40,0.85);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(255,60,20,0.2);
+  }
+  .dialog-btn-neutral {
+    background: rgba(0,212,255,0.04);
+    border: 1px solid rgba(140,200,230,0.35);
+    border-radius: 0.875rem;
+    padding: 10px 20px;
+    color: rgba(180,220,240,0.85);
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    transition: all 0.18s ease;
+    cursor: pointer;
+  }
+  .dialog-btn-neutral:hover {
+    background: rgba(0,212,255,0.1);
+    border-color: rgba(0,212,255,0.55);
+    color: rgba(220,240,250,0.95);
+    transform: translateY(-2px);
+  }
+
   /* ── Timer Bar ── */
   .timer-bar-track {
     height: 3px; border-radius: 2px;

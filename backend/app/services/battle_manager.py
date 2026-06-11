@@ -53,6 +53,9 @@ Message Protocol:
       "question_id": "<uuid>",
       "answer": "B"
     }
+    {
+      "type": "surrender"
+    }
 
   OUTGOING (server → client):
     waiting_for_opponent: {}
@@ -110,7 +113,9 @@ Message Protocol:
       "winner": str,
       "you_won": bool,
       "your_wins": int,
-      "opponent_wins": int
+      "opponent_wins": int,
+      "forfeit": bool (optional, set when the recipient surrendered),
+      "message": str (optional)
     }
     opponent_disconnected: {
       "username": str
@@ -141,6 +146,7 @@ from fastapi import WebSocket
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
+from app.models.match_result import ENDED_AS_FORFEIT
 from app.models.user import User
 from app.services.ranking_service import apply_match_result
 from app.services.ws_auth import authenticate_ws
@@ -352,7 +358,12 @@ class BattleManager:
         try:
             db = SessionLocal()
             try:
-                apply_match_result(db, winner_id=winner_user.id, loser_id=loser_user.id)
+                apply_match_result(
+                    db,
+                    winner_id=winner_user.id,
+                    loser_id=loser_user.id,
+                    ended_as=ENDED_AS_FORFEIT,
+                )
             finally:
                 db.close()
         except Exception:
@@ -385,6 +396,52 @@ class BattleManager:
             await self._handle_category_pick(match_id, state, user, data)
         elif msg_type == "answer":
             await self._handle_answer(match_id, state, user, data)
+        elif msg_type == "surrender":
+            await self._handle_surrender(match_id, state, user)
+
+    async def _handle_surrender(self, match_id: str, state: MatchState, user: User) -> None:
+        """Explicit forfeit: count as loss with Elo penalty, opponent wins.
+
+        Only allowed while the match is actively running (picking or questions),
+        never during matchmaking or after the game finished.
+        """
+        async with state.lock:
+            if state.phase not in ("picking", "questions"):
+                logger.warning("Battle surrender ignored: match not active")
+                return
+            if not any(p["user"].id == user.id for p in state.players):
+                logger.warning("Battle surrender ignored: user not in match")
+                return
+            if len(state.players) < 2:
+                logger.warning("Battle surrender ignored: opponent missing")
+                return
+
+            opponent = next(p for p in state.players if p["user"].id != user.id)
+            # Claim the match as finished while holding the lock so concurrent
+            # answers, timers, or a second surrender cannot race this forfeit.
+            state.phase = "finished"
+
+        self._cancel_task(state.question_timer_task)
+        self._cancel_task(state.advance_task)
+
+        uid = str(user.id)
+        oid = str(opponent["user"].id)
+
+        surrender_ws = next(p["ws"] for p in state.players if str(p["user"].id) == uid)
+        try:
+            await surrender_ws.send_json({
+                "type":          "game_over",
+                "winner":        opponent["user"].username,
+                "you_won":       False,
+                "your_wins":     state.round_wins.get(uid, 0),
+                "opponent_wins": state.round_wins.get(oid, 0),
+                "forfeit":       True,
+                "message":       "Du hast aufgegeben – dein Gegner gewinnt.",
+            })
+        except Exception:
+            logger.warning("Battle surrender notify failed: socket closed")
+
+        await self._forfeit_match(match_id, state, [opponent], opponent["user"], user)
 
     # ── Game flow ────────────────────────────────────────────────────────── #
 

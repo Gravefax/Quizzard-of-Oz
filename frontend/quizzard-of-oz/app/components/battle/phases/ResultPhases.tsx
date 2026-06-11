@@ -164,6 +164,16 @@ export function GameOverPhase({
     winnerMessage = `${gameOver.winner} hat gewonnen.`;
   }
 
+  // Own surrender shows SURRENDER instead of DEFEAT; a forfeit win stays VICTORY.
+  let outcomeLabel: string;
+  if (gameOver.youWon) {
+    outcomeLabel = 'VICTORY';
+  } else if (gameOver.forfeit) {
+    outcomeLabel = 'SURRENDER';
+  } else {
+    outcomeLabel = 'DEFEAT';
+  }
+
   return (
     <div className="flex flex-col items-center gap-7 w-full max-w-md reveal">
       {/* ── Battle Ended Label ── */}
@@ -189,7 +199,7 @@ export function GameOverPhase({
         }}
         className={gameOver.youWon ? 'outcome-win' : ''}
       >
-        {gameOver.youWon ? 'VICTORY' : 'DEFEAT'}
+        {outcomeLabel}
       </div>
 
       {/* ── Winner Message ── */}

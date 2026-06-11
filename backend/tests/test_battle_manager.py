@@ -655,8 +655,13 @@ async def test_disconnect_during_active_match_forfeits_to_remaining_player():
     })
     # The leaver gets no forfeit message and is not notified.
     ws1.send_json.assert_not_called()
-    # Elo / win-loss record updated: stayer wins, leaver loses.
-    mock_apply.assert_called_once_with(db, winner_id=stayer.id, loser_id=leaver.id)
+    # Elo / win-loss record updated: stayer wins, leaver loses, history says forfeit.
+    mock_apply.assert_called_once_with(
+        db,
+        winner_id=stayer.id,
+        loser_id=leaver.id,
+        ended_as=battle_manager.ENDED_AS_FORFEIT,
+    )
     # Session fully cleaned up.
     assert "match-1" not in manager._matches
 
@@ -698,3 +703,103 @@ async def test_end_game_triggers_ranking_update():
     mock_apply.assert_called_once_with(db, winner_id=winner.id, loser_id=loser.id)
     assert "match-1" not in manager._matches
 
+
+
+@pytest.mark.asyncio
+async def test_surrender_forfeits_match_and_applies_elo():
+    manager = BattleManager(FakeQuizService())
+    ws1 = _make_websocket()
+    ws2 = _make_websocket()
+    surrenderer = _make_user(username="Quitter")
+    opponent = _make_user(username="Stayer")
+    state = MatchState(
+        players=[{"ws": ws1, "user": surrenderer}, {"ws": ws2, "user": opponent}],
+        phase="questions",
+        round_wins={str(surrenderer.id): 1, str(opponent.id): 2},
+    )
+    manager._matches["match-1"] = state
+
+    db = MagicMock()
+    with patch("app.services.battle_manager.SessionLocal", return_value=db):
+        with patch("app.services.battle_manager.apply_match_result") as mock_apply:
+            await manager.handle_message("match-1", surrenderer, '{"type": "surrender"}')
+
+    # Surrenderer loses with Elo penalty, opponent gets the full win.
+    mock_apply.assert_called_once_with(
+        db,
+        winner_id=opponent.id,
+        loser_id=surrenderer.id,
+        ended_as=battle_manager.ENDED_AS_FORFEIT,
+    )
+
+    surrender_msg = ws1.send_json.call_args.args[0]
+    assert surrender_msg["type"] == "game_over"
+    assert surrender_msg["you_won"] is False
+    assert surrender_msg["forfeit"] is True
+    assert surrender_msg["winner"] == "Stayer"
+
+    opponent_msg = ws2.send_json.call_args.args[0]
+    assert opponent_msg["type"] == "opponent_forfeit"
+    assert opponent_msg["you_won"] is True
+    assert opponent_msg["winner"] == "Stayer"
+
+    assert state.phase == "finished"
+    assert "match-1" not in manager._matches
+
+
+@pytest.mark.asyncio
+async def test_surrender_ignored_during_matchmaking():
+    manager = BattleManager(FakeQuizService())
+    ws1 = _make_websocket()
+    user1 = _make_user()
+    state = MatchState(players=[{"ws": ws1, "user": user1}], phase="waiting")
+    manager._matches["match-1"] = state
+
+    with patch("app.services.battle_manager.apply_match_result") as mock_apply:
+        await manager.handle_message("match-1", user1, '{"type": "surrender"}')
+
+    mock_apply.assert_not_called()
+    ws1.send_json.assert_not_called()
+    assert state.phase == "waiting"
+    assert "match-1" in manager._matches
+
+
+@pytest.mark.asyncio
+async def test_surrender_ignored_after_match_finished():
+    manager = BattleManager(FakeQuizService())
+    ws1 = _make_websocket()
+    ws2 = _make_websocket()
+    user1 = _make_user()
+    user2 = _make_user()
+    state = MatchState(
+        players=[{"ws": ws1, "user": user1}, {"ws": ws2, "user": user2}],
+        phase="finished",
+    )
+    manager._matches["match-1"] = state
+
+    with patch("app.services.battle_manager.apply_match_result") as mock_apply:
+        await manager.handle_message("match-1", user1, '{"type": "surrender"}')
+
+    mock_apply.assert_not_called()
+    ws1.send_json.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_surrender_ignored_for_user_not_in_match():
+    manager = BattleManager(FakeQuizService())
+    ws1 = _make_websocket()
+    ws2 = _make_websocket()
+    user1 = _make_user()
+    user2 = _make_user()
+    outsider = _make_user(username="Outsider")
+    state = MatchState(
+        players=[{"ws": ws1, "user": user1}, {"ws": ws2, "user": user2}],
+        phase="questions",
+    )
+    manager._matches["match-1"] = state
+
+    with patch("app.services.battle_manager.apply_match_result") as mock_apply:
+        await manager.handle_message("match-1", outsider, '{"type": "surrender"}')
+
+    mock_apply.assert_not_called()
+    assert state.phase == "questions"

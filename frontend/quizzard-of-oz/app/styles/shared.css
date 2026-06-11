@@ -52,16 +52,25 @@
 /* ── Utility: Back-Button (auf allen Seiten identisch) ── */
 
 .back-btn {
-  border: 1px solid rgba(0,212,255,0.16);
+  border: 1px solid rgba(var(--oz-accent-line-rgb),0.16);
   border-radius: 0.625rem;
   color: rgba(var(--oz-text-muted-rgb),0.5);
   transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
 .back-btn:hover {
-  background: rgba(0,212,255,0.07);
-  border-color: rgba(0,212,255,0.38);
+  background: rgba(var(--oz-accent-line-rgb),0.07);
+  border-color: rgba(var(--oz-accent-line-rgb),0.38);
   color: rgba(var(--oz-text-muted-rgb),0.9);
+}
+
+/* Light: kräftigerer Rahmen, damit der Button auf Weiß nicht verschwindet */
+html.light .back-btn {
+  border-color: rgba(var(--oz-card-border),0.18);
+}
+html.light .back-btn:hover {
+  background: rgba(var(--oz-accent-line-rgb),0.1);
+  border-color: rgba(var(--oz-accent-line-rgb),0.5);
 }
 
 /* ── Utility: Arena-Überschrift (Bebas Neue, auf allen Seiten identisch) ── */
@@ -72,4 +81,15 @@
   color: rgba(var(--oz-text-heading-rgb),1);
   animation: titleGlow 4s ease-in-out infinite;
   line-height: 0.9;
+}
+
+/* Light: der animierte Cyan-Glow ist auf Weiß unsichtbar und wirkt schmutzig –
+   stattdessen ein klarer Verlaufs-Schriftzug mit weichem Tiefen-Schatten */
+html.light .arena-title {
+  animation: none;
+  background: linear-gradient(180deg, #103A63 0%, #0C2034 78%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.6);
 }

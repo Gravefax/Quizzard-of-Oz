@@ -107,3 +107,30 @@
 .match-glow {
   animation: matchGlow 1.2s ease-in-out infinite;
 }
+
+/* ── Light Mode: kräftigere Flächen, damit die zarten Tints auf Weiß tragen ── */
+:global(html.light) .join-btn {
+  background: rgba(var(--accent-rgb), 0.16);
+  box-shadow: 0 10px 26px -12px rgba(20, 44, 74, 0.3);
+}
+:global(html.light) .join-btn:hover {
+  background: rgba(var(--accent-rgb), 0.26);
+}
+:global(html.light) .player-card-inner {
+  background: rgba(255, 255, 255, 0.94);
+  border-color: rgba(var(--accent-rgb), 0.4);
+  box-shadow: 0 10px 26px -14px rgba(20, 44, 74, 0.25);
+}
+:global(html.light) .player-card-empty {
+  background: rgba(255, 255, 255, 0.55);
+  border-color: rgba(24, 52, 84, 0.2);
+}
+:global(html.light) .cancel-btn {
+  background: rgba(255, 244, 240, 0.9);
+  border-color: rgba(198, 52, 22, 0.45);
+  color: rgba(176, 44, 18, 0.95);
+}
+:global(html.light) .cancel-btn:hover {
+  background: rgba(255, 234, 228, 0.96);
+  border-color: rgba(198, 52, 22, 0.75);
+}

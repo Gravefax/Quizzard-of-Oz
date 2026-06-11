@@ -5,13 +5,14 @@ import Queue from '@/app/components/Queue';
 import LoginButton from '@/app/components/login-button/LoginButton';
 import useAuthStore from '@/app/stores/authStore';
 import rankedStyles from './ranked.module.css';
+import { IconShield } from '@/app/components/Icons';
 
 function LoginCardContent() {
   return (
     <div className={`${rankedStyles['login-card']} flex flex-col items-center gap-6 px-10 py-10 w-full max-w-sm text-center`}>
       {/* Icon */}
-      <div className={rankedStyles['icon-pulse']} style={{ fontSize: '3rem' }}>
-        ⚔
+      <div className={rankedStyles['icon-pulse']} style={{ color: 'var(--oz-battle-round-num)' }}>
+        <IconShield size={48} />
       </div>
 
       {/* Title */}
@@ -21,14 +22,14 @@ function LoginCardContent() {
             fontFamily: "'Bebas Neue', Impact, 'Arial Black', sans-serif",
             fontSize: '2rem',
             letterSpacing: '0.1em',
-            color: '#FFD0B0',
+            color: 'var(--oz-battle-round-num)',
           }}
         >
           Login erforderlich
         </h2>
         <p
           className="mt-2 text-sm leading-relaxed"
-          style={{ color: 'rgba(140,200,230,0.5)' }}
+          style={{ color: 'var(--oz-battle-muted)' }}
         >
           Ranked Battle erfordert einen Account,
           <br />um dein Rang zu verfolgen.
@@ -48,7 +49,7 @@ function LoginCardContent() {
       <div>
         <p
           className="text-xs mb-3"
-          style={{ color: 'rgba(140,200,230,0.35)', letterSpacing: '0.06em' }}
+          style={{ color: 'var(--oz-battle-sublabel)', letterSpacing: '0.06em' }}
         >
           Mit Google anmelden
         </p>

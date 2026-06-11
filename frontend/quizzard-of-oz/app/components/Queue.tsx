@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getWsUrl } from '@/app/lib/utils/wsUrl';
 import queueStyles from './Queue.module.css';
+import { IconUser, IconCrossedSwords, IconBolt, IconAlertTriangle } from '@/app/components/Icons';
 
 type QueueState = 'idle' | 'connecting' | 'searching' | 'matched' | 'error';
 
@@ -30,7 +31,7 @@ export default function Queue({ ranked = false }: QueueProps) {
   const matchedRef = useRef(false);
 
   const accent = ranked
-    ? { rgb: '255,60,20', dim: 'rgba(255,60,20,0.55)', muted: 'rgba(255,140,90,0.5)' }
+    ? { rgb: '255,60,20', dim: 'rgba(255,60,20,0.55)', muted: 'var(--oz-queue-fire-sub)' }
     : { rgb: '0,212,255',  dim: 'rgba(0,212,255,0.55)',  muted: 'rgba(var(--oz-text-secondary-rgb),0.6)' };
 
   function startTimer() {
@@ -103,10 +104,10 @@ export default function Queue({ ranked = false }: QueueProps) {
     };
   }, []);
 
-  const badgeColor = ranked ? 'rgba(255,80,40,0.8)' : 'rgba(0,212,255,0.8)';
+  const badgeColor = ranked ? 'var(--oz-queue-badge-color)' : 'rgba(0,212,255,0.8)';
   const badgeBorder = ranked ? 'rgba(255,60,20,0.28)' : 'rgba(0,212,255,0.25)';
   const badgeBg = ranked ? 'rgba(255,60,20,0.06)' : 'rgba(0,212,255,0.05)';
-  const badgeLabel = ranked ? '⚔ Ranked Battle' : '⚡ Unranked Battle';
+  const BadgeIcon = ranked ? IconCrossedSwords : IconBolt;
 
   const cornerSize = '28px';
   const cornerThick = '2px';
@@ -166,9 +167,13 @@ export default function Queue({ ranked = false }: QueueProps) {
               border: `1px solid ${badgeBorder}`,
               background: badgeBg,
               letterSpacing: '0.26em',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
             }}
           >
-            {badgeLabel}
+            <BadgeIcon size={13} />
+            {ranked ? 'Ranked Battle' : 'Unranked Battle'}
           </div>
           <div className={queueStyles['deco-dot']} />
         </div>
@@ -183,10 +188,10 @@ export default function Queue({ ranked = false }: QueueProps) {
           <div className="flex items-stretch gap-4 w-full">
             <div className={`${queueStyles['player-card-inner']} flex-1 p-5 text-center`}>
               <div
-                className="text-3xl mb-3"
-                style={{ filter: `drop-shadow(0 0 12px rgba(${accent.rgb},0.4))` }}
+                className="mb-3"
+                style={{ color: `rgba(${accent.rgb},0.85)`, filter: `drop-shadow(0 0 12px rgba(${accent.rgb},0.4))` }}
               >
-                👤
+                <IconUser size={36} />
               </div>
               <div style={{ color: `rgba(var(--oz-text-secondary-rgb),0.88)`, fontSize: '0.8rem', fontWeight: 600, letterSpacing: '0.08em' }}>Du</div>
               <div style={{ color: `rgba(${accent.rgb},0.65)`, fontSize: '0.65rem', marginTop: '4px', letterSpacing: '0.1em' }}>BEREIT</div>
@@ -213,22 +218,22 @@ export default function Queue({ ranked = false }: QueueProps) {
             <div className={`${queueStyles['player-card-empty']} flex-1 p-5 text-center flex flex-col items-center justify-center`}>
               <div className="text-3xl mb-3" style={{ opacity: 0.25 }}>?</div>
               <div style={{ color: `rgba(var(--oz-text-secondary-rgb),0.45)`, fontSize: '0.8rem', fontWeight: 600, letterSpacing: '0.08em' }}>Gegner</div>
-              <div style={{ color: `rgba(var(--oz-text-secondary-rgb),0.28)`, fontSize: '0.65rem', marginTop: '4px', letterSpacing: '0.1em' }}>WARTEND</div>
+              <div style={{ color: 'var(--oz-queue-wartend)', fontSize: '0.65rem', marginTop: '4px', letterSpacing: '0.1em' }}>WARTEND</div>
             </div>
           </div>
 
           {/* Decorative info row */}
           <div className="flex items-center gap-3 w-full">
             <div className={`${queueStyles['deco-line-h']} flex-1`} />
-            <div style={{ color: `rgba(${accent.rgb},0.6)`, fontSize: '0.65rem', letterSpacing: '0.15em', whiteSpace: 'nowrap' }}>
+            <div style={{ color: ranked ? 'var(--oz-queue-fire-info)' : `rgba(${accent.rgb},0.6)`, fontSize: '0.65rem', letterSpacing: '0.15em', whiteSpace: 'nowrap' }}>
               {ranked ? 'RANG · PUNKTE · LEADERBOARD' : 'KEIN DRUCK · KEIN RANG · NUR SPASS'}
             </div>
             <div className={`${queueStyles['deco-line-h']} flex-1`} />
           </div>
 
           <button className={`${queueStyles['join-btn']} px-10 py-4 w-full text-center`} onClick={joinQueue}>
-            <div className="text-2xl mb-1.5" style={{ filter: `drop-shadow(0 0 10px ${accent.dim})` }}>
-              {ranked ? '⚔' : '⚡'}
+            <div className="mb-1.5" style={{ color: `rgba(${accent.rgb},0.9)`, filter: `drop-shadow(0 0 10px ${accent.dim})` }}>
+              {ranked ? <IconCrossedSwords size={32} /> : <IconBolt size={32} />}
             </div>
             <h3 style={{ fontFamily: "'Bebas Neue', Impact, 'Arial Black', sans-serif", fontSize: '1.4rem', letterSpacing: '0.14em', color: 'rgba(var(--oz-text-bright-rgb),0.92)' }}>
               Queue beitreten
@@ -275,10 +280,10 @@ export default function Queue({ ranked = false }: QueueProps) {
               width: '60px', height: '60px',
               background: `rgba(${accent.rgb},0.09)`,
               border: `2px solid rgba(${accent.rgb},0.5)`,
-              fontSize: '1.7rem',
+              color: `rgba(${accent.rgb},0.9)`,
               zIndex: 1,
             }}>
-              {ranked ? '⚔' : '⚡'}
+              {ranked ? <IconCrossedSwords size={28} /> : <IconBolt size={28} />}
             </div>
           </div>
 
@@ -338,7 +343,7 @@ export default function Queue({ ranked = false }: QueueProps) {
       {/* ─── ERROR ─── */}
       {queueState === 'error' && (
         <div className="flex flex-col items-center gap-6 text-center" style={{ maxWidth: '340px' }}>
-          <div style={{ fontSize: '2.5rem' }}>⚠</div>
+          <IconAlertTriangle size={40} style={{ color: 'rgba(255,130,90,0.9)' }} />
           <div style={{ fontFamily: "'Bebas Neue', Impact, 'Arial Black', sans-serif", fontSize: '1.6rem', letterSpacing: '0.08em', color: 'rgba(255,130,90,0.9)' }}>
             Verbindung fehlgeschlagen
           </div>

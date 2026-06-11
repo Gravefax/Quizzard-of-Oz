@@ -72,3 +72,31 @@
   margin: 10px auto 0;
   width: 100px;
 }
+
+/* ── Light Mode: deckende Karte, Bronze-Akzente, lesbarer Primär-Button ── */
+:global(html.light) .practice-card {
+  background: rgba(255, 255, 255, 0.96);
+  border-color: rgba(190, 140, 20, 0.42);
+  box-shadow: 0 14px 34px -14px rgba(170, 120, 10, 0.3);
+}
+:global(html.light) .neon-line-gold {
+  background: linear-gradient(90deg, transparent, rgba(190, 140, 20, 0.85), transparent);
+}
+:global(html.light) .practice-btn-primary {
+  background: linear-gradient(145deg, rgba(214, 150, 20, 1) 0%, rgba(184, 122, 0, 1) 100%);
+  border-color: rgba(150, 96, 0, 0.6);
+  color: #fffaf0;
+  animation: none;
+  box-shadow: 0 10px 24px -10px rgba(170, 120, 10, 0.5);
+}
+:global(html.light) .practice-btn-primary:hover {
+  background: linear-gradient(145deg, rgba(224, 160, 28, 1) 0%, rgba(196, 132, 6, 1) 100%);
+}
+:global(html.light) .practice-answer-btn {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(24, 52, 84, 0.16);
+}
+:global(html.light) .practice-answer-btn:not(:disabled):hover {
+  border-color: rgba(190, 140, 20, 0.6);
+  background: rgba(255, 250, 236, 0.96);
+}

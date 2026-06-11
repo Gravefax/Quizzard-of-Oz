@@ -52,32 +52,151 @@
   --oz-depth-bg-rgb:       0,  18,  40;   /* center vignette orb dark */
   --oz-text-secondary-rgb: 140, 200, 230; /* muted inline text */
   --oz-text-bright-rgb:    220, 245, 255; /* bright inline text */
+
+  /* ── Theme-adaptive accents (defaults = dark look, overridden in light) ── */
+  --oz-fire-title-rgb:     255,  70,  40;
+  --oz-fire-tag-rgb:       255, 170, 120;
+  --oz-gold-title-rgb:     200, 140,   0;
+  --oz-accent-line-rgb:      0, 212, 255;
+
+  /* ── Dekorative Float-Zeichen (Hintergrund) ── */
+  --oz-float-cyan-rgb:       0, 212, 255;
+  --oz-float-fire-rgb:     255,  60,  20;
+  --oz-float-gold-rgb:     255, 200,   0;
+
+  /* ── Karten-Oberflächen (theme-adaptive) ── */
+  --oz-card-alpha:         0.78;
+  --oz-card-border:        255, 255, 255;
+  --oz-card-border-alpha:  0;
+  --oz-card-shadow:        0 0 0 rgba(0,0,0,0);
+
+  /* ── Battle Arena Phase Colors (alle theme-adaptive via var()) ── */
+  --oz-battle-fire-label:       rgba(255, 60, 20, 0.65);
+  --oz-battle-muted:            rgba(140, 200, 230, 0.45);
+  --oz-battle-muted-title:      rgba(160, 215, 240, 0.8);
+  --oz-battle-sublabel:         rgba(140, 200, 230, 0.35);
+  --oz-battle-vs:               rgba(255, 200, 0, 0.5);
+  --oz-battle-next-name:        rgba(255, 160, 100, 0.75);
+  --oz-battle-warm-text:        #FFCDB0;
+  --oz-battle-round-num:        #FFD0B0;
+  --oz-battle-star-empty:       rgba(255, 255, 255, 0.1);
+  --oz-battle-your-score:       rgba(0, 212, 255, 0.9);
+  --oz-battle-opp-score:        rgba(255, 90, 50, 0.9);
+  --oz-battle-question-text:    rgba(220, 235, 248, 0.9);
+  --oz-battle-q-num:            rgba(140, 200, 230, 0.38);
+  --oz-battle-cat-badge-bg:     rgba(255, 60, 20, 0.1);
+  --oz-battle-cat-badge-border: rgba(255, 60, 20, 0.3);
+  --oz-battle-cat-badge-color:  rgba(255, 130, 80, 0.8);
+  --oz-battle-cat-sublabel:     rgba(255, 140, 90, 0.45);
+  --oz-battle-fire-btn-bg:      rgba(255, 60, 20, 0.08);
+  --oz-battle-fire-btn-border:  rgba(255, 60, 20, 0.35);
+  --oz-battle-fire-btn-color:   rgba(255, 140, 90, 0.85);
+  --oz-battle-cyan-btn-bg:      rgba(0, 212, 255, 0.07);
+  --oz-battle-cyan-btn-border:  rgba(0, 212, 255, 0.3);
+  --oz-battle-cyan-btn-color:   rgba(140, 200, 230, 0.8);
+  --oz-battle-runde-label:      rgba(255, 60, 20, 0.9);
+  --oz-battle-dialog-body:      rgba(220, 235, 248, 0.75);
+  --oz-battle-dialog-title:     rgba(255, 100, 60, 0.9);
+  --oz-battle-correct-text:     rgba(0, 255, 120, 0.92);
+  --oz-battle-wrong-text:       rgba(255, 110, 70, 0.85);
+  --oz-battle-outcome-tie:      rgba(140, 200, 230, 0.8);
+  --oz-battle-timer-normal:     rgba(0, 212, 255, 0.7);
+
+  /* ── Queue fire-accent colors (ranked mode) ── */
+  --oz-queue-fire-info:   rgba(255, 60, 20, 0.6);
+  --oz-queue-fire-sub:    rgba(255, 140, 90, 0.5);
+  --oz-queue-badge-color: rgba(255, 80, 40, 0.85);
+  --oz-queue-wartend:     rgba(var(--oz-text-secondary-rgb), 0.28);
 }
 
-/* ── Light Mode Overrides ── */
+/* ── Light Mode Overrides ──
+   Dark mode baut Oberflächen aus hellen Akzenten mit niedriger Deckkraft – auf
+   hellem Grund verschwinden diese zu blassen Pastellflächen ohne Kontrast.
+   Light Mode kehrt das Prinzip um: echte weiße Karten, sichtbare Slate-Rahmen,
+   weiche Schatten und tiefere, gesättigte Akzentfarben für lesbaren Text. */
 html.light {
-  --background:             #EDF5FF;
-  --foreground:             #0C1C30;
+  --background:             #EAF1FB;
+  --foreground:             #15273D;
 
-  --oz-gradient-start:      #EDF5FF;
-  --oz-gradient-mid-1:      #DFF0FF;
-  --oz-gradient-mid-2:      #E6F4FF;
-  --oz-gradient-end:        #EDF5FF;
+  /* Kühle Slate-Blau-Bühne, damit weiße Karten klar abheben */
+  --oz-gradient-start:      #F1F6FE;
+  --oz-gradient-mid-1:      #DEE9F7;
+  --oz-gradient-mid-2:      #E7EFFA;
+  --oz-gradient-end:        #EFF4FD;
 
+  /* Karten: deckende Weißtöne + sichtbarer neutraler Rahmen + Schatten */
   --oz-card-bg-rgb:         255, 255, 255;
-  --oz-card-bg-alt-rgb:     240, 248, 255;
-  --oz-menu-bg-rgb:         225, 242, 255;
+  --oz-card-bg-alt-rgb:     247, 250, 254;
+  --oz-menu-bg-rgb:         255, 255, 255;
+  --oz-card-alpha:          0.96;
+  --oz-card-border:          24,  52,  84;
+  --oz-card-border-alpha:   0.12;
+  --oz-card-shadow:         0 10px 30px -12px rgba(20, 44, 74, 0.28);
 
-  --oz-text-primary-rgb:     10,  30,  55;
-  --oz-text-muted-rgb:       55, 110, 155;
-  --oz-text-heading-rgb:      5,  20,  40;
-  --oz-surface-heading:      #0C1C30;
-  --oz-violet-text-rgb:       0, 100, 150;
+  /* Text: tiefes Slate-Navy für AA-Kontrast auf Weiß */
+  --oz-text-primary-rgb:     20,  36,  56;
+  --oz-text-muted-rgb:       82, 108, 138;
+  --oz-text-heading-rgb:     12,  26,  44;
+  --oz-surface-heading:      #0C1A2C;
+  --oz-violet-text-rgb:      11, 102, 142;
+
+  /* Primär-Akzent (Cyan → tieferes Teal, sichtbar auf Weiß) */
+  --oz-violet-rgb:            8, 128, 176;
+  --oz-violet-light-rgb:     46, 148, 190;
+  --oz-accent-line-rgb:      14, 130, 178;
+
+  /* Akzent-Text: gesättigt statt neon, damit lesbar auf Weiß */
+  --oz-fire-title-rgb:      198,  52,  22;   /* tiefes Rot statt Neon-Orange */
+  --oz-fire-tag-rgb:        176,  74,  46;
+  --oz-gold-title-rgb:      166, 108,   0;   /* Bronze statt unsichtbares Gold */
+
+  /* Dekorative Float-Zeichen: gedämpft, damit kein Schmutz-Schleier entsteht */
+  --oz-float-cyan-rgb:       42, 118, 168;
+  --oz-float-fire-rgb:      200, 100,  72;
+  --oz-float-gold-rgb:      198, 150,  44;
 
   /* ── Inline-Style Theming overrides ── */
-  --oz-depth-bg-rgb:       210, 232, 250; /* vignette orb nearly invisible */
-  --oz-text-secondary-rgb:  40,  90, 140; /* readable navy in light */
-  --oz-text-bright-rgb:      8,  25,  50; /* dark primary text in light */
+  --oz-depth-bg-rgb:       214, 230, 246;
+  --oz-text-secondary-rgb:  56,  84, 116;
+  --oz-text-bright-rgb:      18,  32,  52;
+
+  /* ── Battle Arena Phase Colors (light overrides) ── */
+  --oz-battle-fire-label:       rgba(176, 44, 18, 1);
+  --oz-battle-muted:            rgba(56, 84, 116, 0.85);
+  --oz-battle-muted-title:      rgba(22, 50, 82, 0.92);
+  --oz-battle-sublabel:         rgba(56, 84, 116, 0.72);
+  --oz-battle-vs:               rgba(166, 108, 0, 0.9);
+  --oz-battle-next-name:        rgba(155, 78, 38, 0.95);
+  --oz-battle-warm-text:        #3A1808;
+  --oz-battle-round-num:        #6A2E0A;
+  --oz-battle-star-empty:       rgba(24, 52, 84, 0.14);
+  --oz-battle-your-score:       rgba(11, 102, 142, 1);
+  --oz-battle-opp-score:        rgba(176, 44, 18, 1);
+  --oz-battle-question-text:    rgba(18, 32, 52, 0.92);
+  --oz-battle-q-num:            rgba(56, 84, 116, 0.65);
+  --oz-battle-cat-badge-bg:     rgba(198, 52, 22, 0.08);
+  --oz-battle-cat-badge-border: rgba(198, 52, 22, 0.45);
+  --oz-battle-cat-badge-color:  rgba(176, 44, 18, 0.95);
+  --oz-battle-cat-sublabel:     rgba(155, 78, 38, 0.82);
+  --oz-battle-fire-btn-bg:      rgba(198, 52, 22, 0.08);
+  --oz-battle-fire-btn-border:  rgba(198, 52, 22, 0.5);
+  --oz-battle-fire-btn-color:   rgba(176, 44, 18, 0.95);
+  --oz-battle-cyan-btn-bg:      rgba(14, 130, 178, 0.08);
+  --oz-battle-cyan-btn-border:  rgba(14, 130, 178, 0.42);
+  --oz-battle-cyan-btn-color:   rgba(11, 102, 142, 0.95);
+  --oz-battle-runde-label:      rgba(198, 52, 22, 0.9);
+  --oz-battle-dialog-body:      rgba(40, 64, 92, 0.88);
+  --oz-battle-dialog-title:     rgba(176, 44, 18, 0.95);
+  --oz-battle-correct-text:     rgba(0, 130, 72, 0.95);
+  --oz-battle-wrong-text:       rgba(176, 44, 18, 0.92);
+  --oz-battle-outcome-tie:      rgba(40, 70, 100, 0.9);
+  --oz-battle-timer-normal:     rgba(11, 102, 142, 0.85);
+
+  /* ── Queue fire-accent colors (light overrides) ── */
+  --oz-queue-fire-info:   rgba(176, 44, 18, 0.9);
+  --oz-queue-fire-sub:    rgba(155, 78, 38, 0.88);
+  --oz-queue-badge-color: rgba(176, 44, 18, 0.95);
+  --oz-queue-wartend:     rgba(56, 84, 116, 0.5);
 }
 
 @theme inline {

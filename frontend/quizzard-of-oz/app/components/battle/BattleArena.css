@@ -331,3 +331,91 @@
 /* ── Utility ── */
 .reveal { animation: arenaReveal 0.45s cubic-bezier(0.22,1,0.36,1) both; }
 .pop-in { animation: popIn 0.4s cubic-bezier(0.22,1,0.36,1) both; }
+
+/* ─────────────────────────────────────────────
+   Light Mode — die fest kodierten dunklen Arena-Flächen würden auf hellem
+   Grund als „kaputte" schwarze Karten erscheinen. Hier echte helle Flächen
+   mit gesättigten Akzenten und lesbaren Texten.
+   ───────────────────────────────────────────── */
+html.light .score-header {
+  background: rgba(255, 255, 255, 0.92);
+  border-bottom-color: rgba(198, 52, 22, 0.22);
+}
+html.light .username { color: rgba(40, 70, 100, 0.85); }
+html.light .win-star.empty { color: rgba(24, 52, 84, 0.16); }
+
+html.light .arena-card {
+  background: rgba(255, 255, 255, 0.96);
+  border-color: rgba(198, 52, 22, 0.32);
+  box-shadow: 0 14px 34px -14px rgba(20, 44, 74, 0.28);
+}
+
+html.light .category-btn {
+  background: rgba(255, 244, 240, 0.9);
+  border-color: rgba(198, 52, 22, 0.4);
+}
+html.light .category-btn:hover {
+  background: rgba(255, 236, 230, 0.96);
+  border-color: rgba(198, 52, 22, 0.75);
+  box-shadow: 0 12px 30px -12px rgba(190, 50, 25, 0.35);
+}
+
+html.light .answer-btn {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(24, 52, 84, 0.16);
+}
+html.light .answer-btn:hover:not(:disabled) {
+  background: rgba(240, 248, 255, 0.96);
+  border-color: rgba(14, 130, 178, 0.6);
+}
+html.light .answer-btn.selected {
+  background: rgba(232, 245, 252, 0.96);
+  border-color: rgba(14, 130, 178, 0.7);
+}
+html.light .answer-btn.correct {
+  background: rgba(232, 250, 240, 0.96);
+  border-color: rgba(0, 160, 90, 0.7);
+}
+html.light .answer-btn.wrong {
+  background: rgba(255, 240, 236, 0.96);
+  border-color: rgba(198, 52, 22, 0.65);
+}
+html.light .answer-key {
+  background: rgba(14, 130, 178, 0.1);
+  border-color: rgba(14, 130, 178, 0.35);
+  color: rgba(11, 102, 142, 0.95);
+}
+html.light .answer-btn.correct .answer-key {
+  background: rgba(0, 160, 90, 0.14);
+  border-color: rgba(0, 160, 90, 0.5);
+  color: rgba(0, 120, 66, 0.95);
+}
+html.light .answer-btn.wrong .answer-key {
+  background: rgba(198, 52, 22, 0.12);
+  border-color: rgba(198, 52, 22, 0.5);
+  color: rgba(176, 44, 18, 0.95);
+}
+
+html.light .timer-bar-track { background: rgba(24, 52, 84, 0.1); }
+
+html.light .surrender-btn,
+html.light .dialog-btn-danger {
+  background: rgba(255, 244, 240, 0.9);
+  border-color: rgba(198, 52, 22, 0.4);
+  color: rgba(176, 44, 18, 0.95);
+}
+html.light .surrender-btn:hover,
+html.light .dialog-btn-danger:hover {
+  background: rgba(255, 234, 228, 0.96);
+  border-color: rgba(198, 52, 22, 0.7);
+}
+html.light .dialog-btn-neutral {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(24, 52, 84, 0.22);
+  color: rgba(40, 70, 100, 0.9);
+}
+html.light .dialog-btn-neutral:hover {
+  background: rgba(240, 248, 255, 0.96);
+  border-color: rgba(14, 130, 178, 0.6);
+  color: rgba(11, 102, 142, 1);
+}

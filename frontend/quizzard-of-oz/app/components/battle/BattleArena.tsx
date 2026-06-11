@@ -25,6 +25,7 @@ import { QuestionPhase } from './phases/QuestionPhase';
 import { RoundResultPhase, GameOverPhase } from './phases/ResultPhases';
 import { getWsUrl } from '@/app/lib/utils/wsUrl';
 import useAuthStore from '@/app/stores/authStore';
+import { IconFlag } from '@/app/components/Icons';
 
 interface BattleArenaProps {
   readonly matchId: string;
@@ -433,7 +434,7 @@ export default function BattleArena({ matchId }: BattleArenaProps) {
               className="surrender-btn"
               onClick={() => setShowSurrenderConfirm(true)}
             >
-              🏳 Aufgeben
+              <IconFlag size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />Aufgeben
             </button>
           )}
         </div>
@@ -472,7 +473,7 @@ export default function BattleArena({ matchId }: BattleArenaProps) {
                   fontFamily: "'Bebas Neue', Impact, sans-serif",
                   fontSize: '1.4rem',
                   letterSpacing: '0.1em',
-                  color: 'rgba(255,100,60,0.9)',
+                  color: 'var(--oz-battle-dialog-title)',
                   marginBottom: '12px',
                 }}
               >
@@ -480,7 +481,7 @@ export default function BattleArena({ matchId }: BattleArenaProps) {
               </div>
               <div
                 style={{
-                  color: 'rgba(220,235,248,0.75)',
+                  color: 'var(--oz-battle-dialog-body)',
                   fontSize: '0.85rem',
                   lineHeight: 1.5,
                   marginBottom: '22px',

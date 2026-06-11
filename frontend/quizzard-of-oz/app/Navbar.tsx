@@ -7,6 +7,7 @@ import UserMenu from "@/app/components/user-menu/UserMenu";
 import useAuthStore from "@/app/stores/authStore";
 import useThemeStore from "@/app/stores/themeStore";
 import { refreshAccessToken, logout } from "@/app/lib/auth/authClient";
+import { IconTrophy, IconSun, IconMoon } from "@/app/components/Icons";
 
 export default function Navbar() {
   const credential = useAuthStore((state) => state.credential);
@@ -105,14 +106,14 @@ export default function Navbar() {
           title={theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
           className="login-btn flex items-center justify-center w-10 h-10 rounded-lg text-lg"
         >
-          {theme === 'dark' ? '☀️' : '🌙'}
+          {theme === 'dark' ? <IconSun /> : <IconMoon />}
         </button>
         <Link
           href="/leaderboard"
           className="login-btn inline-flex items-center gap-2 px-6 py-2 font-medium rounded-lg"
           style={{ textDecoration: "none" }}
         >
-          <span>🏆</span>
+          <IconTrophy size={18} />
           <span>Leaderboard</span>
         </Link>
         {isLoggedIn ? (
@@ -154,7 +155,7 @@ export default function Navbar() {
               className="flex items-center gap-2 px-4 py-3 text-sm transition-colors hover:bg-white/10"
               style={{ color: "rgba(var(--oz-violet-text-rgb), 1)", textDecoration: "none" }}
             >
-              <span>🏆</span>
+              <IconTrophy size={18} />
               <span>Leaderboard</span>
             </Link>
             <button
@@ -167,7 +168,7 @@ export default function Navbar() {
                 color: "rgba(var(--oz-violet-text-rgb), 1)",
               }}
             >
-              <span>{theme === 'dark' ? '☀️' : '🌙'}</span>
+              {theme === 'dark' ? <IconSun /> : <IconMoon />}
               <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
             </button>
             {isLoggedIn ? (

@@ -5,13 +5,16 @@ import { useRouter } from 'next/navigation';
 import { fetchLeaderboard } from '@/app/lib/api/ranking';
 import type { LeaderboardEntry } from '@/app/models/Leaderboard';
 import styles from './LandingPage.module.css';
+import { IconCrossedSwords, IconTarget } from '@/app/components/Icons';
 
 type ColorType = 'cyan' | 'fire' | 'gold';
 
+// Theme-adaptive über CSS-Variablen: im Light Mode gedämpfte Töne, damit die
+// dekorativen Zeichen kein schmutziger Schleier auf hellem Grund werden.
 const FLOAT_COLORS: Record<ColorType, (opacity: number) => string> = {
-  cyan: (o) => `rgba(0, 212, 255, ${o})`,
-  fire: (o) => `rgba(255, 60, 20, ${o})`,
-  gold: (o) => `rgba(255, 200, 0, ${o})`,
+  cyan: (o) => `rgba(var(--oz-float-cyan-rgb), ${o})`,
+  fire: (o) => `rgba(var(--oz-float-fire-rgb), ${o})`,
+  gold: (o) => `rgba(var(--oz-float-gold-rgb), ${o})`,
 };
 
 // Rising floating elements — question marks, lightning, swords
@@ -62,7 +65,7 @@ export default function LandingPage() {
         {topPlayers.map((player) => (
           <li key={player.user_id} className="flex items-center justify-between rounded-md px-2 py-1" style={{ background: 'rgba(var(--oz-depth-bg-rgb),0.1)' }}>
             <span style={{ color: 'rgba(var(--oz-text-bright-rgb),0.9)', fontSize: '0.86rem' }}>#{player.rank} {player.username}</span>
-            <span style={{ color: 'rgba(0,212,255,0.88)', fontWeight: 700, fontSize: '0.85rem' }}>{player.elo_rating}</span>
+            <span style={{ color: 'rgba(var(--oz-violet-light-rgb),0.95)', fontWeight: 700, fontSize: '0.85rem' }}>{player.elo_rating}</span>
           </li>
         ))}
       </ol>
@@ -115,8 +118,8 @@ export default function LandingPage() {
           className="absolute inset-0"
           style={{
             backgroundImage: `
-              linear-gradient(rgba(0,212,255,0.032) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(0,212,255,0.032) 1px, transparent 1px)
+              linear-gradient(rgba(var(--oz-accent-line-rgb),0.04) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(var(--oz-accent-line-rgb),0.04) 1px, transparent 1px)
             `,
             backgroundSize: '64px 64px',
           }}
@@ -127,7 +130,7 @@ export default function LandingPage() {
           className="absolute left-0 right-0"
           style={{
             height: '1px',
-            background: 'linear-gradient(90deg, transparent 0%, rgba(0,212,255,0.18) 40%, rgba(0,212,255,0.18) 60%, transparent 100%)',
+            background: 'linear-gradient(90deg, transparent 0%, rgba(var(--oz-accent-line-rgb),0.18) 40%, rgba(var(--oz-accent-line-rgb),0.18) 60%, transparent 100%)',
             animation: 'scanDown 9s linear 0.5s infinite',
           }}
         />
@@ -238,8 +241,8 @@ export default function LandingPage() {
             onClick={handleRanked}
           >
             {/* Icon circle */}
-            <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '52px', height: '52px', borderRadius: '50%', background: 'rgba(255,60,20,0.14)', border: '1px solid rgba(255,90,50,0.4)', marginBottom: '12px', fontSize: '1.4rem', filter: 'drop-shadow(0 0 14px rgba(255,80,40,0.65))' }}>
-              ⚔
+            <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '52px', height: '52px', borderRadius: '50%', background: 'rgba(var(--oz-fire-title-rgb),0.12)', border: '1px solid rgba(var(--oz-fire-title-rgb),0.45)', marginBottom: '12px', color: 'rgba(var(--oz-fire-title-rgb),1)', filter: 'drop-shadow(0 0 14px rgba(255,80,40,0.45))' }}>
+              <IconCrossedSwords size={26} />
             </div>
             {/* Title */}
             <div
@@ -247,7 +250,7 @@ export default function LandingPage() {
                 fontFamily: "'Bebas Neue', Impact, 'Arial Black', sans-serif",
                 fontSize: '1.75rem',
                 letterSpacing: '0.16em',
-                color: 'rgba(var(--oz-fire-rgb),0.9)',
+                color: 'rgba(var(--oz-fire-title-rgb),1)',
                 lineHeight: 1,
                 marginBottom: '6px',
               }}
@@ -255,12 +258,12 @@ export default function LandingPage() {
               Ranked Battle
             </div>
             {/* Tagline */}
-            <div style={{ color: 'rgba(255,170,120,0.65)', fontSize: '0.7rem', letterSpacing: '0.12em', marginBottom: '14px' }}>
+            <div style={{ color: 'rgba(var(--oz-fire-tag-rgb),0.95)', fontSize: '0.7rem', letterSpacing: '0.12em', marginBottom: '14px' }}>
               COMPETE · RANK · DOMINATE
             </div>
             {/* Login badge */}
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '3px 10px', borderRadius: '999px', background: 'rgba(255,60,20,0.1)', border: '1px solid rgba(255,80,40,0.3)', color: 'rgba(255,100,50,0.7)', fontSize: '0.65rem', letterSpacing: '0.1em' }}>
-              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: 'rgba(255,100,50,0.7)', display: 'inline-block' }} />{"Login erforderlich"}
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '3px 10px', borderRadius: '999px', background: 'rgba(var(--oz-fire-title-rgb),0.1)', border: '1px solid rgba(var(--oz-fire-title-rgb),0.35)', color: 'rgba(var(--oz-fire-title-rgb),0.9)', fontSize: '0.65rem', letterSpacing: '0.1em' }}>
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: 'rgba(var(--oz-fire-title-rgb),0.9)', display: 'inline-block' }} />{"Login erforderlich"}
             </div>
           </button>
 
@@ -272,20 +275,20 @@ export default function LandingPage() {
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               {/* Icon circle */}
-              <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '42px', height: '42px', borderRadius: '50%', background: 'rgba(255,200,0,0.1)', border: '1px solid rgba(255,200,0,0.3)', fontSize: '1.1rem', filter: 'drop-shadow(0 0 10px rgba(255,200,0,0.45))' }}>
-                🎯
+              <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '42px', height: '42px', borderRadius: '50%', background: 'rgba(var(--oz-gold-title-rgb),0.12)', border: '1px solid rgba(var(--oz-gold-title-rgb),0.35)', color: 'rgba(var(--oz-gold-title-rgb),1)', filter: 'drop-shadow(0 0 10px rgba(255,200,0,0.35))' }}>
+                <IconTarget size={22} />
               </div>
               {/* Text */}
               <div style={{ textAlign: 'left', flex: 1 }}>
-                <div style={{ color: 'rgba(200,140,0,0.95)', fontSize: '0.95rem', fontWeight: 600, letterSpacing: '0.04em', marginBottom: '2px' }}>
+                <div style={{ color: 'rgba(var(--oz-gold-title-rgb),1)', fontSize: '0.95rem', fontWeight: 600, letterSpacing: '0.04em', marginBottom: '2px' }}>
                   Übung
                 </div>
-                <div style={{ color: 'rgba(var(--oz-text-secondary-rgb),0.55)', fontSize: '0.7rem', letterSpacing: '0.08em' }}>
+                <div style={{ color: 'rgba(var(--oz-text-secondary-rgb),0.7)', fontSize: '0.7rem', letterSpacing: '0.08em' }}>
                   Trainingsmodus · Kein Login nötig
                 </div>
               </div>
               {/* Arrow */}
-              <div style={{ flexShrink: 0, color: 'rgba(255,200,0,0.5)', fontSize: '1rem' }}>›</div>
+              <div style={{ flexShrink: 0, color: 'rgba(var(--oz-gold-title-rgb),0.7)', fontSize: '1rem' }}>›</div>
             </div>
           </button>
 

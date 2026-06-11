@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { fetchPracticeQuestions, checkPracticeAnswer } from '../lib/api/quiz';
 import { AnswerResult, Question } from '../lib/interfaces/Questions';
 import practiceStyles from './practice.module.css';
+import { IconTarget, IconTrophy, IconStar, IconAlertTriangle } from '@/app/components/Icons';
 
 type QuizState = 'idle' | 'loading' | 'playing' | 'answered' | 'finished' | 'error';
 
@@ -57,10 +58,11 @@ export default function PracticeQuiz() {
     }
   }
 
-  function getScoreEmoji() {
-    if (score === questions.length) return '🏆';
-    if (score >= questions.length / 2) return '⭐';
-    return '📖';
+  function getScoreIcon() {
+    const color = score === questions.length ? 'rgba(255,200,0,0.9)' : 'rgba(var(--oz-text-secondary-rgb),0.7)';
+    if (score === questions.length) return <IconTrophy size={56} style={{ color: 'rgba(255,200,0,0.9)', filter: 'drop-shadow(0 0 20px rgba(255,200,0,0.55))' }} />;
+    if (score >= questions.length / 2) return <IconStar filled size={56} style={{ color, filter: 'drop-shadow(0 0 16px rgba(255,200,0,0.4))' }} />;
+    return <IconTarget size={56} style={{ color: 'rgba(var(--oz-text-secondary-rgb),0.6)' }} />;
   }
 
   function getScoreMessage() {
@@ -147,14 +149,7 @@ export default function PracticeQuiz() {
         {/* ── Idle ── */}
         {state === 'idle' && (
           <div className={`${practiceStyles['practice-card']} flex flex-col items-center gap-8 px-10 py-10 w-full max-w-md`}>
-            <div
-              style={{
-                fontSize: '3rem',
-                filter: 'drop-shadow(0 0 20px rgba(255,200,0,0.55))',
-              }}
-            >
-              🎯
-            </div>
+            <IconTarget size={52} style={{ color: 'rgba(var(--oz-gold-title-rgb),0.9)', filter: 'drop-shadow(0 0 20px rgba(255,200,0,0.55))' }} />
             <div>
               <h1 className="arena-title" style={{ fontSize: '3rem' }}>Übungsmodus</h1>
               <span className={practiceStyles['neon-line-gold']} />
@@ -172,10 +167,16 @@ export default function PracticeQuiz() {
         {state === 'loading' && (
           <div className="text-center" style={{ color: 'rgba(var(--oz-text-secondary-rgb),0.7)' }}>
             <div
-              className="text-4xl mb-4 animate-pulse"
+              className="mb-4 flex justify-center"
               style={{ filter: 'drop-shadow(0 0 14px rgba(255,200,0,0.5))' }}
             >
-              ⏳
+              <div style={{
+                width: '48px', height: '48px',
+                border: '3px solid rgba(255,200,0,0.12)',
+                borderTop: '3px solid rgba(255,200,0,0.8)',
+                borderRadius: '50%',
+                animation: 'spinSlow 0.9s linear infinite',
+              }} />
             </div>
             <p
               style={{
@@ -193,7 +194,7 @@ export default function PracticeQuiz() {
         {/* ── Error ── */}
         {state === 'error' && (
           <div className={`${practiceStyles['practice-card']} flex flex-col items-center gap-6 px-8 py-8 w-full max-w-sm`}>
-            <div className="text-5xl">⚠️</div>
+            <IconAlertTriangle size={48} style={{ color: '#fca5a5' }} />
             <div>
               <h2 className="arena-title" style={{ fontSize: '2rem', color: '#fca5a5' }}>
                 Verbindungsfehler
@@ -339,12 +340,7 @@ export default function PracticeQuiz() {
         {/* ── Finished ── */}
         {state === 'finished' && (
           <div className={`${practiceStyles['practice-card']} flex flex-col items-center gap-8 px-10 py-10 w-full max-w-md`}>
-            <div
-              className="text-6xl"
-              style={{ filter: 'drop-shadow(0 0 24px rgba(255,200,0,0.55))' }}
-            >
-              {getScoreEmoji()}
-            </div>
+            {getScoreIcon()}
             <div>
               <h2 className="arena-title" style={{ fontSize: '4.5rem' }}>
                 {score} / {questions.length}

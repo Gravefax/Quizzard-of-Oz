@@ -270,7 +270,7 @@ describe("BattleArena Component Tests", () => {
     );
   });
 
-  it("shows answered state after answer_result", async () => {
+  it("shows waiting spinner after answer_received without revealing the solution", async () => {
     renderArena("match-678");
 
     mockWebSocket.onmessage?.({
@@ -297,15 +297,60 @@ describe("BattleArena Component Tests", () => {
 
     mockWebSocket.onmessage?.({
       data: JSON.stringify({
-        type: "answer_result",
-        correct: true,
-        correct_answer: "Water",
-        your_score_this_round: 1,
+        type: "answer_received",
+        your_answer: "Water",
       }),
     });
 
     await waitFor(() => {
-      expect(screen.getByText(/richtig.*warte auf gegner/i)).toBeInTheDocument();
+      expect(screen.getByText(/warte auf gegner/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/warte auf gegner/i)).toBeInTheDocument();
+    });
+    // Solution must stay hidden until both players answered.
+    expect(screen.queryByText("✓")).not.toBeInTheDocument();
+    expect(screen.queryByText(/richtig/i)).not.toBeInTheDocument();
+  });
+
+  it("reveals the correct answer to both players after question_result", async () => {
+    renderArena("match-679");
+
+    mockWebSocket.onmessage?.({
+      data: JSON.stringify({
+        type: "match_ready",
+        your_username: "Alice",
+        opponent_username: "Bob",
+        you_pick_first: true,
+        rounds_to_win: 3,
+      }),
+    });
+
+    mockWebSocket.onmessage?.({
+      data: JSON.stringify({
+        type: "question",
+        question_number: 1,
+        total_questions: 3,
+        question_id: "q1",
+        text: "What is H2O?",
+        answers: ["Water", "Oxygen", "Hydrogen", "Salt"],
+        category: "Science",
+      }),
+    });
+
+    mockWebSocket.onmessage?.({
+      data: JSON.stringify({
+        type: "question_result",
+        correct: false,
+        correct_answer: "Water",
+        your_answer: "",
+        your_score_this_round: 0,
+        reveal_seconds: 4,
+      }),
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("✓")).toBeInTheDocument();
+      expect(screen.getByText(/zeit abgelaufen/i)).toBeInTheDocument();
+      expect(screen.getByText(/nächste frage gleich/i)).toBeInTheDocument();
     });
   });
 
@@ -486,14 +531,25 @@ describe("BattleArena Component Tests", () => {
     );
 
     await emitMessage({
-      type: "answer_result",
-      correct: false,
-      correct_answer: "Water",
-      your_score_this_round: 0,
+      type: "answer_received",
+      your_answer: "Oxygen",
     });
 
     await waitFor(() => {
-      expect(screen.getByText(/falsch\. warte auf gegner/i)).toBeInTheDocument();
+      expect(screen.getByText(/warte auf gegner/i)).toBeInTheDocument();
+    });
+
+    await emitMessage({
+      type: "question_result",
+      correct: false,
+      correct_answer: "Water",
+      your_answer: "Oxygen",
+      your_score_this_round: 0,
+      reveal_seconds: 4,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/falsch\./i)).toBeInTheDocument();
       expect(screen.getByText("✗")).toBeInTheDocument();
     });
   });

@@ -11,6 +11,50 @@ services:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    container_name: quizbattle-backend
+    restart: unless-stopped
+    env_file: ./backend/.env
+    environment:
+      POSTGRES_HOST: postgres
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  frontend:
+    build:
+      context: ./frontend/quizzard-of-oz
+      args:
+        # NEXT_PUBLIC_API_BASE must be the backend URL reachable from the browser.
+        # wsUrl.ts derives the WebSocket base from this value as well.
+        BACKEND_URL: http://backend:8000
+        NEXT_PUBLIC_API_BASE: http://localhost:8000
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-265094074564-q5rvdcsdh8kas79smc9mspgd3r90hvr5.apps.googleusercontent.com}
+    container_name: quizbattle-frontend
+    restart: unless-stopped
+    environment:
+      API_SECRET: ${API_SECRET:-secret-token}
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
 
 volumes:
   postgres_data:

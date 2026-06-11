@@ -8,16 +8,18 @@ import { answerTextColor } from '../BattleArena.utils';
  *
  * Displays a single quiz question with 4 answer options and a 20-second timer.
  * Players can click an answer button to submit their choice.
- * Once submitted, shows feedback (correct/incorrect) while waiting for opponent.
+ *
+ * After submitting, a "Warte auf Gegner…" spinner is shown — the solution stays
+ * hidden until both players answered or the server deadline expired. Only then
+ * the reveal phase highlights the correct answer for both players simultaneously;
+ * the server advances to the next question automatically afterwards.
  *
  * Features:
  * - Timer bar that changes color when < 5 seconds
  * - Question number and category info
  * - Four answer buttons labeled A-D
- * - Visual feedback for correct/incorrect selections
- * - Disables buttons after selection to prevent double-submission
- *
- * Duration: Until both players have answered (up to 20 seconds).
+ * - Visual feedback for correct/incorrect selections during reveal
+ * - Disables buttons after selection or reveal to prevent double-submission
  */
 interface QuestionPhaseProps {
   readonly question: QuestionData;
@@ -25,6 +27,7 @@ interface QuestionPhaseProps {
   readonly selectedAnswer: string | null;
   readonly answerResult: AnswerResultData | null;
   readonly isAnswered: boolean;
+  readonly isRevealed: boolean;
   readonly onSubmitAnswer: (answer: string) => void;
 }
 
@@ -34,6 +37,7 @@ export function QuestionPhase({
   selectedAnswer,
   answerResult,
   isAnswered,
+  isRevealed,
   onSubmitAnswer,
 }: QuestionPhaseProps) {
   return (
@@ -109,7 +113,7 @@ export function QuestionPhase({
         {question.answers.map((ans, i) => {
           const keys = ['A', 'B', 'C', 'D'];
           const isSelected = selectedAnswer === ans;
-          const showResult = isAnswered && answerResult;
+          const showResult = isRevealed && answerResult;
           const isCorrect = showResult && ans === answerResult?.correctAnswer;
           const isWrong = showResult && isSelected && !answerResult?.correct;
 
@@ -117,7 +121,7 @@ export function QuestionPhase({
             <button
               key={ans}
               className={`answer-btn ${isSelected ? 'selected' : ''} ${isCorrect ? 'correct' : ''} ${isWrong ? 'wrong' : ''}`}
-              disabled={!!selectedAnswer}
+              disabled={!!selectedAnswer || isRevealed}
               onClick={() => onSubmitAnswer(ans)}
               style={{ animationDelay: `${i * 0.06}s` }}
             >
@@ -142,8 +146,36 @@ export function QuestionPhase({
         })}
       </div>
 
-      {/* ── Answered Status ── */}
+      {/* ── Waiting for Opponent (solution still hidden) ── */}
       {isAnswered && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '10px',
+            color: 'rgba(140,200,230,0.4)',
+            fontSize: '0.75rem',
+            letterSpacing: '0.1em',
+          }}
+        >
+          <div
+            aria-label="Warte auf Gegner"
+            style={{
+              width: '16px',
+              height: '16px',
+              borderRadius: '50%',
+              border: '2px solid rgba(0,212,255,0.2)',
+              borderTopColor: 'rgba(0,212,255,0.8)',
+              animation: 'spinSlow 0.9s linear infinite',
+            }}
+          />
+          <span>Warte auf Gegner...</span>
+        </div>
+      )}
+
+      {/* ── Reveal Status ── */}
+      {isRevealed && answerResult && (
         <div
           style={{
             textAlign: 'center',
@@ -152,9 +184,12 @@ export function QuestionPhase({
             letterSpacing: '0.1em',
           }}
         >
-          {answerResult?.correct
-            ? '✓ Richtig! Warte auf Gegner...'
-            : '✗ Falsch. Warte auf Gegner...'}
+          {(() => {
+            if (answerResult.correct) return '✓ Richtig!';
+            if (!answerResult.yourAnswer) return '⏱ Zeit abgelaufen.';
+            return '✗ Falsch.';
+          })()}{' '}
+          Nächste Frage gleich...
         </div>
       )}
     </div>

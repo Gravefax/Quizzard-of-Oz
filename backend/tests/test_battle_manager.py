@@ -498,6 +498,58 @@ async def test_disconnect_notifies_remaining_player_and_cleans_up_empty_match():
 
 
 @pytest.mark.asyncio
+async def test_disconnect_during_active_match_forfeits_to_remaining_player():
+    manager = BattleManager(FakeQuizService())
+    ws1 = _make_websocket()
+    ws2 = _make_websocket()
+    leaver = _make_user(username="Leaver")
+    stayer = _make_user(username="Stayer")
+    state = MatchState(
+        players=[{"ws": ws1, "user": leaver}, {"ws": ws2, "user": stayer}],
+        round_wins={str(leaver.id): 1, str(stayer.id): 2},
+        phase="questions",
+        current_round=3,
+    )
+    manager._matches["match-1"] = state
+
+    db = MagicMock()
+    with patch("app.services.battle_manager.SessionLocal", return_value=db):
+        with patch("app.services.battle_manager.apply_match_result") as mock_apply:
+            await manager.disconnect(ws1, "match-1", leaver)
+
+    # Remaining player wins by forfeit and is told so.
+    ws2.send_json.assert_called_once_with({
+        "type":          "opponent_forfeit",
+        "winner":        "Stayer",
+        "you_won":       True,
+        "your_wins":     2,
+        "opponent_wins": 1,
+        "message":       "Gegner hat das Spiel verlassen – du gewinnst!",
+    })
+    # The leaver gets no forfeit message and is not notified.
+    ws1.send_json.assert_not_called()
+    # Elo / win-loss record updated: stayer wins, leaver loses.
+    mock_apply.assert_called_once_with(db, winner_id=stayer.id, loser_id=leaver.id)
+    # Session fully cleaned up.
+    assert "match-1" not in manager._matches
+
+
+@pytest.mark.asyncio
+async def test_disconnect_before_match_starts_does_not_forfeit():
+    manager = BattleManager(FakeQuizService())
+    ws1 = _make_websocket()
+    user1 = _make_user(username="One")
+    state = MatchState(players=[{"ws": ws1, "user": user1}], phase="waiting")
+    manager._matches["match-1"] = state
+
+    with patch("app.services.battle_manager.apply_match_result") as mock_apply:
+        await manager.disconnect(ws1, "match-1", user1)
+
+    mock_apply.assert_not_called()
+    assert "match-1" not in manager._matches
+
+
+@pytest.mark.asyncio
 async def test_end_game_triggers_ranking_update():
     manager = BattleManager(FakeQuizService())
     ws1 = _make_websocket()

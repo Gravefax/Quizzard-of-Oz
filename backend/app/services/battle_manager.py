@@ -106,6 +106,13 @@ Message Protocol:
     opponent_disconnected: {
       "username": str
     }
+    opponent_forfeit: {
+      "winner": str,
+      "you_won": bool,
+      "your_wins": int,
+      "opponent_wins": int,
+      "message": str
+    }
 
 Logging:
   All significant events are logged without user-controlled values.
@@ -241,7 +248,7 @@ class BattleManager:
         return True
 
     async def disconnect(self, websocket: WebSocket, match_id: str, user: User) -> None:
-        """Remove player from match and notify opponent. Delete if empty."""
+        """Remove player. Forfeit if match active, else notify opponent and clean up."""
         state = self._matches.get(match_id)
         if not state:
             logger.info(
@@ -249,15 +256,34 @@ class BattleManager:
             )
             return
 
+        forfeit_winner: User | None = None
+
         async with state.lock:
+            # A match counts as active once the game has started (a player is
+            # picking a category or answering questions). Leaving now — e.g. by
+            # logging out — must immediately end the match as a forfeit.
+            active = state.phase in ("picking", "questions")
             state.players[:] = [p for p in state.players if p["ws"] is not websocket]
             remaining = list(state.players)
 
+            if active and remaining:
+                # Claim the match as finished while holding the lock so a near
+                # simultaneous second disconnect cannot trigger a second forfeit.
+                state.phase = "finished"
+                forfeit_winner = remaining[0]["user"]
+
+        if forfeit_winner is not None:
+            await self._forfeit_match(match_id, state, remaining, forfeit_winner, user)
+            return
+
         for p in remaining:
-            await p["ws"].send_json({
-                "type":     "opponent_disconnected",
-                "username": user.username,
-            })
+            try:
+                await p["ws"].send_json({
+                    "type":     "opponent_disconnected",
+                    "username": user.username,
+                })
+            except Exception:
+                logger.warning("Battle disconnect notify failed: socket closed")
 
         logger.info(
             "Battle disconnected remaining_players=%s",
@@ -267,6 +293,56 @@ class BattleManager:
         if not remaining:
             self._matches.pop(match_id, None)
             logger.info("Battle match cleaned up")
+
+    async def _forfeit_match(
+        self,
+        match_id: str,
+        state: MatchState,
+        remaining: list[dict],
+        winner_user: User,
+        loser_user: User,
+    ) -> None:
+        """Award the remaining player a forfeit win, persist the result, clean up.
+
+        Mirrors _end_game: apply_match_result both adjusts Elo and records the
+        match outcome in each player's win/loss/total_matches totals (the
+        persistent match record in this codebase). The leaver loses points, the
+        remaining player gains them, and the in-memory session is removed.
+        """
+        oid = str(loser_user.id)
+
+        logger.info(
+            "Battle forfeit: player left active match round=%s",
+            state.current_round,
+        )
+
+        for p in remaining:
+            cid = str(p["user"].id)
+            try:
+                await p["ws"].send_json({
+                    "type":          "opponent_forfeit",
+                    "winner":        winner_user.username,
+                    "you_won":       True,
+                    "your_wins":     state.round_wins.get(cid, 0),
+                    "opponent_wins": state.round_wins.get(oid, 0),
+                    "message":       "Gegner hat das Spiel verlassen – du gewinnst!",
+                })
+            except Exception:
+                logger.warning("Battle forfeit notify failed: socket closed")
+
+        try:
+            db = SessionLocal()
+            try:
+                apply_match_result(db, winner_id=winner_user.id, loser_id=loser_user.id)
+            finally:
+                db.close()
+        except Exception:
+            logger.exception(
+                "Battle forfeit ranking update failed",
+            )
+
+        self._matches.pop(match_id, None)
+        logger.info("Battle match cleaned up after forfeit")
 
     # ── Incoming client messages ─────────────────────────────────────────── #
 
@@ -337,7 +413,7 @@ class BattleManager:
             TriviaUpstreamResponseError,
             TriviaUpstreamPayloadError,
         ) as exc:
-            logger.error(
+            logger.exception(
                 "Battle round preparation failed round=%s error_type=%s",
                 state.current_round,
                 type(exc).__name__,
@@ -414,7 +490,7 @@ class BattleManager:
             TriviaUpstreamResponseError,
             TriviaUpstreamPayloadError,
         ) as exc:
-            logger.error(
+            logger.exception(
                 "Battle category load failed round=%s error_type=%s",
                 state.current_round,
                 type(exc).__name__,

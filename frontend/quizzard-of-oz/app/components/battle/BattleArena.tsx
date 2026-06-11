@@ -24,6 +24,7 @@ import { PickCategoryPhase, WaitingForCategoryPhase } from './phases/CategoryPha
 import { QuestionPhase } from './phases/QuestionPhase';
 import { RoundResultPhase, GameOverPhase } from './phases/ResultPhases';
 import { getWsUrl } from '@/app/lib/utils/wsUrl';
+import useAuthStore from '@/app/stores/authStore';
 
 interface BattleArenaProps {
   readonly matchId: string;
@@ -65,6 +66,7 @@ interface BattleArenaProps {
  */
 export default function BattleArena({ matchId }: BattleArenaProps) {
   const router = useRouter();
+  const credential = useAuthStore((state) => state.credential);
 
   // ── Battle State ──
   const [phase, setPhase] = useState<Phase>('connecting');
@@ -87,10 +89,26 @@ export default function BattleArena({ matchId }: BattleArenaProps) {
   const wsRef = useRef<WebSocket | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const phaseRef = useRef<Phase>('connecting');
+  const hadCredentialRef = useRef(false);
 
   useEffect(() => {
     phaseRef.current = phase;
   }, [phase]);
+
+  // ── Logout During Match ──
+  // Leaving the page unmounts this component, which closes the WebSocket and
+  // lets the server forfeit the match to the opponent. Logging out only clears
+  // the credential, so we navigate away explicitly once a previously present
+  // credential disappears.
+  useEffect(() => {
+    if (credential) {
+      hadCredentialRef.current = true;
+      return;
+    }
+    if (hadCredentialRef.current) {
+      router.push('/');
+    }
+  }, [credential, router]);
 
   // ── Timer Management ──
 
@@ -242,6 +260,19 @@ export default function BattleArena({ matchId }: BattleArenaProps) {
             youWon: msg.you_won as boolean,
             yourWins: msg.your_wins as number,
             opponentWins: msg.opponent_wins as number,
+          });
+          setPhase('game_over');
+          break;
+
+        case 'opponent_forfeit':
+          stopTimer();
+          setGameOver({
+            winner: msg.winner as string,
+            youWon: true,
+            yourWins: msg.your_wins as number,
+            opponentWins: msg.opponent_wins as number,
+            forfeit: true,
+            message: msg.message as string,
           });
           setPhase('game_over');
           break;

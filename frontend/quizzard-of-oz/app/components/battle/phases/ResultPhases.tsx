@@ -155,6 +155,15 @@ export function GameOverPhase({
   player,
   onReturnToLobby,
 }: GameOverPhaseProps) {
+  let winnerMessage: string;
+  if (gameOver.forfeit) {
+    winnerMessage = gameOver.message ?? 'Gegner hat das Spiel verlassen – du gewinnst!';
+  } else if (gameOver.youWon) {
+    winnerMessage = `Du hast ${player.opponentUsername} besiegt!`;
+  } else {
+    winnerMessage = `${gameOver.winner} hat gewonnen.`;
+  }
+
   return (
     <div className="flex flex-col items-center gap-7 w-full max-w-md reveal">
       {/* ── Battle Ended Label ── */}
@@ -185,9 +194,7 @@ export function GameOverPhase({
 
       {/* ── Winner Message ── */}
       <div style={{ color: 'rgba(140,200,230,0.5)', fontSize: '0.82rem', letterSpacing: '0.06em' }}>
-        {gameOver.youWon
-          ? `Du hast ${player.opponentUsername} besiegt!`
-          : `${gameOver.winner} hat gewonnen.`}
+        {winnerMessage}
       </div>
 
       {/* ── Final Score Card ── */}

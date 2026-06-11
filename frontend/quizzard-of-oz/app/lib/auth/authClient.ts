@@ -1,6 +1,6 @@
 import LoginResponse from "@/app/models/LoginResponse";
 
-export const googleClientId = process.env.GOOGLE_CLIENT_ID!;
+export const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!;
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE!;
 

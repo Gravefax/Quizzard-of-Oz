@@ -342,6 +342,38 @@ describe("BattleArena Component Tests", () => {
     });
   });
 
+  it("shows forfeit victory when opponent leaves an active match", async () => {
+    renderArena("match-forfeit");
+
+    mockWebSocket.onmessage?.({
+      data: JSON.stringify({
+        type: "match_ready",
+        your_username: "Alice",
+        opponent_username: "Bob",
+        you_pick_first: true,
+        rounds_to_win: 3,
+      }),
+    });
+
+    mockWebSocket.onmessage?.({
+      data: JSON.stringify({
+        type: "opponent_forfeit",
+        winner: "Alice",
+        you_won: true,
+        your_wins: 1,
+        opponent_wins: 0,
+        message: "Gegner hat das Spiel verlassen – du gewinnst!",
+      }),
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/victory/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/gegner hat das spiel verlassen – du gewinnst!/i),
+      ).toBeInTheDocument();
+    });
+  });
+
   it("shows opponent disconnected state", async () => {
     renderArena("match-890");
 

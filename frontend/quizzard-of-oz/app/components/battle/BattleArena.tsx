@@ -228,6 +228,7 @@ export default function BattleArena({ matchId }: BattleArenaProps) {
 
         case 'answer_received':
           // Own answer stored server-side; solution stays hidden until both answered.
+          stopTimer();
           setPhase('answered');
           break;
 

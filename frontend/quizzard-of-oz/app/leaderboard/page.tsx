@@ -95,7 +95,7 @@ export default function LeaderboardPage() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-73px)] px-4 py-8 md:px-8">
+    <div className="flex-1 px-4 py-8 md:px-8">
       <div className="mx-auto w-full max-w-5xl">
         <button
           className="mb-6 rounded-md border border-cyan-500/30 px-4 py-2 text-sm text-cyan-200/80 transition hover:border-cyan-400/70 hover:bg-cyan-500/10"

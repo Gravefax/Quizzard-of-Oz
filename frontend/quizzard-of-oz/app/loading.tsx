@@ -1,6 +1,6 @@
 export default function Loading() {
   return (
-    <main className="relative z-10 flex flex-col items-center justify-center min-h-[calc(100vh-73px)]">
+    <main className="relative z-10 flex-1 flex flex-col items-center justify-center py-8">
       <div className="flex flex-col items-center gap-4">
         <div
           className="text-5xl animate-pulse"

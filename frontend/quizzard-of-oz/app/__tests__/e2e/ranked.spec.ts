@@ -192,7 +192,7 @@ test.describe("Ranked Mode Visual Consistency", () => {
     await page.goto("/ranked-modus");
     
     // Get computed styles of main container
-    const mainDiv = page.locator("div[class*='min-h']").first();
+    const mainDiv = page.locator("div[class*='flex-1']").first();
     
     // Container should be visible and properly styled
     await expect(mainDiv).toBeVisible();

@@ -63,7 +63,7 @@ export const BATTLE_ARENA_STYLES = `
 
   /* ── Container & Layout ── */
   .arena-wrap {
-    min-height: calc(100vh - 73px);
+    flex: 1;
     display: flex;
     flex-direction: column;
     position: relative;
@@ -146,6 +146,8 @@ export const BATTLE_ARENA_STYLES = `
   .arena-body {
     flex: 1; display: flex; flex-direction: column;
     align-items: center; justify-content: center;
+    /* Mehrzeilige Texte (mobil umgebrochen) zentriert statt linksbündig */
+    text-align: center;
     padding: 24px 16px; position: relative; z-index: 1;
   }
 

@@ -54,7 +54,7 @@ describe("RankedPage Tests", () => {
 
   it("has responsive layout", () => {
     const { container } = render(<RankedPage />);
-    const mainDiv = container.querySelector("[class*='min-h']");
+    const mainDiv = container.querySelector("[class*='flex-1']");
     expect(mainDiv).toBeInTheDocument();
   });
 

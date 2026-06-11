@@ -446,9 +446,18 @@ export default function BattleArena({ matchId }: BattleArenaProps) {
             aria-modal="true"
             aria-label="Aufgeben bestätigen"
             style={{
-              position: 'absolute',
+              /* fixed + volle Größe: zentriert im Viewport; width/height/margin
+                 überschreiben die UA-Styles des <dialog> (fit-content, auto-margin) */
+              position: 'fixed',
               inset: 0,
               zIndex: 50,
+              width: '100%',
+              height: '100%',
+              maxWidth: '100%',
+              maxHeight: '100%',
+              margin: 0,
+              border: 'none',
+              padding: '16px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',

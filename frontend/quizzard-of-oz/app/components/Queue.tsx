@@ -210,7 +210,7 @@ export default function Queue({ ranked = false }: QueueProps) {
         }
       `}</style>
 
-      <div className="min-h-[calc(100vh-73px)] relative flex flex-col items-center justify-center px-4 overflow-hidden">
+      <div className="flex-1 relative flex flex-col items-center justify-center px-4 py-8 text-center overflow-hidden">
 
         {/* ── Static background ── */}
         <div className="absolute inset-0 pointer-events-none">

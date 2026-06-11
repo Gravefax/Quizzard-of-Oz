@@ -292,7 +292,7 @@ export default function LandingPage() {
         }
       `}</style>
 
-      <div className="min-h-screen relative overflow-hidden">
+      <div className="flex-1 flex flex-col relative overflow-hidden">
 
         {/* ── Background layer ── */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -390,7 +390,7 @@ export default function LandingPage() {
         </div>
 
         {/* ── Main content ── */}
-        <main className="relative z-10 flex flex-col items-center justify-center min-h-[calc(100vh-73px)] px-4">
+        <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-8">
 
 
           {/* Title */}

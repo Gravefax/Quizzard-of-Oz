@@ -19,7 +19,7 @@ def create_user(body: UserCreate, db: Annotated[Session, Depends(get_db)]):
     existing = crud_user.get_user_by_username(db, body.username)
     if existing:
         raise HTTPException(status_code=400, detail="Username already taken")
-    return crud_user.create_user(db, body.username, google_sub=body.username, email=body.email)
+    return crud_user.create_user(db, body.username, keycloak_sub=body.username, email=body.email)
 
 
 @router.get(

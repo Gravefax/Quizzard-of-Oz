@@ -1,0 +1,27 @@
+name: Generate PlantUML Diagrams
+
+on:
+  push:
+    branches:
+      - dev
+  workflow_dispatch:
+
+jobs:
+  generate-diagrams:
+    name: Generate SVG Diagrams
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Generate PlantUML SVGs
+        uses: grassedge/generate-plantuml-action@v1.5
+        with:
+          path: docs/images
+          message: "chore: regenerate PlantUML SVG diagrams [skip ci]"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

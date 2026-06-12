@@ -1,18 +1,10 @@
-import { test, expect, Page } from "@playwright/test";
-
-async function mockLoggedInSession(page: Page) {
-  await page.route("**/auth/refresh", async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        email: "user@example.com",
-        username: "DummyUser",
-        expires_at: 9999999999,
-      }),
-    });
-  });
-}
+import { test, expect } from "@playwright/test";
+import {
+  loginViaKeycloak,
+  generateTestUser,
+  createKeycloakUser,
+  deleteKeycloakUser,
+} from "./auth-helpers";
 
 test.describe("Navbar Auth Menü", () => {
   test("zeigt LoginButton im ausgeloggten Zustand", async ({ page }) => {
@@ -21,73 +13,68 @@ test.describe("Navbar Auth Menü", () => {
   });
 
   test("versteckt LoginButton und zeigt User-Menü im eingeloggten Zustand", async ({ page }) => {
-    await mockLoggedInSession(page);
+    const user = generateTestUser();
+    const userId = await createKeycloakUser(user);
+    try {
+      await loginViaKeycloak(page, user);
 
-    await page.goto("/");
-
-    await expect(page.getByRole("button", { name: /dummyuser/i })).toBeVisible();
-    await expect(page.getByRole("button", { name: /anmelden/i })).toHaveCount(0);
+      await expect(
+        page.getByRole("button", { name: new RegExp(user.username, "i") }),
+      ).toBeVisible();
+      await expect(page.getByRole("button", { name: /anmelden/i })).toHaveCount(0);
+    } finally {
+      await deleteKeycloakUser(userId);
+    }
   });
 
   test("öffnet und schließt das User-Menü", async ({ page }) => {
-    await mockLoggedInSession(page);
-    await page.goto("/");
+    const user = generateTestUser();
+    const userId = await createKeycloakUser(user);
+    try {
+      await loginViaKeycloak(page, user);
 
-    const trigger = page.getByRole("button", { name: /dummyuser/i });
+      const trigger = page.getByRole("button", {
+        name: new RegExp(user.username, "i"),
+      });
 
-    await trigger.click();
-    await expect(page.getByRole("menuitem", { name: /abmelden/i })).toBeVisible();
+      await trigger.click();
+      await expect(page.getByRole("menuitem", { name: /abmelden/i })).toBeVisible();
 
-    await page.keyboard.press("Escape");
-    await expect(page.getByRole("menuitem", { name: /abmelden/i })).toBeHidden();
+      await page.keyboard.press("Escape");
+      await expect(page.getByRole("menuitem", { name: /abmelden/i })).toBeHidden();
 
-    await trigger.click();
-    await expect(page.getByRole("menuitem", { name: /abmelden/i })).toBeVisible();
+      await trigger.click();
+      await expect(page.getByRole("menuitem", { name: /abmelden/i })).toBeVisible();
 
-    await page.getByText(/quizzard of oz/i).first().click();
-    await expect(page.getByRole("menuitem", { name: /abmelden/i })).toBeHidden();
+      await page.getByText(/quizzard of oz/i).first().click();
+      await expect(page.getByRole("menuitem", { name: /abmelden/i })).toBeHidden();
+    } finally {
+      await deleteKeycloakUser(userId);
+    }
   });
 
   test("meldet über Menüpunkt Abmelden ab", async ({ page }) => {
-    await mockLoggedInSession(page);
+    const user = generateTestUser();
+    const userId = await createKeycloakUser(user);
+    try {
+      await loginViaKeycloak(page, user);
 
-    let logoutCalls = 0;
-    await page.route("**/auth/logout", async (route) => {
-      logoutCalls += 1;
-      await route.fulfill({ status: 204, body: "" });
-    });
+      await page
+        .getByRole("button", { name: new RegExp(user.username, "i") })
+        .click();
+      await page.getByRole("menuitem", { name: /abmelden/i }).click();
 
-    // After logout, ensure refresh endpoint returns 401 to prevent re-login
-    let hasLoggedOut = false;
-    await page.route("**/auth/refresh", async (route) => {
-      if (hasLoggedOut) {
-        await route.fulfill({ status: 401, body: "" });
-      } else {
-        await route.fulfill({
-          status: 200,
-          contentType: "application/json",
-          body: JSON.stringify({
-            email: "user@example.com",
-            username: "DummyUser",
-            expires_at: 9999999999,
-          }),
-        });
-      }
-    });
+      // logout() calls keycloak.logout() which redirects through Keycloak back to the app
+      await page.waitForURL(/localhost:3000/, { timeout: 15_000 });
 
-    await page.goto("/");
-
-    await page.getByRole("button", { name: /dummyuser/i }).click();
-    await page.getByRole("menuitem", { name: /abmelden/i }).click();
-
-    await expect.poll(() => logoutCalls).toBe(1);
-
-    // Mark as logged out and wait for state update
-    hasLoggedOut = true;
-    await page.waitForTimeout(500);
-
-    // Wait for user button to disappear
-    await expect(page.getByRole("button", { name: /dummyuser/i })).toHaveCount(0, { timeout: 3000 });
-    await expect(page.getByRole("menuitem", { name: /abmelden/i })).toHaveCount(0);
+      await expect(
+        page.getByRole("button", { name: /anmelden/i }),
+      ).toBeVisible({ timeout: 5_000 });
+      await expect(
+        page.getByRole("button", { name: new RegExp(user.username, "i") }),
+      ).toHaveCount(0);
+    } finally {
+      await deleteKeycloakUser(userId);
+    }
   });
 });

@@ -32,7 +32,8 @@
         "http://localhost:3000"
       ],
       "attributes": {
-        "pkce.code.challenge.method": "S256"
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:3000/*"
       },
       "fullScopeAllowed": true,
       "defaultClientScopes": [
@@ -83,5 +84,33 @@
         }
       }
     ]
-  }
+  },
+  "users": [
+    {
+      "username": "e2etestuser",
+      "email": "e2etest1@quizzard.local",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "TestUser1234!",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "e2etestuser2",
+      "email": "e2etest2@quizzard.local",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "TestUser1234!",
+          "temporary": false
+        }
+      ]
+    }
+  ]
 }

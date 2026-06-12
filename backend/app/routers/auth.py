@@ -18,7 +18,7 @@ from app.schemas.login_response import LoginResponse
 router = APIRouter(prefix="/auth", tags=["auth"])
 logger = logging.getLogger(__name__)
 
-KEYCLOAK_URL = os.getenv("KEYCLOAK_URL", "http://keycloak:8080")
+KEYCLOAK_URL = os.getenv("KEYCLOAK_URL")
 KEYCLOAK_REALM = os.getenv("KEYCLOAK_REALM", "quizzard")
 
 SESSION_EXP_MINUTES = int(os.getenv("SESSION_EXP_MINUTES", str(60 * 24 * 14)))

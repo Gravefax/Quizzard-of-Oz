@@ -312,6 +312,34 @@ def test_logout_without_any_cookie(monkeypatch):
     assert "Max-Age=0" in response.headers.get("set-cookie", "")
 
 
+def test_verify_token_wraps_pyjwt_error(monkeypatch):
+    mock_client = MagicMock()
+    mock_client.get_signing_key_from_jwt.side_effect = auth_router.pyjwt.exceptions.DecodeError("bad jwt")
+    monkeypatch.setattr(auth_router, "_get_jwks_client", lambda: mock_client)
+
+    with pytest.raises(ValueError, match="bad jwt"):
+        auth_router._verify_token("invalid.token.here")
+
+
+def test_verify_token_returns_decoded_payload(monkeypatch):
+    mock_key = MagicMock()
+    mock_key.key = "signing-key"
+    mock_client = MagicMock()
+    mock_client.get_signing_key_from_jwt.return_value = mock_key
+    expected = {"sub": "user-sub", "preferred_username": "alice"}
+    monkeypatch.setattr(auth_router, "_get_jwks_client", lambda: mock_client)
+    monkeypatch.setattr(auth_router.pyjwt, "decode", MagicMock(return_value=expected))
+
+    result = auth_router._verify_token("some.jwt.token")
+    assert result == expected
+
+
+def test_session_expiry_returns_future_utc_datetime():
+    expiry = auth_router._session_expiry()
+    assert expiry > datetime.now(timezone.utc)
+    assert expiry.tzinfo is not None
+
+
 def test_get_jwks_client_returns_cached_instance(monkeypatch):
     monkeypatch.setattr(auth_router, "_jwks_client", None)
     monkeypatch.setattr(auth_router, "KEYCLOAK_URL", "http://keycloak:8080")

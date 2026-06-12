@@ -16,7 +16,7 @@ const DEFAULT_TEST_PASSWORD = "TestUser1234!";
 
 /** Returns a unique test-user credential pair. */
 export function generateTestUser(): { username: string; password: string } {
-  const uid = `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+  const uid = `${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
   return { username: `e2e_${uid}`, password: DEFAULT_TEST_PASSWORD };
 }
 

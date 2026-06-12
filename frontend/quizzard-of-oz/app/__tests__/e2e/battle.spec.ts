@@ -4,6 +4,27 @@ import { startTwoPlayerBattle, deleteKeycloakUser } from "./auth-helpers";
 // ── Shared helpers ─────────────────────────────────────────────────────────────
 
 /**
+ * Waits for whichever page is the designated category picker and clicks a
+ * category. Promise.any resolves on the first visible page and absorbs the
+ * other page's eventual timeout rejection.
+ */
+async function pickCategory(page1: Page, page2: Page): Promise<void> {
+  const picker = await Promise.any([
+    page1
+      .locator('[class*="category-btn"]')
+      .first()
+      .waitFor({ state: "visible", timeout: 30_000 })
+      .then(() => page1),
+    page2
+      .locator('[class*="category-btn"]')
+      .first()
+      .waitFor({ state: "visible", timeout: 30_000 })
+      .then(() => page2),
+  ]);
+  await picker.locator('[class*="category-btn"]').first().click();
+}
+
+/**
  * Plays rounds until "BATTLE BEENDET" is visible or maxRounds is reached.
  *
  * Each iteration:

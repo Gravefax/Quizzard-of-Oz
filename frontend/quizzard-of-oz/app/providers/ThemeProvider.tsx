@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import useThemeStore from '@/app/stores/themeStore';
 
-export default function ThemeProvider({ children }: { children: React.ReactNode }) {
+export default function ThemeProvider({ children }: Readonly<{ children: React.ReactNode }>) {
   const theme = useThemeStore((s) => s.theme);
 
   useEffect(() => {

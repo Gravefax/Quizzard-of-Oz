@@ -32,10 +32,10 @@
 }
 
 .practice-btn-primary {
-  background: linear-gradient(145deg, rgba(255,200,0,0.15) 0%, rgba(180,130,0,0.1) 100%);
+  background: linear-gradient(145deg, rgba(80,60,0,0.85) 0%, rgba(60,44,0,0.85) 100%);
   border: 1px solid rgba(255,200,0,0.45);
   border-radius: 1rem;
-  color: rgba(255,232,140,0.95);
+  color: rgba(255,232,140,1);
   font-family: 'Bebas Neue', Impact, 'Arial Black', sans-serif;
   font-size: 1.4rem;
   letter-spacing: 0.12em;
@@ -83,14 +83,14 @@
   background: linear-gradient(90deg, transparent, rgba(190, 140, 20, 0.85), transparent);
 }
 :global(html.light) .practice-btn-primary {
-  background: linear-gradient(145deg, rgba(214, 150, 20, 1) 0%, rgba(184, 122, 0, 1) 100%);
+  background: linear-gradient(145deg, rgba(140, 95, 0, 1) 0%, rgba(110, 72, 0, 1) 100%);
   border-color: rgba(150, 96, 0, 0.6);
   color: #fffaf0;
   animation: none;
   box-shadow: 0 10px 24px -10px rgba(170, 120, 10, 0.5);
 }
 :global(html.light) .practice-btn-primary:hover {
-  background: linear-gradient(145deg, rgba(224, 160, 28, 1) 0%, rgba(196, 132, 6, 1) 100%);
+  background: linear-gradient(145deg, rgba(155, 108, 0, 1) 0%, rgba(122, 82, 0, 1) 100%);
 }
 :global(html.light) .practice-answer-btn {
   background: rgba(255, 255, 255, 0.92);

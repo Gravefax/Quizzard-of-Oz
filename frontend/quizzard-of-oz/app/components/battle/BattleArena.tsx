@@ -128,21 +128,21 @@ export default function BattleArena({ matchId }: BattleArenaProps) {
   // ── Browser unload / reload guard ──
   useEffect(() => {
     if (!canSurrender) return;
-    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
-    window.addEventListener('beforeunload', handler);
-    return () => window.removeEventListener('beforeunload', handler);
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); };
+    globalThis.addEventListener('beforeunload', handler);
+    return () => globalThis.removeEventListener('beforeunload', handler);
   }, [canSurrender]);
 
   // ── Browser back-button guard ──
   useEffect(() => {
     if (!canSurrender) return;
-    window.history.pushState(null, '', window.location.href);
+    globalThis.history.pushState(null, '', globalThis.location.href);
     const handler = () => {
-      window.history.pushState(null, '', window.location.href);
+      globalThis.history.pushState(null, '', globalThis.location.href);
       setShowSurrenderConfirm(true);
     };
-    window.addEventListener('popstate', handler);
-    return () => window.removeEventListener('popstate', handler);
+    globalThis.addEventListener('popstate', handler);
+    return () => globalThis.removeEventListener('popstate', handler);
   }, [canSurrender]);
 
   // ── Timer Management ──
@@ -392,8 +392,7 @@ export default function BattleArena({ matchId }: BattleArenaProps) {
   // ── Render ──
 
   return (
-    <>
-      <div className="arena-wrap">
+    <div className="arena-wrap">
         <div className="scan-line" />
         <div className="corner-tl" />
         <div className="corner-tr" />
@@ -527,6 +526,5 @@ export default function BattleArena({ matchId }: BattleArenaProps) {
           </dialog>
         )}
       </div>
-    </>
   );
 }

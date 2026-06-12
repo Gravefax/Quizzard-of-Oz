@@ -15,7 +15,7 @@ export default function UserMenu({ displayName, onLogout }: Readonly<UserMenuPro
     if (!isOpen) return;
 
     const handleOutsideClick = (event: MouseEvent) => {
-      if (!containerRef.current?.contains(event.target as Node)) {
+      if (event.target instanceof Node && !containerRef.current?.contains(event.target)) {
         setIsOpen(false);
       }
     };

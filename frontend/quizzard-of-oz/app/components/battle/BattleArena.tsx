@@ -11,7 +11,7 @@ import {
   ScoreInfo,
 } from '@/app/lib/interfaces/battle/BattleInterfaces';
 import { Phase } from '@/app/lib/interfaces/battle/Phase';
-import { BATTLE_ARENA_STYLES } from './BattleArena.styles';
+import './BattleArena.css';
 import { BattleArenaHeader } from './BattleArenaHeader';
 import {
   ConnectingPhase,
@@ -25,6 +25,7 @@ import { QuestionPhase } from './phases/QuestionPhase';
 import { RoundResultPhase, GameOverPhase } from './phases/ResultPhases';
 import { getWsUrl } from '@/app/lib/utils/wsUrl';
 import useAuthStore from '@/app/stores/authStore';
+import { IconFlag } from '@/app/components/Icons';
 
 interface BattleArenaProps {
   readonly matchId: string;
@@ -95,6 +96,16 @@ export default function BattleArena({ matchId }: BattleArenaProps) {
   const phaseRef = useRef<Phase>('connecting');
   const hadCredentialRef = useRef(false);
 
+  // Declared here (before the useEffect hooks that list it as a dependency) to
+  // avoid a temporal dead zone error when running in environments that preserve
+  // native `const` semantics (e.g. Vitest / Node.js).
+  const canSurrender =
+    phase === 'pick_category' ||
+    phase === 'waiting_for_category' ||
+    phase === 'question' ||
+    phase === 'answered' ||
+    phase === 'reveal';
+
   useEffect(() => {
     phaseRef.current = phase;
   }, [phase]);
@@ -113,6 +124,26 @@ export default function BattleArena({ matchId }: BattleArenaProps) {
       router.push('/');
     }
   }, [credential, router]);
+
+  // ── Browser unload / reload guard ──
+  useEffect(() => {
+    if (!canSurrender) return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [canSurrender]);
+
+  // ── Browser back-button guard ──
+  useEffect(() => {
+    if (!canSurrender) return;
+    window.history.pushState(null, '', window.location.href);
+    const handler = () => {
+      window.history.pushState(null, '', window.location.href);
+      setShowSurrenderConfirm(true);
+    };
+    window.addEventListener('popstate', handler);
+    return () => window.removeEventListener('popstate', handler);
+  }, [canSurrender]);
 
   // ── Timer Management ──
 
@@ -349,15 +380,6 @@ export default function BattleArena({ matchId }: BattleArenaProps) {
 
   // ── Surrender ──
 
-  // Surrender is only allowed while the match is actively running — not while
-  // matchmaking, between rounds, or after the game ended.
-  const canSurrender =
-    phase === 'pick_category' ||
-    phase === 'waiting_for_category' ||
-    phase === 'question' ||
-    phase === 'answered' ||
-    phase === 'reveal';
-
   /**
    * Confirms the surrender: counts as a loss with Elo penalty,
    * the opponent receives the full win.
@@ -371,8 +393,6 @@ export default function BattleArena({ matchId }: BattleArenaProps) {
 
   return (
     <>
-      <style>{BATTLE_ARENA_STYLES}</style>
-
       <div className="arena-wrap">
         <div className="scan-line" />
         <div className="corner-tl" />
@@ -434,8 +454,9 @@ export default function BattleArena({ matchId }: BattleArenaProps) {
               type="button"
               className="surrender-btn"
               onClick={() => setShowSurrenderConfirm(true)}
+              aria-label="Aufgeben bestätigen"
             >
-              🏳 Aufgeben
+              <IconFlag size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />Aufgeben
             </button>
           )}
         </div>
@@ -474,7 +495,7 @@ export default function BattleArena({ matchId }: BattleArenaProps) {
                   fontFamily: "'Bebas Neue', Impact, sans-serif",
                   fontSize: '1.4rem',
                   letterSpacing: '0.1em',
-                  color: 'rgba(255,100,60,0.9)',
+                  color: 'var(--oz-battle-dialog-title)',
                   marginBottom: '12px',
                 }}
               >
@@ -482,7 +503,7 @@ export default function BattleArena({ matchId }: BattleArenaProps) {
               </div>
               <div
                 style={{
-                  color: 'rgba(220,235,248,0.75)',
+                  color: 'var(--oz-battle-dialog-body)',
                   fontSize: '0.85rem',
                   lineHeight: 1.5,
                   marginBottom: '22px',

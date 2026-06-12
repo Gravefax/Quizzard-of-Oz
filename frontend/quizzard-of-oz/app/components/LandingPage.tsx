@@ -4,13 +4,17 @@ import {JSX, useEffect, useState} from 'react';
 import { useRouter } from 'next/navigation';
 import { fetchLeaderboard } from '@/app/lib/api/ranking';
 import type { LeaderboardEntry } from '@/app/models/Leaderboard';
+import styles from './LandingPage.module.css';
+import { IconCrossedSwords, IconTarget } from '@/app/components/Icons';
 
 type ColorType = 'cyan' | 'fire' | 'gold';
 
+// Theme-adaptive über CSS-Variablen: im Light Mode gedämpfte Töne, damit die
+// dekorativen Zeichen kein schmutziger Schleier auf hellem Grund werden.
 const FLOAT_COLORS: Record<ColorType, (opacity: number) => string> = {
-  cyan: (o) => `rgba(0, 212, 255, ${o})`,
-  fire: (o) => `rgba(255, 60, 20, ${o})`,
-  gold: (o) => `rgba(255, 200, 0, ${o})`,
+  cyan: (o) => `rgba(var(--oz-float-cyan-rgb), ${o})`,
+  fire: (o) => `rgba(var(--oz-float-fire-rgb), ${o})`,
+  gold: (o) => `rgba(var(--oz-float-gold-rgb), ${o})`,
 };
 
 // Rising floating elements — question marks, lightning, swords
@@ -49,19 +53,19 @@ export default function LandingPage() {
   let topPlayersContent: JSX.Element;
   if (topLoading) {
     topPlayersContent = (
-      <p style={{ color: 'rgba(140,200,230,0.6)', fontSize: '0.85rem' }}>Lade Rangliste ...</p>
+      <p style={{ color: 'rgba(var(--oz-text-secondary-rgb),0.6)', fontSize: '0.85rem' }}>Lade Rangliste ...</p>
     );
   } else if (topPlayers.length === 0) {
     topPlayersContent = (
-      <p style={{ color: 'rgba(140,200,230,0.6)', fontSize: '0.85rem' }}>Noch keine Eintraege verfuegbar.</p>
+      <p style={{ color: 'rgba(var(--oz-text-secondary-rgb),0.6)', fontSize: '0.85rem' }}>Noch keine Eintraege verfuegbar.</p>
     );
   } else {
     topPlayersContent = (
       <ol className="space-y-1.5">
         {topPlayers.map((player) => (
-          <li key={player.user_id} className="flex items-center justify-between rounded-md px-2 py-1" style={{ background: 'rgba(0,0,0,0.16)' }}>
-            <span style={{ color: 'rgba(220,245,255,0.9)', fontSize: '0.86rem' }}>#{player.rank} {player.username}</span>
-            <span style={{ color: 'rgba(110,215,255,0.88)', fontWeight: 700, fontSize: '0.85rem' }}>{player.elo_rating}</span>
+          <li key={player.user_id} className="flex items-center justify-between rounded-md px-2 py-1" style={{ background: 'rgba(var(--oz-depth-bg-rgb),0.1)' }}>
+            <span style={{ color: 'rgba(var(--oz-text-bright-rgb),0.9)', fontSize: '0.86rem' }}>#{player.rank} {player.username}</span>
+            <span style={{ color: 'rgba(var(--oz-violet-light-rgb),0.95)', fontWeight: 700, fontSize: '0.85rem' }}>{player.elo_rating}</span>
           </li>
         ))}
       </ol>
@@ -104,382 +108,197 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <>
-      <style>{`
-        /* ── Float paths ── */
-        @keyframes floatPath0 {
-          0%   { transform: translateY(105vh) translateX(0px)   rotate(-3deg); opacity: 0; }
-          8%   { opacity: 1; }
-          30%  { transform: translateY(72vh)  translateX(22px)  rotate(4deg);  }
-          60%  { transform: translateY(36vh)  translateX(-10px) rotate(-2deg); }
-          92%  { opacity: 0.7; }
-          100% { transform: translateY(-15vh) translateX(28px)  rotate(6deg);  opacity: 0; }
-        }
-        @keyframes floatPath1 {
-          0%   { transform: translateY(105vh) translateX(0px)   rotate(5deg);  opacity: 0; }
-          8%   { opacity: 1; }
-          25%  { transform: translateY(76vh)  translateX(-32px) rotate(-4deg); }
-          55%  { transform: translateY(40vh)  translateX(-18px) rotate(3deg);  }
-          92%  { opacity: 0.7; }
-          100% { transform: translateY(-15vh) translateX(-38px) rotate(-6deg); opacity: 0; }
-        }
-        @keyframes floatPath2 {
-          0%   { transform: translateY(105vh) translateX(0px)   rotate(0deg);  opacity: 0; }
-          8%   { opacity: 1; }
-          20%  { transform: translateY(82vh)  translateX(42px)  rotate(-5deg); }
-          50%  { transform: translateY(46vh)  translateX(58px)  rotate(8deg);  }
-          80%  { transform: translateY(16vh)  translateX(32px)  rotate(-3deg); }
-          92%  { opacity: 0.7; }
-          100% { transform: translateY(-15vh) translateX(48px)  rotate(5deg);  opacity: 0; }
-        }
-        @keyframes floatPath3 {
-          0%   { transform: translateY(105vh) translateX(0px)   rotate(-6deg); opacity: 0; }
-          8%   { opacity: 1; }
-          35%  { transform: translateY(66vh)  translateX(-52px) rotate(3deg);  }
-          70%  { transform: translateY(26vh)  translateX(-36px) rotate(-4deg); }
-          92%  { opacity: 0.7; }
-          100% { transform: translateY(-15vh) translateX(-58px) rotate(7deg);  opacity: 0; }
-        }
-        @keyframes floatPath4 {
-          0%   { transform: translateY(105vh) translateX(0px)   rotate(2deg);  opacity: 0; }
-          8%   { opacity: 1; }
-          20%  { transform: translateY(82vh)  translateX(26px)  rotate(-3deg); }
-          40%  { transform: translateY(60vh)  translateX(-22px) rotate(5deg);  }
-          60%  { transform: translateY(38vh)  translateX(36px)  rotate(-2deg); }
-          80%  { transform: translateY(18vh)  translateX(-14px) rotate(4deg);  }
-          92%  { opacity: 0.7; }
-          100% { transform: translateY(-15vh) translateX(22px)  rotate(-5deg); opacity: 0; }
-        }
+    <div className="flex-1 flex flex-col relative overflow-hidden">
 
-        /* ── Ambient float ── */
-        @keyframes ambFloat0 {
-          0%,100% { transform: translateY(0px)   translateX(0px)   rotate(-4deg); }
-          25%     { transform: translateY(-22px)  translateX(14px)  rotate(3deg);  }
-          50%     { transform: translateY(-8px)   translateX(28px)  rotate(-2deg); }
-          75%     { transform: translateY(-30px)  translateX(10px)  rotate(5deg);  }
-        }
-        @keyframes ambFloat1 {
-          0%,100% { transform: translateY(0px)   translateX(0px)   rotate(6deg);  }
-          30%     { transform: translateY(-18px)  translateX(-20px) rotate(-3deg); }
-          60%     { transform: translateY(-35px)  translateX(-8px)  rotate(4deg);  }
-          80%     { transform: translateY(-12px)  translateX(-26px) rotate(-5deg); }
-        }
-        @keyframes ambFloat2 {
-          0%,100% { transform: translateY(0px)   translateX(0px)   rotate(0deg);  }
-          20%     { transform: translateY(-28px)  translateX(18px)  rotate(-6deg); }
-          45%     { transform: translateY(-14px)  translateX(-12px) rotate(4deg);  }
-          70%     { transform: translateY(-40px)  translateX(8px)   rotate(-2deg); }
-        }
+      {/* ── Background layer ── */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
 
-        /* ── Battle button fire pulse ── */
-        @keyframes battlePulse {
-          0%,100% {
-            box-shadow: 0 0 24px rgba(255,60,20,0.28), 0 0 65px rgba(255,60,20,0.09), 0 6px 32px rgba(0,0,0,0.55);
-            border-color: rgba(255,80,40,0.6);
-          }
-          50% {
-            box-shadow: 0 0 48px rgba(255,60,20,0.58), 0 0 110px rgba(255,60,20,0.2), 0 6px 32px rgba(0,0,0,0.55);
-            border-color: rgba(255,120,60,0.95);
-          }
-        }
+        {/* Subtle dot/grid pattern */}
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: `
+              linear-gradient(rgba(var(--oz-accent-line-rgb),0.04) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(var(--oz-accent-line-rgb),0.04) 1px, transparent 1px)
+            `,
+            backgroundSize: '64px 64px',
+          }}
+        />
 
-        /* ── Title neon glow ── */
-        @keyframes titleGlow {
-          0%,100% { text-shadow: 0 0 14px rgba(0,212,255,0.14), 0 0 28px rgba(0,212,255,0.06); }
-          50%     { text-shadow: 0 0 20px rgba(0,212,255,0.26), 0 0 44px rgba(0,212,255,0.11), 0 0 70px rgba(0,212,255,0.05); }
-        }
+        {/* Horizontal scan line */}
+        <div
+          className="absolute left-0 right-0"
+          style={{
+            height: '1px',
+            background: 'linear-gradient(90deg, transparent 0%, rgba(var(--oz-accent-line-rgb),0.18) 40%, rgba(var(--oz-accent-line-rgb),0.18) 60%, transparent 100%)',
+            animation: 'scanDown 9s linear 0.5s infinite',
+          }}
+        />
 
-        /* ── Orb pulse ── */
-        @keyframes orbPulse {
-          0%,100% { opacity: 0.9; transform: translate(-50%,-50%) scale(1);    }
-          50%     { opacity: 1;   transform: translate(-50%,-50%) scale(1.07); }
-        }
+        {/* Cyan glow orb — left */}
+        <div
+          className="absolute"
+          style={{
+            width: '700px', height: '700px',
+            top: '10%', left: '-15%',
+            background: 'radial-gradient(circle, rgba(0,212,255,0.065) 0%, transparent 65%)',
+            animation: 'ambFloat0 14s ease-in-out infinite',
+          }}
+        />
 
-        /* ── Badge flash ── */
-        @keyframes badgeFlash {
-          0%,100% { opacity: 0.85; }
-          50%     { opacity: 1; filter: brightness(1.25); }
-        }
+        {/* Fire glow orb — right */}
+        <div
+          className="absolute"
+          style={{
+            width: '560px', height: '560px',
+            top: '5%', right: '-10%',
+            background: 'radial-gradient(circle, rgba(255,60,20,0.06) 0%, transparent 65%)',
+            animation: 'ambFloat1 12s ease-in-out 1.5s infinite',
+          }}
+        />
 
-        /* ── Scan line ── */
-        @keyframes scanDown {
-          0%   { top: -5%; opacity: 0; }
-          4%   { opacity: 1; }
-          96%  { opacity: 0.55; }
-          100% { top: 105%; opacity: 0; }
-        }
+        {/* Center depth orb — subtle vignette, adapts to theme */}
+        <div
+          className="absolute rounded-full"
+          style={{
+            width: '600px', height: '600px',
+            top: '50%', left: '50%',
+            background: 'radial-gradient(circle, rgba(0,212,255,0.03) 0%, rgba(var(--oz-depth-bg-rgb),0.28) 55%, transparent 100%)',
+            animation: 'orbPulse 7s ease-in-out infinite',
+          }}
+        />
 
-        /* ── Underline reveal ── */
-        @keyframes lineReveal {
-          0%   { width: 0;     opacity: 0; }
-          100% { width: 200px; opacity: 1; }
-        }
-
-        /* ── Button classes ── */
-        .battle-btn {
-          background: linear-gradient(160deg, rgba(255,55,15,0.13) 0%, rgba(100,12,0,0.08) 60%, rgba(20,4,0,0.04) 100%);
-          border: 1px solid rgba(255,75,35,0.5);
-          border-radius: 1.25rem;
-          position: relative;
-          overflow: hidden;
-          animation: battlePulse 2.8s ease-in-out infinite;
-          transition: transform 0.22s ease, background 0.22s ease;
-        }
-        .battle-btn::before {
-          content: '';
-          position: absolute;
-          top: 0; left: 0; right: 0;
-          height: 3px;
-          background: linear-gradient(90deg, transparent 0%, rgba(255,90,40,0.85) 30%, rgba(255,140,80,1) 50%, rgba(255,90,40,0.85) 70%, transparent 100%);
-        }
-        .battle-btn::after {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(to bottom, rgba(255,70,30,0.07) 0%, transparent 45%);
-          border-radius: 1.25rem;
-          pointer-events: none;
-        }
-        .battle-btn:hover {
-          background: linear-gradient(160deg, rgba(255,55,15,0.22) 0%, rgba(140,20,5,0.14) 60%, rgba(40,6,0,0.07) 100%);
-          transform: translateY(-4px) scale(1.01);
-        }
-
-        .gold-card {
-          background: linear-gradient(145deg, rgba(255,200,0,0.07) 0%, rgba(180,130,0,0.04) 100%);
-          border: 1px solid rgba(255,200,0,0.28);
-          border-radius: 1rem;
-          position: relative;
-          overflow: hidden;
-          transition: background 0.22s ease, border-color 0.22s ease,
-                      transform 0.22s ease, box-shadow 0.22s ease;
-        }
-        .gold-card::before {
-          content: '';
-          position: absolute;
-          top: 0; left: 0; right: 0;
-          height: 2px;
-          background: linear-gradient(90deg, transparent, rgba(255,200,0,0.75), transparent);
-        }
-        .gold-card:hover {
-          background: linear-gradient(145deg, rgba(255,200,0,0.13) 0%, rgba(200,150,0,0.08) 100%);
-          border-color: rgba(255,200,0,0.6);
-          transform: translateY(-3px);
-          box-shadow: 0 16px 40px rgba(255,200,0,0.1);
-        }
-
-        .leaderboard-card {
-          background: linear-gradient(145deg, rgba(0,212,255,0.08) 0%, rgba(0,80,120,0.08) 100%);
-          border: 1px solid rgba(0,212,255,0.3);
-          border-radius: 1rem;
-        }
-
-        /* ── Typography ── */
-        .arena-title {
-          font-family: 'Bebas Neue', 'Impact', 'Arial Black', sans-serif;
-          letter-spacing: 0.06em;
-          color: #EAF5FF;
-          animation: titleGlow 4s ease-in-out infinite;
-          line-height: 0.9;
-        }
-
-        .neon-line {
-          display: block;
-          height: 2px;
-          background: linear-gradient(90deg, transparent, rgba(0,212,255,0.9), transparent);
-          animation: lineReveal 0.9s cubic-bezier(0.22,1,0.36,1) 0.2s both;
-          margin: 12px auto 18px;
-        }
-      `}</style>
-
-      <div className="flex-1 flex flex-col relative overflow-hidden">
-
-        {/* ── Background layer ── */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-
-          {/* Subtle dot/grid pattern */}
+        {/* Ambient large background chars */}
+        {AMB_DATA.map((item) => (
           <div
-            className="absolute inset-0"
+            key={item.id}
+            className="absolute font-bold select-none"
             style={{
-              backgroundImage: `
-                linear-gradient(rgba(0,212,255,0.032) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0,212,255,0.032) 1px, transparent 1px)
-              `,
-              backgroundSize: '64px 64px',
+              fontSize: item.size,
+              top: item.top,
+              left: item.left,
+              color: FLOAT_COLORS[item.type](item.opacity),
+              lineHeight: 1,
+              animation: `ambFloat${item.anim} ${item.dur}s ease-in-out ${item.delay}s infinite`,
             }}
-          />
+          >
+            {item.char}
+          </div>
+        ))}
 
-          {/* Horizontal scan line */}
+        {/* Rising floating chars */}
+        {FLOAT_DATA.map((item) => (
           <div
-            className="absolute left-0 right-0"
+            key={item.id}
+            className="absolute font-bold select-none"
             style={{
-              height: '1px',
-              background: 'linear-gradient(90deg, transparent 0%, rgba(0,212,255,0.18) 40%, rgba(0,212,255,0.18) 60%, transparent 100%)',
-              animation: 'scanDown 9s linear 0.5s infinite',
+              fontSize: item.size,
+              left: item.left,
+              color: FLOAT_COLORS[item.type](0.1),
+              lineHeight: 1,
+              animation: `floatPath${item.path} ${item.dur}s ease-in-out ${item.delay}s infinite`,
+              animationFillMode: 'backwards',
             }}
-          />
+          >
+            {item.char}
+          </div>
+        ))}
+      </div>
 
-          {/* Cyan glow orb — left */}
-          <div
-            className="absolute"
-            style={{
-              width: '700px', height: '700px',
-              top: '10%', left: '-15%',
-              background: 'radial-gradient(circle, rgba(0,212,255,0.065) 0%, transparent 65%)',
-              animation: 'ambFloat0 14s ease-in-out infinite',
-            }}
-          />
+      {/* ── Main content ── */}
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-8">
 
-          {/* Fire glow orb — right */}
-          <div
-            className="absolute"
-            style={{
-              width: '560px', height: '560px',
-              top: '5%', right: '-10%',
-              background: 'radial-gradient(circle, rgba(255,60,20,0.06) 0%, transparent 65%)',
-              animation: 'ambFloat1 12s ease-in-out 1.5s infinite',
-            }}
-          />
-
-          {/* Center depth orb */}
-          <div
-            className="absolute rounded-full"
-            style={{
-              width: '600px', height: '600px',
-              top: '50%', left: '50%',
-              background: 'radial-gradient(circle, rgba(0,212,255,0.04) 0%, rgba(0,18,40,0.5) 50%, transparent 100%)',
-              animation: 'orbPulse 7s ease-in-out infinite',
-            }}
-          />
-
-          {/* Ambient large background chars */}
-          {AMB_DATA.map((item) => (
-            <div
-              key={item.id}
-              className="absolute font-bold select-none"
-              style={{
-                fontSize: item.size,
-                top: item.top,
-                left: item.left,
-                color: FLOAT_COLORS[item.type](item.opacity),
-                lineHeight: 1,
-                animation: `ambFloat${item.anim} ${item.dur}s ease-in-out ${item.delay}s infinite`,
-              }}
-            >
-              {item.char}
-            </div>
-          ))}
-
-          {/* Rising floating chars */}
-          {FLOAT_DATA.map((item) => (
-            <div
-              key={item.id}
-              className="absolute font-bold select-none"
-              style={{
-                fontSize: item.size,
-                left: item.left,
-                color: FLOAT_COLORS[item.type](0.1),
-                lineHeight: 1,
-                animation: `floatPath${item.path} ${item.dur}s ease-in-out ${item.delay}s infinite`,
-                animationFillMode: 'backwards',
-              }}
-            >
-              {item.char}
-            </div>
-          ))}
+        {/* Title */}
+        <div className="text-center mb-1">
+          <h1 className="arena-title text-[5.5rem] md:text-[9rem]">
+            Quizzard of Oz
+          </h1>
+          <span className={styles['neon-line']} style={{ width: '200px' }} />
+          <p
+            className="text-sm md:text-base mt-1 mb-6"
+            style={{ color: 'rgba(var(--oz-text-secondary-rgb),0.75)', letterSpacing: '0.04em' }}
+          >
+            Beweise dein Wissen. Besiege deine Rivalen.
+          </p>
         </div>
 
-        {/* ── Main content ── */}
-        <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-8">
-
-
-          {/* Title */}
-          <div className="text-center mb-1">
-            <h1 className="arena-title text-[5.5rem] md:text-[9rem]">
-              Quizzard of Oz
-            </h1>
-            <span className="neon-line" style={{ width: '200px' }} />
-            <p
-              className="text-sm md:text-base mt-1 mb-6" // 'mb-6' für Abstand nach unten
-              style={{ color: 'rgba(140, 200, 230, 0.52)', letterSpacing: '0.04em' }}
-            >
-              Beweise dein Wissen. Besiege deine Rivalen.
-            </p>
+        {/* ── Top 3 preview ── */}
+        <div
+          className={`w-full max-w-sm mb-4 ${styles['leaderboard-card']} px-4 py-3 cursor-pointer`}
+          onClick={() => router.push('/leaderboard')}
+          role="link"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === 'Enter' && router.push('/leaderboard')}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <span style={{ color: 'rgba(var(--oz-text-secondary-rgb),0.92)', fontWeight: 700, letterSpacing: '0.04em' }}>Top 3</span>
+            <span style={{ color: 'rgba(var(--oz-text-secondary-rgb),0.55)', fontSize: '0.7rem', letterSpacing: '0.08em' }}>LIVE LEADERBOARD →</span>
           </div>
+          {topPlayersContent}
+        </div>
 
-          {/* ── Top 3 preview ── */}
-          <div className="w-full max-w-sm mb-4 leaderboard-card px-4 py-3">
-            <div className="flex items-center justify-between mb-2">
-              <span style={{ color: 'rgba(185,230,250,0.92)', fontWeight: 700, letterSpacing: '0.04em' }}>Top 3</span>
-              <span style={{ color: 'rgba(120,190,220,0.7)', fontSize: '0.7rem', letterSpacing: '0.08em' }}>LIVE LEADERBOARD</span>
+        {/* ── Action buttons ── */}
+        <div className="flex flex-col items-center gap-4 w-full max-w-sm">
+
+          {/* RANKED BATTLE — fire CTA */}
+          <button
+            className={`${styles['battle-btn']} w-full text-center`}
+            style={{ padding: '22px 24px 20px' }}
+            onClick={handleRanked}
+          >
+            {/* Icon circle */}
+            <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '52px', height: '52px', borderRadius: '50%', background: 'rgba(var(--oz-fire-title-rgb),0.12)', border: '1px solid rgba(var(--oz-fire-title-rgb),0.45)', marginBottom: '12px', color: 'rgba(var(--oz-fire-title-rgb),1)', filter: 'drop-shadow(0 0 14px rgba(255,80,40,0.45))' }}>
+              <IconCrossedSwords size={26} />
             </div>
-            {topPlayersContent}
-          </div>
-
-          {/* ── Action buttons ── */}
-          <div className="flex flex-col items-center gap-4 w-full max-w-sm">
-
-            {/* RANKED BATTLE — fire CTA */}
-            <button
-              className="battle-btn w-full text-center"
-              style={{ padding: '22px 24px 20px' }}
-              onClick={handleRanked}
+            {/* Title */}
+            <div
+              style={{
+                fontFamily: "'Bebas Neue', Impact, 'Arial Black', sans-serif",
+                fontSize: '1.75rem',
+                letterSpacing: '0.16em',
+                color: 'rgba(var(--oz-fire-title-rgb),1)',
+                lineHeight: 1,
+                marginBottom: '6px',
+              }}
             >
+              Ranked Battle
+            </div>
+            {/* Tagline */}
+            <div style={{ color: 'rgba(var(--oz-fire-tag-rgb),0.95)', fontSize: '0.7rem', letterSpacing: '0.12em', marginBottom: '14px' }}>
+              COMPETE · RANK · DOMINATE
+            </div>   
+            <div style={{ color: 'rgba(var(--oz-text-secondary-rgb),0.72)', fontSize: '0.72rem', letterSpacing: '0.08em' }}>
+              Login erforderlich
+            </div>
+          </button>
+
+          {/* ÜBUNG */}
+          <button
+            className={`${styles['gold-card']} w-full`}
+            style={{ padding: '14px 20px' }}
+            onClick={handleUebung}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               {/* Icon circle */}
-              <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '52px', height: '52px', borderRadius: '50%', background: 'rgba(255,60,20,0.14)', border: '1px solid rgba(255,90,50,0.4)', marginBottom: '12px', fontSize: '1.4rem', filter: 'drop-shadow(0 0 14px rgba(255,80,40,0.65))' }}>
-                ⚔
+              <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '42px', height: '42px', borderRadius: '50%', background: 'rgba(var(--oz-gold-title-rgb),0.12)', border: '1px solid rgba(var(--oz-gold-title-rgb),0.35)', color: 'rgba(var(--oz-gold-title-rgb),1)', filter: 'drop-shadow(0 0 10px rgba(255,200,0,0.35))' }}>
+                <IconTarget size={22} />
               </div>
-              {/* Title */}
-              <div
-                style={{
-                  fontFamily: "'Bebas Neue', Impact, 'Arial Black', sans-serif",
-                  fontSize: '1.75rem',
-                  letterSpacing: '0.16em',
-                  color: '#FFD0B0',
-                  lineHeight: 1,
-                  marginBottom: '6px',
-                }}
-              >
-                Ranked Battle
-              </div>
-              {/* Tagline */}
-              <div style={{ color: 'rgba(255,170,120,0.58)', fontSize: '0.7rem', letterSpacing: '0.12em', marginBottom: '14px' }}>
-                COMPETE · RANK · DOMINATE
-              </div>
-              {/* Login badge */}
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '3px 10px', borderRadius: '999px', background: 'rgba(255,60,20,0.1)', border: '1px solid rgba(255,80,40,0.3)', color: 'rgba(255,160,110,0.6)', fontSize: '0.65rem', letterSpacing: '0.1em' }}>
-                <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: 'rgba(255,100,50,0.7)', display: 'inline-block' }} />{"Login erforderlich"}
-              </div>
-            </button>
-
-            {/* ÜBUNG */}
-            <button
-              className="gold-card w-full"
-              style={{ padding: '14px 20px' }}
-              onClick={handleUebung}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                {/* Icon circle */}
-                <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '42px', height: '42px', borderRadius: '50%', background: 'rgba(255,200,0,0.1)', border: '1px solid rgba(255,200,0,0.3)', fontSize: '1.1rem', filter: 'drop-shadow(0 0 10px rgba(255,200,0,0.45))' }}>
-                  🎯
+              {/* Text */}
+              <div style={{ textAlign: 'left', flex: 1 }}>
+                <div style={{ color: 'rgba(var(--oz-gold-title-rgb),1)', fontSize: '0.95rem', fontWeight: 600, letterSpacing: '0.04em', marginBottom: '2px' }}>
+                  Übung
                 </div>
-                {/* Text */}
-                <div style={{ textAlign: 'left', flex: 1 }}>
-                  <div style={{ color: 'rgba(255,228,140,0.92)', fontSize: '0.95rem', fontWeight: 600, letterSpacing: '0.04em', marginBottom: '2px' }}>
-                    Übung
-                  </div>
-                  <div style={{ color: 'rgba(255,215,120,0.42)', fontSize: '0.7rem', letterSpacing: '0.08em' }}>
-                    Trainingsmodus · Kein Login nötig
-                  </div>
+                <div style={{ color: 'rgba(var(--oz-text-secondary-rgb),0.7)', fontSize: '0.7rem', letterSpacing: '0.08em' }}>
+                  Trainingsmodus
                 </div>
-                {/* Arrow */}
-                <div style={{ flexShrink: 0, color: 'rgba(255,200,0,0.35)', fontSize: '1rem' }}>›</div>
               </div>
-            </button>
+              {/* Arrow */}
+              <div style={{ flexShrink: 0, color: 'rgba(var(--oz-gold-title-rgb),0.7)', fontSize: '1rem' }}>›</div>
+            </div>
+          </button>
 
-          </div>
-        </main>
-      </div>
-    </>
+        </div>
+      </main>
+    </div>
   );
 }

@@ -2,10 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import LoginButton from "@/app/components/login-button/LoginButton";
 import UserMenu from "@/app/components/user-menu/UserMenu";
 import useAuthStore from "@/app/stores/authStore";
+import useThemeStore from "@/app/stores/themeStore";
 import { refreshAccessToken, logout } from "@/app/lib/auth/authClient";
+import { IconTrophy, IconSun, IconMoon } from "@/app/components/Icons";
 
 export default function Navbar() {
   const credential = useAuthStore((state) => state.credential);
@@ -14,8 +17,28 @@ export default function Navbar() {
   const isLoggedIn = !!credential;
   const displayName = credential?.username ?? credential?.email ?? "User";
   const hasExplicitlyLoggedOut = useRef(false);
+  const { theme, toggle: toggleTheme } = useThemeStore();
   const [mobileOpen, setMobileOpen] = useState(false);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
+  const isBattle = pathname?.startsWith('/battle/') ?? false;
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const pendingAction = useRef<(() => void) | null>(null);
+
+  function withBattleGuard(action: () => void) {
+    if (isBattle) {
+      pendingAction.current = action;
+      setShowLeaveConfirm(true);
+    } else {
+      action();
+    }
+  }
+
+  function confirmLeave() {
+    setShowLeaveConfirm(false);
+    pendingAction.current?.();
+    pendingAction.current = null;
+  }
 
   useEffect(() => {
     if (!mobileOpen) return;
@@ -70,8 +93,10 @@ export default function Navbar() {
   }, [credential, setCredential]);
 
   function handleLogout() {
-    hasExplicitlyLoggedOut.current = true;
-    logout().finally(() => clearCredential());
+    withBattleGuard(() => {
+      hasExplicitlyLoggedOut.current = true;
+      logout().finally(() => clearCredential());
+    });
   }
 
   return (
@@ -91,17 +116,38 @@ export default function Navbar() {
         }}
         onMouseEnter={(e) => (e.currentTarget.style.color = "rgba(var(--oz-violet-text-rgb), 1)")}
         onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(var(--oz-violet-text-rgb), 0.65)")}
+        onClick={(e) => {
+          if (isBattle) {
+            e.preventDefault();
+            withBattleGuard(() => window.location.assign('/'));
+          }
+        }}
       >
         Quizzard of Oz
       </Link>
-      {/* Desktop navigation — unchanged ab md */}
+
+      {/* Desktop navigation */}
       <div className="hidden md:flex items-center gap-3">
+        <button
+          type="button"
+          onClick={toggleTheme}
+          aria-label={theme === 'dark' ? 'Light Mode aktivieren' : 'Dark Mode aktivieren'}
+          title={theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+          className="nav-btn nav-btn-icon"
+        >
+          {theme === 'dark' ? <IconSun /> : <IconMoon />}
+        </button>
         <Link
           href="/leaderboard"
-          className="login-btn inline-flex items-center gap-2 px-6 py-2 font-medium rounded-lg"
-          style={{ textDecoration: "none" }}
+          className="nav-btn nav-btn-ghost"
+          onClick={(e) => {
+            if (isBattle) {
+              e.preventDefault();
+              withBattleGuard(() => window.location.assign('/leaderboard'));
+            }
+          }}
         >
-          <span>🏆</span>
+          <IconTrophy size={16} />
           <span>Leaderboard</span>
         </Link>
         {isLoggedIn ? (
@@ -121,7 +167,7 @@ export default function Navbar() {
           aria-haspopup="menu"
           aria-expanded={mobileOpen}
           onClick={() => setMobileOpen((prev) => !prev)}
-          className="login-btn flex items-center justify-center w-10 h-10 rounded-lg text-lg"
+          className="nav-btn nav-btn-icon"
         >
           {mobileOpen ? "✕" : "☰"}
         </button>
@@ -139,24 +185,34 @@ export default function Navbar() {
             <Link
               href="/leaderboard"
               role="menuitem"
-              onClick={() => setMobileOpen(false)}
+              onClick={(e) => {
+                setMobileOpen(false);
+                if (isBattle) {
+                  e.preventDefault();
+                  withBattleGuard(() => window.location.assign('/leaderboard'));
+                }
+              }}
               className="flex items-center gap-2 px-4 py-3 text-sm transition-colors hover:bg-white/10"
               style={{ color: "rgba(var(--oz-violet-text-rgb), 1)", textDecoration: "none" }}
             >
-              <span>🏆</span>
+              <IconTrophy size={18} />
               <span>Leaderboard</span>
             </Link>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => { toggleTheme(); setMobileOpen(false); }}
+              className="w-full flex items-center gap-2 px-4 py-3 text-sm transition-colors hover:bg-white/10"
+              style={{
+                borderTop: "1px solid rgba(var(--oz-violet-light-rgb), 0.25)",
+                color: "rgba(var(--oz-violet-text-rgb), 1)",
+              }}
+            >
+              {theme === 'dark' ? <IconSun /> : <IconMoon />}
+              <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
+            </button>
             {isLoggedIn ? (
               <>
-                <div
-                  className="px-4 py-3 text-sm"
-                  style={{
-                    borderTop: "1px solid rgba(var(--oz-violet-light-rgb), 0.25)",
-                    color: "rgba(var(--oz-violet-text-rgb), 0.65)",
-                  }}
-                >
-                  {displayName}
-                </div>
                 <button
                   type="button"
                   role="menuitem"
@@ -164,10 +220,10 @@ export default function Navbar() {
                     setMobileOpen(false);
                     handleLogout();
                   }}
-                  className="w-full px-4 py-3 text-left text-sm transition-colors hover:bg-white/10"
+                  className="w-full px-4 py-3 text-left text-sm transition-colors hover:bg-red-500/10"
                   style={{
                     borderTop: "1px solid rgba(var(--oz-violet-light-rgb), 0.25)",
-                    color: "rgba(var(--oz-gold-light-rgb), 0.95)",
+                    color: "rgba(var(--oz-fire-title-rgb), 0.9)",
                   }}
                 >
                   Abmelden
@@ -184,6 +240,100 @@ export default function Navbar() {
           </div>
         ) : null}
       </div>
+
+      {/* Battle Leave Confirmation Dialog */}
+      {showLeaveConfirm && (
+        <dialog
+          aria-modal="true"
+          aria-label="Battle verlassen?"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 100,
+            width: '100%',
+            height: '100%',
+            maxWidth: '100%',
+            maxHeight: '100%',
+            margin: 0,
+            border: 'none',
+            padding: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(0,0,0,0.6)',
+            backdropFilter: 'blur(4px)',
+          }}
+        >
+          <div
+            style={{
+              background: 'rgba(var(--oz-menu-bg-rgb), 0.98)',
+              border: '1px solid rgba(var(--oz-fire-title-rgb), 0.4)',
+              borderRadius: '1rem',
+              padding: '28px 32px',
+              maxWidth: '340px',
+              width: '100%',
+              textAlign: 'center',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
+            }}
+          >
+            <div
+              style={{
+                fontFamily: "'Bebas Neue', Impact, sans-serif",
+                fontSize: '1.4rem',
+                letterSpacing: '0.1em',
+                color: 'rgba(var(--oz-fire-title-rgb), 0.95)',
+                marginBottom: '10px',
+              }}
+            >
+              Battle verlassen?
+            </div>
+            <p
+              style={{
+                color: 'rgba(var(--oz-text-secondary-rgb), 0.8)',
+                fontSize: '0.85rem',
+                lineHeight: 1.5,
+                marginBottom: '22px',
+              }}
+            >
+              Du verlässt ein laufendes Battle. Das Match wird als Aufgabe gewertet und du verlierst ELO-Punkte.
+            </p>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+              <button
+                type="button"
+                onClick={confirmLeave}
+                style={{
+                  background: 'rgba(var(--oz-fire-title-rgb), 0.12)',
+                  border: '1px solid rgba(var(--oz-fire-title-rgb), 0.45)',
+                  borderRadius: '0.625rem',
+                  padding: '10px 24px',
+                  color: 'rgba(var(--oz-fire-title-rgb), 0.95)',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                Verlassen
+              </button>
+              <button
+                type="button"
+                onClick={() => { setShowLeaveConfirm(false); pendingAction.current = null; }}
+                style={{
+                  background: 'rgba(var(--oz-violet-rgb), 0.1)',
+                  border: '1px solid rgba(var(--oz-violet-light-rgb), 0.3)',
+                  borderRadius: '0.625rem',
+                  padding: '10px 24px',
+                  color: 'rgba(var(--oz-violet-text-rgb), 0.9)',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                Weiterspielen
+              </button>
+            </div>
+          </div>
+        </dialog>
+      )}
     </header>
   );
 }

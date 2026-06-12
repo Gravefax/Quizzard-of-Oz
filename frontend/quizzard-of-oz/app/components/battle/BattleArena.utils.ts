@@ -12,9 +12,9 @@ import { RoundResultData, RoundOutcomeMeta } from '@/app/lib/interfaces/battle/B
  * - Other answers: Blue-gray (`rgba(200,225,245,0.85)`)
  */
 export function answerTextColor(isCorrect: boolean, isWrong: boolean): string {
-  if (isCorrect) return 'rgba(0,255,120,0.92)';
-  if (isWrong) return 'rgba(255,110,70,0.85)';
-  return 'rgba(200,225,245,0.85)';
+  if (isCorrect) return 'var(--oz-battle-correct-text)';
+  if (isWrong) return 'var(--oz-battle-wrong-text)';
+  return 'var(--oz-battle-question-text)';
 }
 
 /**
@@ -36,5 +36,5 @@ export function getRoundOutcomeMeta(outcome: RoundResultData['outcome']): RoundO
   if (outcome === 'loss') {
     return { color: 'rgba(255,100,60,0.85)', cssClass: 'outcome-loss', label: 'RUNDE VERLOREN' };
   }
-  return { color: 'rgba(140,200,230,0.8)', cssClass: '', label: 'UNENTSCHIEDEN' };
+  return { color: 'var(--oz-battle-outcome-tie)', cssClass: '', label: 'UNENTSCHIEDEN' };
 }

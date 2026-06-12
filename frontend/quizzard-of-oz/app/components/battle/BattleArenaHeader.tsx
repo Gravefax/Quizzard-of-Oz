@@ -1,6 +1,7 @@
 'use client';
 
 import { PlayerInfo, ScoreInfo } from '@/app/lib/interfaces/battle/BattleInterfaces';
+import { IconStar } from '@/app/components/Icons';
 
 /**
  * BattleArenaHeader Component
@@ -46,7 +47,7 @@ export function BattleArenaHeader({
               className={`win-star ${i < scores.yourWins ? 'earned' : 'empty'}`}
               style={i < scores.yourWins ? { animationDelay: `${i * 0.12}s` } : {}}
             >
-              ★
+              <IconStar filled size={16} />
             </span>
           ))}
         </div>
@@ -54,7 +55,7 @@ export function BattleArenaHeader({
 
       {/* ── Round Center Display ── */}
       <div className="score-center">
-        <div style={{ color: 'rgba(255,60,20,0.9)', fontSize: '0.6rem', letterSpacing: '0.2em', fontWeight: 700 }}>
+        <div style={{ color: 'var(--oz-battle-runde-label)', fontSize: '0.6rem', letterSpacing: '0.2em', fontWeight: 700 }}>
           RUNDE
         </div>
         <div
@@ -62,7 +63,7 @@ export function BattleArenaHeader({
             fontFamily: "'Bebas Neue', Impact, sans-serif",
             fontSize: '1.6rem',
             letterSpacing: '0.08em',
-            color: '#FFD0B0',
+            color: 'var(--oz-battle-round-num)',
             lineHeight: 1,
           }}
         >
@@ -82,7 +83,7 @@ export function BattleArenaHeader({
               className={`win-star ${i < scores.opponentWins ? 'earned' : 'empty'}`}
               style={i < scores.opponentWins ? { animationDelay: `${i * 0.12}s` } : {}}
             >
-              ★
+              <IconStar filled size={16} />
             </span>
           ))}
         </div>

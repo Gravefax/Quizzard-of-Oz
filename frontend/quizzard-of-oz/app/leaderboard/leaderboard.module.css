@@ -1,0 +1,99 @@
+/* leaderboard.module.css — Leaderboard-spezifische Styles */
+/* Alle Hintergrund-Keyframes (scanDown, ambFloat0/1, orbPulse) kommen aus shared.css */
+
+.lb-header-card {
+  background: rgba(var(--oz-card-bg-rgb),0.75);
+  border: 1px solid rgba(255,200,0,0.22);
+  border-radius: 1.25rem;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  position: relative;
+  overflow: hidden;
+}
+
+.lb-header-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(255,200,0,0.72), transparent);
+}
+
+.lb-table-card {
+  background: rgba(var(--oz-card-bg-alt-rgb),0.78);
+  border: 1px solid rgba(255,200,0,0.14);
+  border-radius: 1.25rem;
+  overflow: hidden;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.lb-search-input {
+  width: 100%;
+  background: rgba(var(--oz-card-bg-rgb),0.7);
+  border: 1px solid rgba(255,200,0,0.2);
+  border-radius: 0.625rem;
+  padding: 8px 12px;
+  font-size: 0.875rem;
+  color: rgba(var(--oz-text-primary-rgb),0.9);
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.lb-search-input::placeholder {
+  color: rgba(var(--oz-text-muted-rgb),0.3);
+}
+
+.lb-search-input:focus {
+  border-color: rgba(255,200,0,0.55);
+  box-shadow: 0 0 12px rgba(255,200,0,0.1);
+}
+
+.page-btn {
+  border: 1px solid rgba(255,200,0,0.2);
+  border-radius: 0.625rem;
+  color: rgba(255,228,140,0.65);
+  font-size: 0.875rem;
+  padding: 8px 18px;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.page-btn:hover:not(:disabled) {
+  background: rgba(255,200,0,0.08);
+  border-color: rgba(255,200,0,0.5);
+  color: rgba(255,228,140,0.9);
+}
+
+.page-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* ── Light Mode: deckende Karten, sichtbare Bronze-Rahmen, weiche Schatten ── */
+:global(html.light) .lb-header-card {
+  background: rgba(255, 255, 255, 0.96);
+  border-color: rgba(190, 140, 20, 0.4);
+  box-shadow: 0 10px 28px -12px rgba(170, 120, 10, 0.28);
+}
+:global(html.light) .lb-table-card {
+  background: rgba(255, 255, 255, 0.96);
+  border-color: rgba(190, 140, 20, 0.3);
+  box-shadow: 0 10px 28px -12px rgba(20, 44, 74, 0.22);
+}
+:global(html.light) .lb-search-input {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(190, 140, 20, 0.38);
+}
+:global(html.light) .lb-search-input:focus {
+  border-color: rgba(190, 140, 20, 0.75);
+  box-shadow: 0 0 0 3px rgba(190, 140, 20, 0.12);
+}
+:global(html.light) .page-btn {
+  border-color: rgba(190, 140, 20, 0.4);
+  color: rgba(166, 108, 0, 0.95);
+}
+:global(html.light) .page-btn:hover:not(:disabled) {
+  background: rgba(190, 140, 20, 0.1);
+  border-color: rgba(190, 140, 20, 0.7);
+  color: rgba(140, 92, 0, 1);
+}

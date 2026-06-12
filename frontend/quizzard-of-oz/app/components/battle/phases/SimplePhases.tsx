@@ -1,13 +1,7 @@
 'use client';
 
-/**
- * ConnectingPhase Component
- *
- * Initial phase shown while establishing WebSocket connection to battle server.
- * Displays a rotating spinner with a loading message.
- *
- * Duration: Until `match_ready` message is received from server.
- */
+import { IconBolt, IconAlertTriangle } from '@/app/components/Icons';
+
 export function ConnectingPhase() {
   return (
     <div className="flex flex-col items-center gap-5 reveal">
@@ -15,27 +9,19 @@ export function ConnectingPhase() {
         style={{
           width: '48px',
           height: '48px',
-          border: '3px solid rgba(255,60,20,0.12)',
-          borderTop: '3px solid rgba(255,60,20,0.85)',
+          border: '3px solid var(--oz-battle-cat-badge-bg)',
+          borderTop: '3px solid var(--oz-battle-runde-label)',
           borderRadius: '50%',
           animation: 'spinSlow 0.9s linear infinite',
         }}
       />
-      <div style={{ color: 'rgba(140,200,230,0.5)', fontSize: '0.88rem', letterSpacing: '0.08em' }}>
+      <div style={{ color: 'var(--oz-battle-muted)', fontSize: '0.88rem', letterSpacing: '0.08em' }}>
         Verbinde mit Battle...
       </div>
     </div>
   );
 }
 
-/**
- * WaitingForOpponentPhase Component
- *
- * Shown after successful connection, waiting for a second player to join.
- * Displays a rotating spinner and "Warte auf Gegner" message.
- *
- * Duration: Until `match_ready` message is received (second player joins).
- */
 export function WaitingForOpponentPhase() {
   return (
     <div className="flex flex-col items-center gap-5 reveal">
@@ -43,8 +29,8 @@ export function WaitingForOpponentPhase() {
         style={{
           width: '48px',
           height: '48px',
-          border: '3px solid rgba(255,60,20,0.12)',
-          borderTop: '3px solid rgba(255,60,20,0.85)',
+          border: '3px solid var(--oz-battle-cat-badge-bg)',
+          borderTop: '3px solid var(--oz-battle-runde-label)',
           borderRadius: '50%',
           animation: 'spinSlow 0.9s linear infinite',
         }}
@@ -54,7 +40,7 @@ export function WaitingForOpponentPhase() {
           fontFamily: "'Bebas Neue', Impact, sans-serif",
           fontSize: '1.6rem',
           letterSpacing: '0.12em',
-          color: 'rgba(160,215,240,0.8)',
+          color: 'var(--oz-battle-muted-title)',
         }}
       >
         Warte auf Gegner
@@ -63,14 +49,6 @@ export function WaitingForOpponentPhase() {
   );
 }
 
-/**
- * CategoryChosenPhase Component
- *
- * Shows the category that was just selected by the picker.
- * Displays large category name with a brief "Bereite dich vor..." message.
- *
- * Duration: ~1-2 seconds before first question appears.
- */
 interface CategoryChosenPhaseProps {
   readonly category: string;
 }
@@ -78,7 +56,7 @@ interface CategoryChosenPhaseProps {
 export function CategoryChosenPhase({ category }: CategoryChosenPhaseProps) {
   return (
     <div className="flex flex-col items-center gap-4 pop-in">
-      <div style={{ color: 'rgba(255,60,20,0.65)', fontSize: '0.65rem', letterSpacing: '0.25em' }}>
+      <div style={{ color: 'var(--oz-battle-fire-label)', fontSize: '0.65rem', letterSpacing: '0.25em' }}>
         KATEGORIE
       </div>
       <div
@@ -86,25 +64,19 @@ export function CategoryChosenPhase({ category }: CategoryChosenPhaseProps) {
           fontFamily: "'Bebas Neue', Impact, sans-serif",
           fontSize: '3.5rem',
           letterSpacing: '0.06em',
-          color: '#FFCDB0',
+          color: 'var(--oz-battle-warm-text)',
           textShadow: '0 0 30px rgba(255,60,20,0.3)',
         }}
       >
         {category}
       </div>
-      <div style={{ color: 'rgba(140,200,230,0.45)', fontSize: '0.8rem' }}>
+      <div style={{ color: 'var(--oz-battle-muted)', fontSize: '0.8rem' }}>
         Bereite dich vor...
       </div>
     </div>
   );
 }
 
-/**
- * OpponentDisconnectedPhase Component
- *
- * Shown when the opponent has disconnected from the battle.
- * Displays a disconnect icon and message with a button to return to lobby.
- */
 interface OpponentDisconnectedPhaseProps {
   readonly onReturnToLobby: () => void;
 }
@@ -112,7 +84,7 @@ interface OpponentDisconnectedPhaseProps {
 export function OpponentDisconnectedPhase({ onReturnToLobby }: OpponentDisconnectedPhaseProps) {
   return (
     <div className="flex flex-col items-center gap-6 text-center reveal">
-      <div style={{ fontSize: '2.5rem' }}>⚡</div>
+      <IconBolt size={40} style={{ color: 'rgba(255,200,0,0.85)' }} />
       <div
         style={{
           fontFamily: "'Bebas Neue', Impact, sans-serif",
@@ -123,17 +95,17 @@ export function OpponentDisconnectedPhase({ onReturnToLobby }: OpponentDisconnec
       >
         Gegner hat aufgegeben
       </div>
-      <div style={{ color: 'rgba(140,200,230,0.45)', fontSize: '0.82rem' }}>
+      <div style={{ color: 'var(--oz-battle-muted)', fontSize: '0.82rem' }}>
         Dein Gegner hat die Verbindung getrennt.
       </div>
       <button
         onClick={onReturnToLobby}
         style={{
-          background: 'rgba(0,212,255,0.07)',
-          border: '1px solid rgba(0,212,255,0.3)',
+          background: 'var(--oz-battle-cyan-btn-bg)',
+          border: '1px solid var(--oz-battle-cyan-btn-border)',
           borderRadius: '0.875rem',
           padding: '12px 36px',
-          color: 'rgba(140,200,230,0.8)',
+          color: 'var(--oz-battle-cyan-btn-color)',
           fontSize: '0.85rem',
           fontWeight: 600,
           letterSpacing: '0.08em',
@@ -146,16 +118,6 @@ export function OpponentDisconnectedPhase({ onReturnToLobby }: OpponentDisconnec
   );
 }
 
-/**
- * ErrorPhase Component
- *
- * Shown when a connection or authentication error occurs.
- * Displays an error icon, error message, and button to return to lobby.
- *
- * Common error reasons:
- * - "Login erforderlich." - Session cookie missing or invalid
- * - "Verbindung unterbrochen." - Unexpected disconnection
- */
 interface ErrorPhaseProps {
   readonly errorMessage: string;
   readonly onReturnToLobby: () => void;
@@ -164,28 +126,28 @@ interface ErrorPhaseProps {
 export function ErrorPhase({ errorMessage, onReturnToLobby }: ErrorPhaseProps) {
   return (
     <div className="flex flex-col items-center gap-6 text-center reveal" style={{ maxWidth: '320px' }}>
-      <div style={{ fontSize: '2.2rem' }}>⚠</div>
+      <IconAlertTriangle size={36} style={{ color: 'var(--oz-battle-dialog-title)' }} />
       <div
         style={{
           fontFamily: "'Bebas Neue', Impact, sans-serif",
           fontSize: '1.6rem',
           letterSpacing: '0.08em',
-          color: 'rgba(255,120,80,0.9)',
+          color: 'var(--oz-battle-dialog-title)',
         }}
       >
         Verbindungsfehler
       </div>
-      <p style={{ color: 'rgba(140,200,230,0.45)', fontSize: '0.82rem', lineHeight: 1.6 }}>
+      <p style={{ color: 'var(--oz-battle-muted)', fontSize: '0.82rem', lineHeight: 1.6 }}>
         {errorMessage}
       </p>
       <button
         onClick={onReturnToLobby}
         style={{
-          background: 'rgba(255,60,20,0.07)',
-          border: '1px solid rgba(255,60,20,0.3)',
+          background: 'var(--oz-battle-fire-btn-bg)',
+          border: '1px solid var(--oz-battle-fire-btn-border)',
           borderRadius: '0.875rem',
           padding: '11px 32px',
-          color: 'rgba(255,140,90,0.75)',
+          color: 'var(--oz-battle-fire-btn-color)',
           fontSize: '0.82rem',
           fontWeight: 600,
           cursor: 'pointer',

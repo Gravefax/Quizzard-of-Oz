@@ -1,18 +1,20 @@
 import type { Browser, BrowserContext, Page } from "@playwright/test";
 
+const KEYCLOAK_BASE = "http://localhost:8080";
+const KEYCLOAK_REALM = "quizzard";
+// Testpasswort für vordefinierte Keycloak-Testuser (e2etestuser, e2etestuser2).
+// Kein echtes Secret – wird nur in der lokalen/CI-Testumgebung verwendet.
+const DEFAULT_TEST_PASSWORD = "TestUser1234!"; // NOSONAR
+
 export const TEST_USER = {
   username: "e2etestuser",
-  password: "TestUser1234!",
+  password: DEFAULT_TEST_PASSWORD,
 };
 
 export const TEST_USER_2 = {
   username: "e2etestuser2",
-  password: "TestUser1234!",
+  password: DEFAULT_TEST_PASSWORD,
 };
-
-const KEYCLOAK_BASE = "http://localhost:8080";
-const KEYCLOAK_REALM = "quizzard";
-const DEFAULT_TEST_PASSWORD = "TestUser1234!";
 
 /** Returns a unique test-user credential pair. */
 export function generateTestUser(): { username: string; password: string } {

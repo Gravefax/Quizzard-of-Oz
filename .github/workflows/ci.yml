@@ -220,6 +220,8 @@ jobs:
           NEXT_PUBLIC_KEYCLOAK_REALM: quizzard
           NEXT_PUBLIC_KEYCLOAK_CLIENT_ID: quizzard-frontend
           NEXT_PUBLIC_WS_BASE: ws://localhost:8000
+          KEYCLOAK_URL: http://localhost:8080
+          KEYCLOAK_REALM: quizzard
 
   sonarcloud:
     name: SonarCloud Analysis

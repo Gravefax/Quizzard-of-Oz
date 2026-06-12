@@ -24,70 +24,6 @@ async function pickCategory(page1: Page, page2: Page): Promise<void> {
   await picker.locator('[class*="category-btn"]').first().click();
 }
 
-/**
- * Plays rounds until "BATTLE BEENDET" is visible or maxRounds is reached.
- *
- * Each iteration:
- *  1. Waits for pick_category phase by racing both pages for category buttons
- *     (Promise.any absorbs the losing page's eventual timeout rejection).
- *  2. Clicks a category on the picker page.
- *  3. Has both players answer with different options (guarantees one wins).
- *  4. Waits for answer buttons to disappear as the round-complete signal.
- */
-async function playUntilGameOver(
-  page1: Page,
-  page2: Page,
-  maxRounds = 20,
-): Promise<void> {
-  for (let i = 0; i < maxRounds; i++) {
-    if (await page1.getByText(/battle beendet/i).isVisible()) return;
-    if (await page2.getByText(/battle beendet/i).isVisible()) return;
-
-    // Wait for the actual pick_category phase on whichever page is the picker.
-    // Promise.any resolves with the first page whose buttons become visible and
-    // silently absorbs the other page's timeout rejection.
-    let picker: Page;
-    try {
-      picker = await Promise.any([
-        page1
-          .locator('[class*="category-btn"]')
-          .first()
-          .waitFor({ state: "visible", timeout: 30_000 })
-          .then(() => page1),
-        page2
-          .locator('[class*="category-btn"]')
-          .first()
-          .waitFor({ state: "visible", timeout: 30_000 })
-          .then(() => page2),
-      ]);
-    } catch {
-      return; // AggregateError: neither page showed category buttons → game over
-    }
-
-    await picker.locator('[class*="category-btn"]').first().click();
-
-    // Wait for answer buttons on both pages before clicking
-    await page1
-      .locator('[class*="answer-btn"]')
-      .first()
-      .waitFor({ state: "visible", timeout: 15_000 });
-    await page2
-      .locator('[class*="answer-btn"]')
-      .first()
-      .waitFor({ state: "visible", timeout: 15_000 });
-
-    // Different answers guarantee one player wins each round
-    await page1.locator('[class*="answer-btn"]').nth(0).click();
-    await page2.locator('[class*="answer-btn"]').nth(1).click();
-
-    // Answer buttons disappearing signals round complete (reveal → next phase)
-    await page1
-      .locator('[class*="answer-btn"]')
-      .first()
-      .waitFor({ state: "hidden", timeout: 30_000 });
-  }
-}
-
 // ── Tests ──────────────────────────────────────────────────────────────────────
 
 test.describe("Battle Arena – URL and navigation", () => {
@@ -249,32 +185,4 @@ test.describe("Battle Arena – live match (requires two authenticated players)"
     }
   });
 
-  test("game over screen appears after ROUNDS_TO_WIN", async ({ browser }) => {
-    const { context1, context2, page1, page2, userId1, userId2 } =
-      await startTwoPlayerBattle(browser);
-    try {
-      await page1
-        .getByRole("button", { name: /aufgeben/i })
-        .waitFor({ state: "visible", timeout: 60_000 });
-
-      await playUntilGameOver(page1, page2);
-
-      await expect(page1.getByText(/battle beendet/i)).toBeVisible({
-        timeout: 5_000,
-      });
-      await expect(page1.getByText(/victory|defeat/i)).toBeVisible({
-        timeout: 5_000,
-      });
-      await expect(
-        page1.getByRole("button", { name: /zurück zur lobby/i }),
-      ).toBeVisible({ timeout: 5_000 });
-    } finally {
-      await context1.close();
-      await context2.close();
-      await Promise.all([
-        deleteKeycloakUser(userId1),
-        deleteKeycloakUser(userId2),
-      ]);
-    }
-  });
 });

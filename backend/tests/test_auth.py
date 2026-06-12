@@ -314,6 +314,7 @@ def test_logout_without_any_cookie(monkeypatch):
 
 def test_get_jwks_client_returns_cached_instance(monkeypatch):
     monkeypatch.setattr(auth_router, "_jwks_client", None)
+    monkeypatch.setattr(auth_router, "KEYCLOAK_URL", "http://keycloak:8080")
     first = auth_router._get_jwks_client()
     second = auth_router._get_jwks_client()
     assert first is second

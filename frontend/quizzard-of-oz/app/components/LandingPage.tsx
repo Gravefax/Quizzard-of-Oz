@@ -223,19 +223,17 @@ export default function LandingPage() {
         </div>
 
         {/* ── Top 3 preview ── */}
-        <div
-          className={`w-full max-w-sm mb-4 ${styles['leaderboard-card']} px-4 py-3 cursor-pointer`}
-          onClick={() => router.push('/leaderboard')}
-          role="link"
-          tabIndex={0}
-          onKeyDown={(e) => e.key === 'Enter' && router.push('/leaderboard')}
+        <a
+          href="/leaderboard"
+          className={`w-full max-w-sm mb-4 ${styles['leaderboard-card']} px-4 py-3 block`}
+          onClick={(e) => { e.preventDefault(); router.push('/leaderboard'); }}
         >
           <div className="flex items-center justify-between mb-2">
             <span style={{ color: 'rgba(var(--oz-text-secondary-rgb),0.92)', fontWeight: 700, letterSpacing: '0.04em' }}>Top 3</span>
             <span style={{ color: 'rgba(var(--oz-text-secondary-rgb),0.55)', fontSize: '0.7rem', letterSpacing: '0.08em' }}>LIVE LEADERBOARD →</span>
           </div>
           {topPlayersContent}
-        </div>
+        </a>
 
         {/* ── Action buttons ── */}
         <div className="flex flex-col items-center gap-4 w-full max-w-sm">

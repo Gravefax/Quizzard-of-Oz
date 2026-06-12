@@ -88,11 +88,13 @@ describe("KeycloakProvider", () => {
     );
     unmount();
 
-    // Resolving after unmount must not throw or update state
     await act(async () => {
       resolveInit(true);
     });
-    // If we reach here without errors, the cancelled guard is working
+
+    // The component unmounted before init resolved — setState must not have been called,
+    // so the node is gone from the document and no re-render occurred.
+    expect(document.querySelector("[data-testid='initialized']")).toBeNull();
   });
 });
 

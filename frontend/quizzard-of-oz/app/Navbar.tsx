@@ -99,7 +99,7 @@ export default function Navbar() {
       hasExplicitlyLoggedOut.current = true;
       logout().finally(() => {
         clearCredential();
-        keycloak?.logout({ redirectUri: window.location.origin });
+        keycloak?.logout({ redirectUri: globalThis.location.origin });
       });
     });
   }
@@ -124,7 +124,7 @@ export default function Navbar() {
         onClick={(e) => {
           if (isBattle) {
             e.preventDefault();
-            withBattleGuard(() => window.location.assign('/'));
+            withBattleGuard(() => globalThis.location.assign('/'));
           }
         }}
       >
@@ -148,7 +148,7 @@ export default function Navbar() {
           onClick={(e) => {
             if (isBattle) {
               e.preventDefault();
-              withBattleGuard(() => window.location.assign('/leaderboard'));
+              withBattleGuard(() => globalThis.location.assign('/leaderboard'));
             }
           }}
         >
@@ -194,7 +194,7 @@ export default function Navbar() {
                 setMobileOpen(false);
                 if (isBattle) {
                   e.preventDefault();
-                  withBattleGuard(() => window.location.assign('/leaderboard'));
+                  withBattleGuard(() => globalThis.location.assign('/leaderboard'));
                 }
               }}
               className="flex items-center gap-2 px-4 py-3 text-sm transition-colors hover:bg-white/10"
@@ -217,8 +217,7 @@ export default function Navbar() {
               <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
             </button>
             {isLoggedIn ? (
-              <>
-                <button
+              <button
                   type="button"
                   role="menuitem"
                   onClick={() => {
@@ -233,7 +232,6 @@ export default function Navbar() {
                 >
                   Abmelden
                 </button>
-              </>
             ) : (
               <div
                 className="px-4 py-3"

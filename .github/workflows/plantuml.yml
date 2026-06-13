@@ -21,22 +21,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
-      - name: Install Java
-        uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4
-        with:
-          distribution: temurin
-          java-version: '21'
-
-      - name: Download PlantUML
+      - name: Install PlantUML
         run: |
-          curl -sSfL -o /usr/local/bin/plantuml.jar \
-            https://github.com/plantuml/plantuml/releases/latest/download/plantuml.jar
+          sudo apt-get install -y plantuml
 
       - name: Generate PlantUML SVGs
         run: |
           mkdir -p docs/images
           for f in docs/c4/*.puml; do
-            java -jar /usr/local/bin/plantuml.jar -tsvg -o "$(pwd)/docs/images" "$f"
+            plantuml -tsvg -o "$(pwd)/docs/images" "$f"
           done
 
       - name: Check for changes

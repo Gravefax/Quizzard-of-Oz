@@ -1,7 +1,7 @@
 name: Generate PlantUML Diagrams
 
 on:
-  push:
+  pull_request:
     branches:
       - dev
     paths:
@@ -20,6 +20,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ github.head_ref || github.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install Java
         uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4
@@ -48,8 +51,16 @@ jobs:
           git add docs/images/*.svg
           git diff --cached --quiet && echo "changed=false" >> $GITHUB_OUTPUT || echo "changed=true" >> $GITHUB_OUTPUT
 
-      - name: Create pull request
-        if: steps.changes.outputs.changed == 'true'
+      - name: Commit to existing PR branch
+        if: steps.changes.outputs.changed == 'true' && github.event_name == 'pull_request'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: regenerate PlantUML SVG diagrams [skip ci]"
+          git push origin HEAD:${{ github.head_ref }}
+
+      - name: Create new pull request
+        if: steps.changes.outputs.changed == 'true' && github.event_name == 'workflow_dispatch'
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}

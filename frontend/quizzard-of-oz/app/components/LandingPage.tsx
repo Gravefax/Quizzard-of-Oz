@@ -6,6 +6,7 @@ import { fetchLeaderboard } from '@/app/lib/api/ranking';
 import type { LeaderboardEntry } from '@/app/models/Leaderboard';
 import styles from './LandingPage.module.css';
 import { IconCrossedSwords, IconTarget } from '@/app/components/Icons';
+import PageBackground from '@/app/components/PageBackground';
 
 type ColorType = 'cyan' | 'fire' | 'gold';
 
@@ -111,63 +112,32 @@ export default function LandingPage() {
     <div className="flex-1 flex flex-col relative overflow-hidden">
 
       {/* ── Background layer ── */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-
-        {/* Subtle dot/grid pattern */}
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage: `
-              linear-gradient(rgba(var(--oz-accent-line-rgb),0.04) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(var(--oz-accent-line-rgb),0.04) 1px, transparent 1px)
-            `,
-            backgroundSize: '64px 64px',
-          }}
-        />
-
-        {/* Horizontal scan line */}
-        <div
-          className="absolute left-0 right-0"
-          style={{
-            height: '1px',
-            background: 'linear-gradient(90deg, transparent 0%, rgba(var(--oz-accent-line-rgb),0.18) 40%, rgba(var(--oz-accent-line-rgb),0.18) 60%, transparent 100%)',
-            animation: 'scanDown 9s linear 0.5s infinite',
-          }}
-        />
-
-        {/* Cyan glow orb — left */}
-        <div
-          className="absolute"
-          style={{
+      <PageBackground
+        gridColor="rgba(var(--oz-accent-line-rgb),0.04)"
+        scanColor="rgba(var(--oz-accent-line-rgb),0.18)"
+        scanAnimation="scanDown 9s linear 0.5s infinite"
+        orbs={[
+          {
             width: '700px', height: '700px',
             top: '10%', left: '-15%',
             background: 'radial-gradient(circle, rgba(0,212,255,0.065) 0%, transparent 65%)',
             animation: 'ambFloat0 14s ease-in-out infinite',
-          }}
-        />
-
-        {/* Fire glow orb — right */}
-        <div
-          className="absolute"
-          style={{
+          },
+          {
             width: '560px', height: '560px',
             top: '5%', right: '-10%',
             background: 'radial-gradient(circle, rgba(255,60,20,0.06) 0%, transparent 65%)',
             animation: 'ambFloat1 12s ease-in-out 1.5s infinite',
-          }}
-        />
-
-        {/* Center depth orb — subtle vignette, adapts to theme */}
-        <div
-          className="absolute rounded-full"
-          style={{
+          },
+          {
             width: '600px', height: '600px',
             top: '50%', left: '50%',
             background: 'radial-gradient(circle, rgba(0,212,255,0.03) 0%, rgba(var(--oz-depth-bg-rgb),0.28) 55%, transparent 100%)',
             animation: 'orbPulse 7s ease-in-out infinite',
-          }}
-        />
-
+            className: 'rounded-full',
+          },
+        ]}
+      >
         {/* Ambient large background chars */}
         {AMB_DATA.map((item) => (
           <div
@@ -185,7 +155,6 @@ export default function LandingPage() {
             {item.char}
           </div>
         ))}
-
         {/* Rising floating chars */}
         {FLOAT_DATA.map((item) => (
           <div
@@ -203,7 +172,7 @@ export default function LandingPage() {
             {item.char}
           </div>
         ))}
-      </div>
+      </PageBackground>
 
       {/* ── Main content ── */}
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-8">

@@ -1,12 +1,17 @@
 name: Generate PlantUML Diagrams
 
 on:
-  push:
+  pull_request:
     branches:
       - dev
     paths:
       - 'docs/c4/**.puml'
   workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to commit SVGs to (leave empty to open a new PR)'
+        required: false
+        default: ''
 
 jobs:
   generate-diagrams:
@@ -20,25 +25,47 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ github.event.inputs.branch || github.head_ref || github.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install PlantUML
+      - name: Install Java
+        uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Install Graphviz
+        run: sudo apt-get install -y graphviz
+
+      - name: Download PlantUML
         run: |
-          sudo apt-get install -y plantuml
+          curl -sSfL -o /usr/local/bin/plantuml.jar \
+            https://github.com/plantuml/plantuml/releases/latest/download/plantuml.jar
 
       - name: Generate PlantUML SVGs
         run: |
           mkdir -p docs/images
           for f in docs/c4/*.puml; do
-            plantuml -tsvg -o "$(pwd)/docs/images" "$f"
+            java -jar /usr/local/bin/plantuml.jar -tsvg -o "$(pwd)/docs/images" "$f"
           done
 
       - name: Check for changes
         id: changes
         run: |
-          git diff --quiet docs/images/*.svg && echo "changed=false" >> $GITHUB_OUTPUT || echo "changed=true" >> $GITHUB_OUTPUT
+          git add docs/images/*.svg
+          git diff --cached --quiet && echo "changed=false" >> $GITHUB_OUTPUT || echo "changed=true" >> $GITHUB_OUTPUT
 
-      - name: Create pull request
-        if: steps.changes.outputs.changed == 'true'
+      - name: Commit to existing PR branch
+        if: steps.changes.outputs.changed == 'true' && (github.event_name == 'pull_request' || github.event.inputs.branch != '')
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: regenerate PlantUML SVG diagrams [skip ci]"
+          git push origin HEAD:${{ github.event.inputs.branch || github.head_ref }}
+
+      - name: Create new pull request
+        if: steps.changes.outputs.changed == 'true' && github.event_name == 'workflow_dispatch' && github.event.inputs.branch == ''
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}

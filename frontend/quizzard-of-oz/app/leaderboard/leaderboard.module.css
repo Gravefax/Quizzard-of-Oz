@@ -59,9 +59,9 @@
 }
 
 .page-btn:hover:not(:disabled) {
-  background: rgba(255,200,0,0.08);
+  background: rgba(0,0,0,0.3);
   border-color: rgba(255,200,0,0.5);
-  color: rgba(255,228,140,0.9);
+  color: rgba(255,228,140,1);
 }
 
 .page-btn:disabled {
@@ -93,7 +93,7 @@
   color: rgba(166, 108, 0, 0.95);
 }
 :global(html.light) .page-btn:hover:not(:disabled) {
-  background: rgba(190, 140, 20, 0.1);
+  background: transparent;
   border-color: rgba(190, 140, 20, 0.7);
   color: rgba(140, 92, 0, 1);
 }

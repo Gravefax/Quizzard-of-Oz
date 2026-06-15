@@ -6,6 +6,7 @@ import { fetchPracticeQuestions, checkPracticeAnswer } from '../lib/api/quiz';
 import { AnswerResult, Question } from '../lib/interfaces/Questions';
 import practiceStyles from './practice.module.css';
 import { IconTarget, IconTrophy, IconStar, IconAlertTriangle } from '@/app/components/Icons';
+import PageBackground from '@/app/components/PageBackground';
 
 type QuizState = 'idle' | 'loading' | 'playing' | 'answered' | 'finished' | 'error';
 
@@ -78,63 +79,29 @@ export default function PracticeQuiz() {
     <div className="flex-1 flex flex-col relative overflow-hidden">
 
       {/* ── Background layer ── */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-
-        {/* Dot grid */}
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage: `
-              linear-gradient(rgba(255,200,0,0.022) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(255,200,0,0.022) 1px, transparent 1px)
-            `,
-            backgroundSize: '64px 64px',
-          }}
-        />
-
-        {/* Scan line */}
-        <div
-          className="absolute left-0 right-0"
-          style={{
-            height: '1px',
-            background: 'linear-gradient(90deg, transparent 0%, rgba(255,200,0,0.12) 40%, rgba(255,200,0,0.12) 60%, transparent 100%)',
-            animation: 'scanDown 11s linear 0.8s infinite',
-          }}
-        />
-
-        {/* Gold orb — left */}
-        <div
-          className="absolute"
-          style={{
+      <PageBackground
+        scanAnimation="scanDown 11s linear 0.8s infinite"
+        orbs={[
+          {
             width: '620px', height: '620px',
             top: '5%', left: '-18%',
             background: 'radial-gradient(circle, rgba(255,200,0,0.05) 0%, transparent 65%)',
             animation: 'ambFloat0 14s ease-in-out infinite',
-          }}
-        />
-
-        {/* Cyan orb — right */}
-        <div
-          className="absolute"
-          style={{
+          },
+          {
             width: '500px', height: '500px',
             top: '8%', right: '-12%',
             background: 'radial-gradient(circle, rgba(0,212,255,0.05) 0%, transparent 65%)',
             animation: 'ambFloat1 12s ease-in-out 1.5s infinite',
-          }}
-        />
-
-        {/* Center depth orb — adapts to theme */}
-        <div
-          className="absolute"
-          style={{
+          },
+          {
             width: '500px', height: '500px',
             top: '50%', left: '50%',
             background: 'radial-gradient(circle, rgba(255,200,0,0.03) 0%, rgba(var(--oz-depth-bg-rgb),0.25) 55%, transparent 100%)',
             animation: 'orbPulse 7s ease-in-out infinite',
-          }}
-        />
-      </div>
+          },
+        ]}
+      />
 
       {/* ── Persistent back button ── */}
       <button

@@ -46,7 +46,7 @@ export default function Navbar() {
     if (!mobileOpen) return;
 
     const handleOutsideClick = (event: MouseEvent) => {
-      if (!mobileMenuRef.current?.contains(event.target as Node)) {
+      if (event.target instanceof Node && !mobileMenuRef.current?.contains(event.target)) {
         setMobileOpen(false);
       }
     };

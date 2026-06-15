@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { fetchLeaderboard, searchLeaderboardByUsername } from '@/app/lib/api/ranking';
 import type { LeaderboardEntry } from '@/app/models/Leaderboard';
 import lbStyles from './leaderboard.module.css';
+import PageBackground from '@/app/components/PageBackground';
 
 const RANK_MEDAL: Record<number, string> = { 1: '🥇', 2: '🥈', 3: '🥉' };
 
@@ -91,13 +92,11 @@ export default function LeaderboardPage() {
   } else {
     tableBodyContent = entries.map((entry) => {
       const isTop3 = entry.rank <= 3;
-      const rankColor = entry.rank === 1
-        ? 'rgba(var(--oz-gold-title-rgb),0.95)'
-        : entry.rank === 2
-          ? 'rgba(var(--oz-text-secondary-rgb),0.85)'
-          : entry.rank === 3
-            ? 'rgba(200,140,80,0.9)'
-            : 'rgba(var(--oz-text-secondary-rgb),0.6)';
+      let rankColor: string;
+      if (entry.rank === 1) rankColor = 'rgba(var(--oz-gold-title-rgb),0.95)';
+      else if (entry.rank === 2) rankColor = 'rgba(var(--oz-text-secondary-rgb),0.85)';
+      else if (entry.rank === 3) rankColor = 'rgba(200,140,80,0.9)';
+      else rankColor = 'rgba(var(--oz-text-secondary-rgb),0.6)';
 
       return (
         <tr
@@ -125,58 +124,29 @@ export default function LeaderboardPage() {
     <div className="flex-1 flex flex-col relative overflow-hidden">
 
       {/* ── Background layer ── */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {/* Dot grid */}
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage: `
-              linear-gradient(rgba(255,200,0,0.022) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(255,200,0,0.022) 1px, transparent 1px)
-            `,
-            backgroundSize: '64px 64px',
-          }}
-        />
-        {/* Scan line */}
-        <div
-          className="absolute left-0 right-0"
-          style={{
-            height: '1px',
-            background: 'linear-gradient(90deg, transparent 0%, rgba(255,200,0,0.12) 40%, rgba(255,200,0,0.12) 60%, transparent 100%)',
-            animation: 'scanDown 10s linear 0.5s infinite',
-          }}
-        />
-        {/* Gold orb — left */}
-        <div
-          className="absolute"
-          style={{
+      <PageBackground
+        scanAnimation="scanDown 10s linear 0.5s infinite"
+        orbs={[
+          {
             width: '650px', height: '650px',
             top: '0%', left: '-20%',
             background: 'radial-gradient(circle, rgba(255,200,0,0.055) 0%, transparent 65%)',
             animation: 'ambFloat0 15s ease-in-out infinite',
-          }}
-        />
-        {/* Cyan orb — right */}
-        <div
-          className="absolute"
-          style={{
+          },
+          {
             width: '520px', height: '520px',
             top: '10%', right: '-14%',
             background: 'radial-gradient(circle, rgba(0,212,255,0.05) 0%, transparent 65%)',
             animation: 'ambFloat1 13s ease-in-out 1.5s infinite',
-          }}
-        />
-        {/* Center depth orb — adapts to theme */}
-        <div
-          className="absolute"
-          style={{
+          },
+          {
             width: '500px', height: '500px',
             top: '50%', left: '50%',
             background: 'radial-gradient(circle, rgba(255,200,0,0.03) 0%, rgba(var(--oz-depth-bg-rgb),0.25) 55%, transparent 100%)',
             animation: 'orbPulse 8s ease-in-out infinite',
-          }}
-        />
-      </div>
+          },
+        ]}
+      />
 
       {/* ── Content ── */}
       <div className="relative z-10 flex-1 px-4 py-8 md:px-8">

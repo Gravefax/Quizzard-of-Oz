@@ -224,7 +224,11 @@ async def test_start_round_uses_category_options_and_resets_state():
     assert quiz_service.category_calls[0]["exclude_ids"] == ("used-id",)
     assert state.offered_categories == ["Science", "History", "Sports"]
     assert ws1.send_json.await_args_list[0].args[0]["type"] == "pick_category"
+    assert ws1.send_json.await_args_list[0].args[0]["deadline_seconds"] == battle_manager.CATEGORY_TIME_SECONDS
     assert ws2.send_json.await_args_list[0].args[0]["type"] == "waiting_for_category"
+    assert ws2.send_json.await_args_list[0].args[0]["deadline_seconds"] == battle_manager.CATEGORY_TIME_SECONDS
+
+    manager._cancel_task(state.category_timer_task)
 
 
 @pytest.mark.asyncio
@@ -265,7 +269,8 @@ async def test_start_round_aborts_match_when_category_loading_fails():
 
 
 @pytest.mark.asyncio
-async def test_handle_category_pick_loads_questions_and_tracks_used_ids():
+async def test_handle_category_pick_loads_questions_and_tracks_used_ids(monkeypatch):
+    monkeypatch.setattr(battle_manager, "CATEGORY_REVEAL_SECONDS", 0)
     questions = [_make_question("q1"), _make_question("q2"), _make_question("q3")]
     quiz_service = FakeQuizService(questions=questions)
     manager = BattleManager(quiz_service)
@@ -281,6 +286,7 @@ async def test_handle_category_pick_loads_questions_and_tracks_used_ids():
         offered_categories=["Science"],
         used_question_ids={"used-id"},
     )
+    manager._matches["match-1"] = state
 
     with patch.object(manager, "_send_current_question", new_callable=AsyncMock) as mock_send_question:
         await manager._handle_category_pick(
@@ -548,6 +554,57 @@ async def test_question_timeout_is_noop_after_reveal_started():
 
     with patch("app.services.battle_manager.asyncio.sleep", new_callable=AsyncMock):
         await manager._question_timeout("match-1", state, 0)
+
+    ws1.send_json.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_category_timeout_auto_picks_offered_category(monkeypatch):
+    monkeypatch.setattr(battle_manager, "CATEGORY_TIME_SECONDS", 0)
+    monkeypatch.setattr(battle_manager, "CATEGORY_REVEAL_SECONDS", 0)
+    questions = [_make_question("q1"), _make_question("q2"), _make_question("q3")]
+    quiz_service = FakeQuizService(questions=questions)
+    manager = BattleManager(quiz_service)
+    ws1 = _make_websocket()
+    ws2 = _make_websocket()
+    user1 = _make_user()
+    user2 = _make_user()
+    state = MatchState(
+        players=[{"ws": ws1, "user": user1}, {"ws": ws2, "user": user2}],
+        current_round=1,
+        phase="picking",
+        picker_idx=0,
+        offered_categories=["Science"],
+    )
+    manager._matches["match-1"] = state
+
+    with patch.object(manager, "_send_current_question", new_callable=AsyncMock) as mock_send_question:
+        await manager._category_timeout("match-1", state, 1)
+
+    # The deadline forces a valid category from the offered options, so the
+    # round leaves the "picking" phase even though no one clicked.
+    assert state.phase == "questions"
+    chosen = [
+        c.args[0] for c in ws2.send_json.call_args_list if c.args[0]["type"] == "category_chosen"
+    ]
+    assert chosen and chosen[0]["category"] == "Science"
+    mock_send_question.assert_called_once_with(state, "match-1")
+
+
+@pytest.mark.asyncio
+async def test_category_timeout_is_noop_after_pick():
+    manager = BattleManager(FakeQuizService())
+    ws1 = _make_websocket()
+    user1 = _make_user()
+    state = MatchState(
+        players=[{"ws": ws1, "user": user1}],
+        phase="questions",  # picker already chose before the deadline fired
+        offered_categories=["Science"],
+        current_round=1,
+    )
+
+    with patch("app.services.battle_manager.asyncio.sleep", new_callable=AsyncMock):
+        await manager._category_timeout("match-1", state, 1)
 
     ws1.send_json.assert_not_called()
 

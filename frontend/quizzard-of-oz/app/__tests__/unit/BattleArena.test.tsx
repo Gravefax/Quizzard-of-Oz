@@ -270,6 +270,97 @@ describe("BattleArena Component Tests", () => {
     );
   });
 
+  it("shows and counts down the category timer for the picker", async () => {
+    vi.useFakeTimers();
+    renderArena("match-cat1");
+
+    await emitMessage({
+      type: "match_ready",
+      your_username: "Alice",
+      opponent_username: "Bob",
+      you_pick_first: true,
+      rounds_to_win: 3,
+    });
+
+    await emitMessage({
+      type: "pick_category",
+      categories: ["Science", "History"],
+      round: 1,
+      your_wins: 0,
+      opponent_wins: 0,
+      deadline_seconds: 30,
+    });
+
+    expect(screen.getByText("30")).toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+
+    expect(screen.getByText("29")).toBeInTheDocument();
+  });
+
+  it("shows the same synced category countdown to the waiting player", async () => {
+    vi.useFakeTimers();
+    renderArena("match-cat2");
+
+    await emitMessage({
+      type: "match_ready",
+      your_username: "Alice",
+      opponent_username: "Bob",
+      you_pick_first: false,
+      rounds_to_win: 3,
+    });
+
+    await emitMessage({
+      type: "waiting_for_category",
+      round: 1,
+      your_wins: 0,
+      opponent_wins: 0,
+      picker_username: "Bob",
+      deadline_seconds: 30,
+    });
+
+    expect(screen.getByText(/bob wählt kategorie/i)).toBeInTheDocument();
+    expect(screen.getByText("30")).toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+
+    expect(screen.getByText("28")).toBeInTheDocument();
+  });
+
+  it("disables category buttons after a pick to block duplicate selections", async () => {
+    const user = userEvent.setup();
+    renderArena("match-cat3");
+
+    await emitMessage({
+      type: "match_ready",
+      your_username: "Alice",
+      opponent_username: "Bob",
+      you_pick_first: true,
+      rounds_to_win: 3,
+    });
+
+    await emitMessage({
+      type: "pick_category",
+      categories: ["Science"],
+      round: 1,
+      your_wins: 0,
+      opponent_wins: 0,
+      deadline_seconds: 30,
+    });
+
+    const categoryButton = await screen.findByRole("button", { name: /science/i });
+    await user.click(categoryButton);
+
+    expect(categoryButton).toBeDisabled();
+
+    await user.click(categoryButton);
+    expect(mockWebSocket.send).toHaveBeenCalledTimes(1);
+  });
+
   it("shows waiting spinner after answer_received without revealing the solution", async () => {
     renderArena("match-678");
 

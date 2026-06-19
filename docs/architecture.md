@@ -100,7 +100,7 @@ The project was developed in the Software Quality and Security module at Technis
 | Frontend to Keycloak | OIDC Authorization Code + PKCE via `keycloak-js` | Login, registration, access token acquisition, logout redirect. |
 | Backend to Keycloak | HTTPS JWKS lookup | Public keys for verifying Keycloak access tokens. |
 | Backend to PostgreSQL | SQLAlchemy over PostgreSQL protocol | CRUD for users, sessions, rankings, cached questions, and match results. |
-| Backend to The Trivia API | HTTPS JSON via httpx | `/v2/questions` requests with limit, categories, difficulties, optional API key, timeout, retries, and backoff. |
+| Backend to The Trivia API | HTTPS JSON via httpx | `/v2/questions` requests with limit, categories, difficulties, optional API key, timeout, retries, backoff, and a circuit breaker for sustained outages. |
 | Configuration | Environment variables and Docker build args | Database credentials, CORS origins, session cookie settings, Keycloak URL/realm/client ID, Trivia API settings, API base URL, build commit. |
 
 ### System Boundary
@@ -169,7 +169,7 @@ Source: `docs/c4/c3_frontend_components.puml`
 | WebSocket auth | `app/services/ws_auth.py` | Validates session cookie, session expiry, and user existence before accepting queue or battle sockets. |
 | User router/CRUD | `app/routers/user.py`, `app/crud/user.py` | Creates and reads users. Current create path uses username as `keycloak_sub`, so it is mainly useful for tests or internal setup. |
 | Quiz router/service | `app/routers/quiz.py`, `app/services/quiz_service.py` | Serves practice questions and checks practice answers through the trivia service. |
-| Trivia router/service/client | `app/routers/trivia.py`, `app/services/trivia_service.py`, `app/services/trivia_client.py` | Parses filters, fetches/cache-refills questions, validates payloads, exposes cached internal question IDs to clients. |
+| Trivia router/service/client | `app/routers/trivia.py`, `app/services/trivia_service.py`, `app/services/trivia_client.py` | Parses filters, fetches/cache-refills questions, validates payloads, exposes cached internal question IDs to clients. The client guards upstream calls with timeout, retry/backoff, and a `pybreaker` circuit breaker (ADR 11). |
 | Battle router | `app/routers/battle.py` | Exposes queue and battle WebSocket endpoints and delegates to matchmaking/battle services. |
 | Matchmaking service | `app/services/matchmaking_service.py` | Maintains in-memory queue, reads player Elo, matches closest eligible pair, expands allowed Elo delta over wait time, returns a match ID. |
 | Battle manager | `app/services/battle_manager.py` | Holds in-memory match state, enforces phases, handles category selection, questions, timers, scoring, surrender, disconnect, forfeit, game over. |
@@ -234,9 +234,9 @@ Refresh uses `GET /auth/refresh`, validates the existing cookie, extends expiry,
 1. The REST trivia endpoint accepts `limit`, `categories`, and `difficulties`.
 2. Unsupported query parameters, repeated `limit`, invalid limits, unsupported difficulties, and `query` are rejected with 400.
 3. The cache repository returns random matching questions, excluding IDs where required by battle flows.
-4. On cache miss, the client fetches from The Trivia API with configured timeout, retry count, backoff, and batch size.
-5. Invalid upstream payload items are skipped; if all items are invalid, the backend raises a payload error.
-6. If the cache still cannot satisfy the requested limit after refill attempts, the backend returns 503 for HTTP callers or aborts an active battle setup.
+4. On cache miss, the client fetches from The Trivia API with configured timeout, retry count, backoff, and batch size. A circuit breaker wraps the call: after `TRIVIA_BREAKER_FAIL_MAX` consecutive failed fetches it opens and short-circuits further upstream calls, failing fast until `TRIVIA_BREAKER_RESET_TIMEOUT` elapses and it half-opens (closing again on the next success).
+5. Invalid upstream payload items are skipped; if all items are invalid, the backend raises a payload error. Non-retryable responses and payload errors do not count toward the breaker, since they are not upstream outages.
+6. If the cache still cannot satisfy the requested limit after refill attempts — or while the breaker is open and the cache is empty — the backend returns 503 for HTTP callers or aborts an active battle setup, now without paying the per-request timeout and retry budget. See ADR 11.
 
 ### Matchmaking Flow
 

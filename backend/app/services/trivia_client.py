@@ -5,6 +5,7 @@ import time
 from typing import Any, Callable
 
 import httpx
+import pybreaker
 
 from app.services.trivia_types import QuestionFilters
 from app.settings import TriviaSettings
@@ -18,7 +19,7 @@ class TriviaClientError(Exception):
 
 
 class TriviaUpstreamUnavailableError(TriviaClientError):
-    """Raised when the upstream is unavailable or times out."""
+    """Raised when the upstream is unavailable, times out, or the circuit breaker is open."""
 
 
 class TriviaUpstreamResponseError(TriviaClientError):
@@ -41,6 +42,7 @@ class TriviaApiClient:
         client: httpx.Client | None = None,
         sleeper: Callable[[float], None] = time.sleep,
         logger: logging.Logger | None = None,
+        breaker: pybreaker.CircuitBreaker | None = None,
     ) -> None:
         self._settings = settings
         self._logger = logger or logging.getLogger("uvicorn.error")
@@ -50,12 +52,43 @@ class TriviaApiClient:
             base_url=self._settings.api_base_url.rstrip("/"),
             timeout=self._settings.timeout_seconds,
         )
+        # The breaker wraps the whole retry loop: each fully-failed fetch counts as
+        # one failure. After fail_max consecutive failures it opens and short-circuits
+        # further upstream calls until reset_timeout elapses (then half-open). Client
+        # and payload errors are excluded because they are not upstream outages.
+        self._breaker = breaker or pybreaker.CircuitBreaker(
+            fail_max=settings.breaker_fail_max,
+            reset_timeout=settings.breaker_reset_timeout,
+            exclude=[TriviaUpstreamResponseError, TriviaUpstreamPayloadError],
+            name="trivia_api",
+        )
 
     def close(self) -> None:
         if self._owns_client:
             self._client.close()
 
     def fetch_questions(
+        self,
+        filters: QuestionFilters,
+        *,
+        limit_override: int | None = None,
+    ) -> list[dict[str, Any]]:
+        try:
+            return self._breaker.call(
+                self._fetch_questions,
+                filters,
+                limit_override=limit_override,
+            )
+        except pybreaker.CircuitBreakerError as exc:
+            self._logger.warning(
+                "Trivia upstream short-circuited by open circuit breaker state=%s",
+                self._breaker.current_state,
+            )
+            raise TriviaUpstreamUnavailableError(
+                "Trivia API circuit breaker is open"
+            ) from exc
+
+    def _fetch_questions(
         self,
         filters: QuestionFilters,
         *,

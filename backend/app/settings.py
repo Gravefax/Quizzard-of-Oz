@@ -54,6 +54,8 @@ class TriviaSettings(BaseSettings):
     refill_attempts: int = Field(default=3, ge=1)
     refill_batch_size: int = Field(default=20, ge=1)
     max_limit: int = Field(default=50, ge=1)
+    breaker_fail_max: int = Field(default=5, ge=1)
+    breaker_reset_timeout: float = Field(default=30.0, gt=0)
 
 
 def load_trivia_settings(env_file: str | None = None) -> TriviaSettings:

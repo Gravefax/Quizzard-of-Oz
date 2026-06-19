@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:16
+    image: postgres:18.3-trixie
     container_name: quizzard-postgres
     restart: unless-stopped
     environment:
@@ -48,7 +48,7 @@ services:
       start_period: 40s
 
   backend:
-    image: ghcr.io/gravefax/quizzard-of-oz-backend:dev
+    image: ghcr.io/gravefax/quizzard-of-oz-backend:Updates
     container_name: quizzard-backend
     restart: unless-stopped
     environment:
@@ -87,7 +87,7 @@ services:
 
   frontend:
     # WICHTIG: Image muss mit den öffentlichen NEXT_PUBLIC_KEYCLOAK_* Build-Args gebaut sein!
-    image: ghcr.io/gravefax/quizzard-of-oz-frontend:dev
+    image: ghcr.io/gravefax/quizzard-of-oz-frontend:Updates
     container_name: quizzard-frontend
     restart: unless-stopped
     environment:

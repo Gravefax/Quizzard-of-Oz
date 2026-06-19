@@ -179,3 +179,103 @@ Accepted
 - Positive: Keycloak is open-source and self-hosted, removing the dependency on Google API policies.
 - Negative: adds a Keycloak container to the deployment stack, which must be kept healthy and configured.
 - Neutral: the backend continues to manage application sessions and authorization for protected routes.
+
+## ADR 8: Initial Google Login
+
+**Context**
+
+The project needed an authentication mechanism for registered players. Google
+OAuth was considered because it provides a familiar login flow and avoids
+building password handling directly into the application.
+
+**Decision**
+
+Use Google login as the initial identity-provider approach for player
+authentication.
+
+**Status**
+
+Overruled by ADR 7
+
+**Consequences**
+
+- Positive: users with an existing Google account would have had a familiar
+  login experience
+- Positive: the application team would not have needed to operate a separate
+  identity provider
+- Negative: automated E2E tests would have depended on an external commercial
+  login flow that is difficult to control in Playwright
+- Negative: registration would have required a Google account and would not
+  have supported the project's minimal username/password registration goal
+- Neutral: this decision is kept as historical context; the implemented system
+  uses Keycloak as defined in ADR 7
+
+## ADR 9: Backend-Managed Sessions with HttpOnly Cookies
+
+**Context**
+
+Keycloak provides identity and access tokens, but the application still needs a
+stable session concept for protected REST calls, queue WebSockets, and battle
+WebSockets. The frontend should not have to store or manage an application
+session secret in JavaScript.
+
+**Decision**
+
+After the frontend receives a Keycloak access token, it sends the token to
+`POST /auth/login`. The backend verifies the token through the Keycloak JWKS,
+creates or refreshes a local user, creates a session record in PostgreSQL, and
+sets an HttpOnly session cookie. REST endpoints and WebSocket handshakes that
+need authentication validate this backend session cookie.
+
+**Status**
+
+Accepted
+
+**Consequences**
+
+- Positive: application sessions can be revoked and refreshed independently of
+  the Keycloak browser state
+- Positive: the same session mechanism works for HTTP requests and WebSocket
+  authentication
+- Positive: the session cookie is not directly accessible to frontend
+  JavaScript
+- Negative: the backend must persist, expire, refresh, and delete session
+  records correctly
+- Negative: CORS, cookie domain, SameSite, Secure, and local-development
+  settings must be configured carefully
+- Neutral: Keycloak remains responsible for identity, while the backend remains
+  responsible for application authorization and session lifecycle
+
+## ADR 10: Process-Local Matchmaking and Battle State
+
+**Context**
+
+Ranked battles require low-latency state transitions, timers, player
+connections, answer handling, surrender handling, and result publication. The
+current system persists users, sessions, rankings, question cache entries, and
+completed match results, but active matchmaking and battle state is runtime
+state owned by the backend process.
+
+**Decision**
+
+Keep active queue, match, timer, and battle state in memory inside the backend
+services. Persist durable outcomes such as match results and ranking changes to
+PostgreSQL after the battle is completed or forfeited.
+
+**Status**
+
+Accepted for the current project scope
+
+**Consequences**
+
+- Positive: the implementation stays simple and fast for the current
+  single-backend deployment model
+- Positive: battle logic can keep direct references to active WebSocket
+  connections and timers without a distributed coordination layer
+- Negative: active matches are lost when the backend process restarts
+- Negative: horizontal scaling would require sticky routing, shared state, or a
+  dedicated coordination mechanism
+- Negative: E2E battle tests need controlled sequential execution because the
+  queue and battle state are shared through the backend process
+- Neutral: completed match results and ranking updates remain persistent in
+  PostgreSQL

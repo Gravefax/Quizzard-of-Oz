@@ -86,6 +86,8 @@ export default function BattleArena({ matchId }: BattleArenaProps) {
   const [gameOver, setGameOver] = useState<GameOverData | null>(null);
   const [nextPicker, setNextPicker] = useState('');
   const [timeLeft, setTimeLeft] = useState(20);
+  const [categoryTime, setCategoryTime] = useState(30);
+  const [categoryPicked, setCategoryPicked] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [pickerName, setPickerName] = useState('');
   const [showSurrenderConfirm, setShowSurrenderConfirm] = useState(false);
@@ -215,29 +217,37 @@ export default function BattleArena({ matchId }: BattleArenaProps) {
           setScores({ yourWins: 0, opponentWins: 0 });
           break;
 
-        case 'pick_category':
-          stopTimer();
+        case 'pick_category': {
+          const deadline = (msg.deadline_seconds as number | undefined) ?? 30;
           setCategories(msg.categories as string[]);
           setCurrentRound(msg.round as number);
           setScores({
             yourWins: msg.your_wins as number,
             opponentWins: msg.opponent_wins as number,
           });
+          setCategoryPicked(false);
+          setCategoryTime(deadline);
+          startTimer(deadline);
           setPhase('pick_category');
           break;
+        }
 
-        case 'waiting_for_category':
-          stopTimer();
+        case 'waiting_for_category': {
+          const deadline = (msg.deadline_seconds as number | undefined) ?? 30;
           setCurrentRound(msg.round as number);
           setScores({
             yourWins: msg.your_wins as number,
             opponentWins: msg.opponent_wins as number,
           });
           setPickerName(msg.picker_username as string);
+          setCategoryTime(deadline);
+          startTimer(deadline);
           setPhase('waiting_for_category');
           break;
+        }
 
         case 'category_chosen':
+          stopTimer();
           setChosenCategory(msg.category as string);
           setPhase('category_chosen');
           break;
@@ -356,6 +366,10 @@ export default function BattleArena({ matchId }: BattleArenaProps) {
    * @param cat - Category name
    */
   function pickCategory(cat: string) {
+    // Prevent a double selection after a click or once the timer expired.
+    if (categoryPicked) return;
+    setCategoryPicked(true);
+    stopTimer();
     send({ type: 'pick_category', category: cat });
   }
 
@@ -414,10 +428,22 @@ export default function BattleArena({ matchId }: BattleArenaProps) {
           {phase === 'waiting_for_opponent' && <WaitingForOpponentPhase />}
 
           {phase === 'pick_category' && (
-            <PickCategoryPhase categories={categories} onCategoryPicked={pickCategory} />
+            <PickCategoryPhase
+              categories={categories}
+              onCategoryPicked={pickCategory}
+              timeLeft={timeLeft}
+              totalTime={categoryTime}
+              disabled={categoryPicked || timeLeft <= 0}
+            />
           )}
 
-          {phase === 'waiting_for_category' && <WaitingForCategoryPhase pickerName={pickerName} />}
+          {phase === 'waiting_for_category' && (
+            <WaitingForCategoryPhase
+              pickerName={pickerName}
+              timeLeft={timeLeft}
+              totalTime={categoryTime}
+            />
+          )}
 
           {phase === 'category_chosen' && <CategoryChosenPhase category={chosenCategory} />}
 

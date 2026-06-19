@@ -1,13 +1,11 @@
 from __future__ import annotations
 
+import json
 import os
 from functools import lru_cache
 
-import json
-
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
 
 BACKEND_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 ENV_FILE = os.path.join(BACKEND_ROOT, ".env")
@@ -33,7 +31,7 @@ class AppSettings(BaseSettings):
 
 
 def load_app_settings(env_file: str | None = None) -> AppSettings:
-    return AppSettings(_env_file=env_file or ENV_FILE)
+    return AppSettings(_env_file=env_file or ENV_FILE)  # type: ignore[call-arg]
 
 
 @lru_cache
@@ -59,7 +57,7 @@ class TriviaSettings(BaseSettings):
 
 
 def load_trivia_settings(env_file: str | None = None) -> TriviaSettings:
-    return TriviaSettings(_env_file=env_file or ENV_FILE)
+    return TriviaSettings(_env_file=env_file or ENV_FILE)  # type: ignore[call-arg]
 
 
 @lru_cache

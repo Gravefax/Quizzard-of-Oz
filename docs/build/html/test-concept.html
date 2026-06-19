@@ -1,0 +1,873 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="./">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="prev" title="Architecture Decisions" href="decisions.html">
+
+    <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
+        <title>Test Concept - Quizzard of Oz Docs</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=e28e81d9" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  --color-brand-primary: #d9485f;
+  --color-brand-content: #b91c3d;
+  --color-api-name: #0f172a;
+  --color-api-pre-name: #f8fafc;
+  --color-background-primary: #fffaf7;
+  --color-background-secondary: #fff1ec;
+  --color-foreground-primary: #1f2937;
+  --color-foreground-secondary: #475569;
+  --color-card-background: #ffffff;
+  --color-card-border: #f1d6cf;
+  --color-link: #b91c3d;
+  --color-link--hover: #881337;
+  --color-sidebar-background: #fff7f3;
+  --color-sidebar-link-text: #334155;
+  --color-sidebar-link-text--top-level: #0f172a;
+  --color-sidebar-item-background--hover: #ffe7de;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  --color-brand-primary: #fb7185;
+  --color-brand-content: #fda4af;
+  --color-background-primary: #1b1a24;
+  --color-background-secondary: #231f2e;
+  --color-foreground-primary: #f8fafc;
+  --color-foreground-secondary: #cbd5e1;
+  --color-card-background: #262233;
+  --color-card-border: #453b57;
+  --color-link: #fda4af;
+  --color-link--hover: #fecdd3;
+  --color-sidebar-background: #17151f;
+  --color-sidebar-link-text: #cbd5e1;
+  --color-sidebar-link-text--top-level: #f8fafc;
+  --color-sidebar-item-background--hover: #2a2438;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  --color-brand-primary: #fb7185;
+  --color-brand-content: #fda4af;
+  --color-background-primary: #1b1a24;
+  --color-background-secondary: #231f2e;
+  --color-foreground-primary: #f8fafc;
+  --color-foreground-secondary: #cbd5e1;
+  --color-card-background: #262233;
+  --color-card-border: #453b57;
+  --color-link: #fda4af;
+  --color-link--hover: #fecdd3;
+  --color-sidebar-background: #17151f;
+  --color-sidebar-link-text: #cbd5e1;
+  --color-sidebar-link-text--top-level: #f8fafc;
+  --color-sidebar-item-background--hover: #2a2438;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">Quizzard of Oz Docs</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Documentation</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="planning.html">Planning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="decisions.html">Architecture Decisions</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Test Concept</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="_sources/test-concept.md.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="test-concept">
+<h1>Test Concept<a class="headerlink" href="#test-concept" title="Link to this heading">¶</a></h1>
+<p>This document describes the testing strategy for Quizzard of Oz. It consolidates the tests that are currently visible in the repository and explains how they protect the main quality goals: reliable gameplay, secure authentication, maintainable architecture, and repeatable delivery.</p>
+<section id="problem">
+<h2>Problem<a class="headerlink" href="#problem" title="Link to this heading">¶</a></h2>
+<p>The project already implements tests across the complete test pyramid: unit tests, integration tests, end-to-end UI automation with Playwright, security/authentication tests, and architecture tests. Without one written test concept, reviewers and contributors cannot easily see which test level uses which tool, where the tests are stored, and which quality risk each level covers.</p>
+<p>This page is the documented test concept for the project. It is linked from <code class="docutils literal notranslate"><span class="pre">docs/index.md</span></code>, included in the Sphinx toctree, and is therefore part of the Read the Docs build.</p>
+</section>
+<section id="purpose-and-goals">
+<h2>Purpose and Goals<a class="headerlink" href="#purpose-and-goals" title="Link to this heading">¶</a></h2>
+<p>The test concept defines which risks are covered by automated tests, which tools are used, and which checks should pass before changes are merged.</p>
+<p>The main goals are:</p>
+<ul class="simple">
+<li><p>detect regressions in authentication, session handling, quiz flow, ranking, trivia caching, and battle WebSocket behavior</p></li>
+<li><p>keep frontend and backend behavior verifiable without relying on manual browser testing</p></li>
+<li><p>enforce basic architecture boundaries in the frontend</p></li>
+<li><p>provide coverage reports for local feedback and SonarCloud</p></li>
+<li><p>keep CI results reproducible through pinned dependency files and explicit GitHub Actions jobs</p></li>
+</ul>
+</section>
+<section id="test-pyramid-overview">
+<h2>Test Pyramid Overview<a class="headerlink" href="#test-pyramid-overview" title="Link to this heading">¶</a></h2>
+<p>The project follows the test pyramid by combining many fast, isolated tests with fewer cross-component and full-system tests. The table below names every level required for the project checklist and maps it to the concrete implementation in this repository.</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Pyramid Level</p></th>
+<th class="head"><p>Tool / Framework</p></th>
+<th class="head"><p>Test Location</p></th>
+<th class="head"><p>Goal and Scope</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Unit tests</p></td>
+<td><p>Backend: <code class="docutils literal notranslate"><span class="pre">pytest</span></code>; frontend: Vitest with Testing Library and jsdom</p></td>
+<td><p>Backend: <code class="docutils literal notranslate"><span class="pre">backend/tests/</span></code>; frontend: <code class="docutils literal notranslate"><span class="pre">frontend/quizzard-of-oz/app/__tests__/unit</span></code></p></td>
+<td><p>Verify individual functions, services, stores, API clients, and UI components in isolation.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Integration tests</p></td>
+<td><p>Backend: <code class="docutils literal notranslate"><span class="pre">pytest</span></code> with FastAPI <code class="docutils literal notranslate"><span class="pre">TestClient</span></code>, dependency overrides, fake services; frontend: Vitest with Testing Library</p></td>
+<td><p>Backend: <code class="docutils literal notranslate"><span class="pre">backend/tests/</span></code>; frontend: <code class="docutils literal notranslate"><span class="pre">frontend/quizzard-of-oz/app/__tests__/integration</span></code></p></td>
+<td><p>Verify interaction between routers, services, CRUD boundaries, frontend pages, and combined UI flows without requiring the complete deployed system.</p></td>
+</tr>
+<tr class="row-even"><td><p>End-to-end UI automation</p></td>
+<td><p>Playwright with Chromium</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">frontend/quizzard-of-oz/app/__tests__/e2e</span></code></p></td>
+<td><p>Verify user-visible browser flows such as navigation, practice quiz, ranked queue, battle behavior, leaderboard, authentication, and leave guards.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Penetration / security tests</p></td>
+<td><p>Automated negative and authentication tests with <code class="docutils literal notranslate"><span class="pre">pytest</span></code>, Vitest, and Playwright</p></td>
+<td><p>Backend auth/session tests in <code class="docutils literal notranslate"><span class="pre">backend/tests/</span></code>; frontend security tests in <code class="docutils literal notranslate"><span class="pre">frontend/quizzard-of-oz/app/__tests__/security</span></code>; auth E2E specs in <code class="docutils literal notranslate"><span class="pre">frontend/quizzard-of-oz/app/__tests__/e2e</span></code></p></td>
+<td><p>Validate unauthorized access handling, invalid tokens/cookies, expired sessions, protected route behavior, and authentication-related failure paths. These are automated security regression tests, not a full manual penetration test.</p></td>
+</tr>
+<tr class="row-even"><td><p>Architecture tests</p></td>
+<td><p>Frontend: dependency-cruiser through Vitest; backend: no dedicated import-linter or pytest-arch configuration is currently present</p></td>
+<td><p>Frontend: <code class="docutils literal notranslate"><span class="pre">frontend/quizzard-of-oz/app/__tests__/arch</span></code>; backend architecture constraints are currently checked indirectly through pytest/service structure and code review</p></td>
+<td><p>Enforce frontend dependency rules and document the current backend architecture-test gap. A future backend architecture-test implementation should use a dedicated tool such as import-linter or pytest-arch if stricter backend layer enforcement is required.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="test-scope">
+<h2>Test Scope<a class="headerlink" href="#test-scope" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Area</p></th>
+<th class="head"><p>Covered Behavior</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Authentication and sessions</p></td>
+<td><p>Keycloak token exchange, backend session creation, refresh, logout, expired sessions, invalid cookies, WebSocket session validation.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Practice quiz</p></td>
+<td><p>Question loading, answer checking, error states, frontend quiz progression, result screens.</p></td>
+</tr>
+<tr class="row-even"><td><p>Trivia integration</p></td>
+<td><p>Request filter validation, upstream retries/errors, payload normalization, local question cache reads and writes.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Ranking and leaderboard</p></td>
+<td><p>Elo updates, match result persistence, leaderboard ordering, tie ranks, search, pagination, frontend rendering.</p></td>
+</tr>
+<tr class="row-even"><td><p>Battle and matchmaking</p></td>
+<td><p>Queue authentication, Elo-based pairing, match state transitions, category selection, answer acknowledgement, reveal timing, round result, surrender, disconnect, forfeit.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Frontend navigation and UI state</p></td>
+<td><p>Landing page, ranked page, navbar, mobile menu, battle leave guard, Keycloak provider behavior, auth store, theme store.</p></td>
+</tr>
+<tr class="row-even"><td><p>Security checks</p></td>
+<td><p>Protected API route behavior and backend session/JWKS validation paths.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Architecture rules</p></td>
+<td><p>No frontend circular dependencies, no component imports from API routes, and no production imports from test files.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Out of scope for the current automated test suite are production load testing, a full manual penetration test, browser compatibility beyond Chromium E2E, database migration testing, dedicated backend architecture tests with import-linter/pytest-arch, and infrastructure failover testing.</p>
+</section>
+<section id="test-levels-and-tools">
+<h2>Test Levels and Tools<a class="headerlink" href="#test-levels-and-tools" title="Link to this heading">¶</a></h2>
+<section id="static-and-build-checks">
+<h3>Static and Build Checks<a class="headerlink" href="#static-and-build-checks" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Check</p></th>
+<th class="head"><p>Tool</p></th>
+<th class="head"><p>Command</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Frontend linting</p></td>
+<td><p>ESLint</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">pnpm</span> <span class="pre">lint</span></code> from <code class="docutils literal notranslate"><span class="pre">frontend/quizzard-of-oz</span></code></p></td>
+<td><p>Detect TypeScript/React lint problems before runtime.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Frontend production build</p></td>
+<td><p>Next.js</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">pnpm</span> <span class="pre">build</span></code> from <code class="docutils literal notranslate"><span class="pre">frontend/quizzard-of-oz</span></code></p></td>
+<td><p>Verify the application compiles with configured public env vars.</p></td>
+</tr>
+<tr class="row-even"><td><p>Documentation build</p></td>
+<td><p>Sphinx/MyST</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.\.venv\Scripts\python.exe</span> <span class="pre">-m</span> <span class="pre">sphinx</span> <span class="pre">-b</span> <span class="pre">html</span> <span class="pre">docs</span> <span class="pre">&lt;output&gt;</span> <span class="pre">-d</span> <span class="pre">&lt;doctrees&gt;</span></code> from repository root</p></td>
+<td><p>Verify documentation syntax, links, toctree entries, and image references.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="backend-tests">
+<h3>Backend Tests<a class="headerlink" href="#backend-tests" title="Link to this heading">¶</a></h3>
+<p>Backend tests use <code class="docutils literal notranslate"><span class="pre">pytest</span></code>, <code class="docutils literal notranslate"><span class="pre">pytest-asyncio</span></code>, and <code class="docutils literal notranslate"><span class="pre">pytest-cov</span></code>. They live in <code class="docutils literal notranslate"><span class="pre">backend/tests</span></code>.</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Test Type</p></th>
+<th class="head"><p>Files / Examples</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>API and router tests</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">test_api.py</span></code>, <code class="docutils literal notranslate"><span class="pre">test_auth.py</span></code>, <code class="docutils literal notranslate"><span class="pre">test_battle.py</span></code>, <code class="docutils literal notranslate"><span class="pre">test_ranking_router.py</span></code>, <code class="docutils literal notranslate"><span class="pre">test_trivia_router.py</span></code>, <code class="docutils literal notranslate"><span class="pre">test_user_router.py</span></code></p></td>
+<td><p>Validate HTTP/WebSocket entry points, response codes, dependency overrides, and router-level error handling.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Service tests</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">test_battle_manager.py</span></code>, <code class="docutils literal notranslate"><span class="pre">test_matchmaking_service.py</span></code>, <code class="docutils literal notranslate"><span class="pre">test_ranking_service.py</span></code>, <code class="docutils literal notranslate"><span class="pre">test_quiz_service.py</span></code>, <code class="docutils literal notranslate"><span class="pre">test_trivia_service.py</span></code>, <code class="docutils literal notranslate"><span class="pre">test_trivia_client.py</span></code>, <code class="docutils literal notranslate"><span class="pre">test_ws_auth.py</span></code></p></td>
+<td><p>Validate business logic and integration boundaries without requiring the full running stack.</p></td>
+</tr>
+<tr class="row-even"><td><p>CRUD and model-adjacent tests</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">test_user_crud.py</span></code>, <code class="docutils literal notranslate"><span class="pre">test_session_crud.py</span></code>, <code class="docutils literal notranslate"><span class="pre">test_ranking_crud.py</span></code>, <code class="docutils literal notranslate"><span class="pre">test_question_cache_crud.py</span></code></p></td>
+<td><p>Validate SQLAlchemy query behavior through mocked sessions and repositories.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Configuration tests</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">test_settings.py</span></code></p></td>
+<td><p>Validate environment parsing and defaults.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Local command:</p>
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd </span><span class="n">backend</span>
+<span class="n">python</span> <span class="n">-m</span> <span class="n">pytest</span> <span class="n">tests</span> <span class="n">-q</span>
+</pre></div>
+</div>
+<p>CI command:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>backend/.venv/bin/pytest<span class="w"> </span>backend/tests/<span class="w"> </span>-v<span class="w"> </span>--cov<span class="o">=</span>backend/app<span class="w"> </span>--cov-report<span class="o">=</span>term-missing<span class="w"> </span>--cov-report<span class="o">=</span>xml:backend/coverage.xml<span class="w"> </span>--cov-branch<span class="w"> </span>--cov-config<span class="o">=</span>backend/.coveragerc
+</pre></div>
+</div>
+<p>The backend coverage configuration is stored in <code class="docutils literal notranslate"><span class="pre">backend/.coveragerc</span></code>. CI uploads <code class="docutils literal notranslate"><span class="pre">backend/coverage.xml</span></code> as the <code class="docutils literal notranslate"><span class="pre">backend-coverage</span></code> artifact for SonarCloud.</p>
+</section>
+<section id="frontend-unit-integration-security-and-architecture-tests">
+<h3>Frontend Unit, Integration, Security, and Architecture Tests<a class="headerlink" href="#frontend-unit-integration-security-and-architecture-tests" title="Link to this heading">¶</a></h3>
+<p>Frontend tests use Vitest, Testing Library, jsdom, dependency-cruiser, and V8 coverage. They live below <code class="docutils literal notranslate"><span class="pre">frontend/quizzard-of-oz/app/__tests__</span></code>.</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Test Type</p></th>
+<th class="head"><p>Location</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Unit tests</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">app/__tests__/unit</span></code></p></td>
+<td><p>Validate components, API clients, providers, stores, utility functions, and page-level behavior in isolation.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Integration tests</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">app/__tests__/integration</span></code></p></td>
+<td><p>Validate combined UI flows such as home, ranked, and battle interaction paths using mocked dependencies.</p></td>
+</tr>
+<tr class="row-even"><td><p>Security tests</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">app/__tests__/security</span></code></p></td>
+<td><p>Validate security-relevant behavior such as protected API route responses for missing or wrong cookies.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Architecture tests</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">app/__tests__/arch</span></code></p></td>
+<td><p>Enforce dependency rules with dependency-cruiser.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Local commands:</p>
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd </span><span class="n">frontend</span><span class="p">/</span><span class="n">quizzard-of-oz</span>
+<span class="n">pnpm</span> <span class="n">lint</span>
+<span class="n">pnpm</span> <span class="n">test</span><span class="p">:</span><span class="n">coverage</span>
+<span class="n">pnpm</span> <span class="n">test</span><span class="p">:</span><span class="n">arch</span>
+</pre></div>
+</div>
+<p>Vitest is configured in <code class="docutils literal notranslate"><span class="pre">vitest.config.ts</span></code> with jsdom, <code class="docutils literal notranslate"><span class="pre">vitest.setup.ts</span></code>, V8 coverage, and 80 percent thresholds for lines, functions, branches, and statements. Coverage reports are written to <code class="docutils literal notranslate"><span class="pre">frontend/quizzard-of-oz/test-results/coverage</span></code> as text, HTML, and lcov.</p>
+</section>
+<section id="security-and-penetration-test-approach">
+<h3>Security and Penetration Test Approach<a class="headerlink" href="#security-and-penetration-test-approach" title="Link to this heading">¶</a></h3>
+<p>The current security test approach is automated and regression-oriented. It focuses on negative authentication and authorization paths that are important for this application:</p>
+<ul class="simple">
+<li><p>missing, malformed, invalid, or expired backend session cookies</p></li>
+<li><p>invalid Keycloak bearer tokens and missing <code class="docutils literal notranslate"><span class="pre">sub</span></code> claims</p></li>
+<li><p>WebSocket handshake rejection for unauthenticated or expired sessions</p></li>
+<li><p>protected route responses for missing or wrong cookies</p></li>
+<li><p>logout and battle-leave behavior that should not silently keep privileged state alive</p></li>
+</ul>
+<p>These tests reduce the risk of accidental security regressions, but they do not replace a full manual penetration test, threat-modeling workshop, or external security assessment.</p>
+</section>
+<section id="architecture-test-approach">
+<h3>Architecture Test Approach<a class="headerlink" href="#architecture-test-approach" title="Link to this heading">¶</a></h3>
+<p>Frontend architecture rules are implemented as executable tests with dependency-cruiser in <code class="docutils literal notranslate"><span class="pre">frontend/quizzard-of-oz/app/__tests__/arch/architecture.test.ts</span></code>. They currently enforce:</p>
+<ul class="simple">
+<li><p>no circular dependencies in <code class="docutils literal notranslate"><span class="pre">app/</span></code></p></li>
+<li><p>no imports from <code class="docutils literal notranslate"><span class="pre">app/components</span></code> directly into <code class="docutils literal notranslate"><span class="pre">app/api</span></code></p></li>
+<li><p>no production source imports from test files</p></li>
+</ul>
+<p>The backend does not currently include a dedicated architecture-test tool such as import-linter or pytest-arch. Backend layering is protected by module structure, service/router/CRUD tests, and code review. If stricter backend architecture enforcement becomes required, import-linter or pytest-arch should be added as a separate backend architecture test level.</p>
+</section>
+<section id="end-to-end-tests">
+<h3>End-to-End Tests<a class="headerlink" href="#end-to-end-tests" title="Link to this heading">¶</a></h3>
+<p>End-to-end tests use Playwright and Chromium. The specs live in <code class="docutils literal notranslate"><span class="pre">frontend/quizzard-of-oz/app/__tests__/e2e</span></code>.</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>E2E Area</p></th>
+<th class="head"><p>Examples</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Home and navigation</p></td>
+<td><p>Landing page, cross-mode navigation, ranked/practice navigation.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Practice quiz</p></td>
+<td><p>Start quiz, answer questions, feedback, full quiz completion, restart, back navigation.</p></td>
+</tr>
+<tr class="row-even"><td><p>Leaderboard</p></td>
+<td><p>Leaderboard rendering, pagination, search behavior.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Authentication and navbar</p></td>
+<td><p>Keycloak login behavior, authenticated menu behavior, logout-related flows.</p></td>
+</tr>
+<tr class="row-even"><td><p>Ranked queue and battle</p></td>
+<td><p>Queue join/cancel, match flow, battle arena behavior.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Battle leave guard</p></td>
+<td><p>Navigation/logout protection during active battle routes.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Local command:</p>
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd </span><span class="n">frontend</span><span class="p">/</span><span class="n">quizzard-of-oz</span>
+<span class="n">pnpm</span> <span class="n">test</span><span class="p">:</span><span class="n">e2e</span>
+</pre></div>
+</div>
+<p>Playwright is configured in <code class="docutils literal notranslate"><span class="pre">playwright.config.ts</span></code> to:</p>
+<ul class="simple">
+<li><p>run tests from <code class="docutils literal notranslate"><span class="pre">app/__tests__/e2e</span></code></p></li>
+<li><p>use Chromium</p></li>
+<li><p>start the Next.js dev server on <code class="docutils literal notranslate"><span class="pre">http://localhost:3000</span></code></p></li>
+<li><p>start the backend on <code class="docutils literal notranslate"><span class="pre">http://127.0.0.1:8000</span></code></p></li>
+<li><p>reuse existing servers locally when possible</p></li>
+<li><p>run with <code class="docutils literal notranslate"><span class="pre">workers:</span> <span class="pre">1</span></code> and <code class="docutils literal notranslate"><span class="pre">fullyParallel:</span> <span class="pre">false</span></code></p></li>
+<li><p>collect traces on first retry</p></li>
+</ul>
+<p>Sequential E2E execution is intentional. WebSocket game tests share a backend, fixed test accounts, and queue state; parallel execution can create unexpected self-matches or flaky battle behavior.</p>
+</section>
+</section>
+<section id="test-environments">
+<h2>Test Environments<a class="headerlink" href="#test-environments" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Environment</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Responsibilities</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Local backend environment</p></td>
+<td><p>Python virtual environment with <code class="docutils literal notranslate"><span class="pre">backend/requirements.txt</span></code>.</p></td>
+<td><p>Run backend pytest suite and local FastAPI server.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Local frontend environment</p></td>
+<td><p>Node.js and pnpm dependencies from <code class="docutils literal notranslate"><span class="pre">pnpm-lock.yaml</span></code>.</p></td>
+<td><p>Run lint, Vitest, architecture tests, Next.js dev server, and Playwright.</p></td>
+</tr>
+<tr class="row-even"><td><p>Docker Compose stack</p></td>
+<td><p>PostgreSQL, Keycloak, backend, and frontend services.</p></td>
+<td><p>Manual full-stack checks and realistic local service wiring.</p></td>
+</tr>
+<tr class="row-odd"><td><p>GitHub Actions backend job</p></td>
+<td><p>Ubuntu runner with Python 3.12.</p></td>
+<td><p>Install backend dependencies, run pytest with coverage, upload backend coverage XML.</p></td>
+</tr>
+<tr class="row-even"><td><p>GitHub Actions frontend job</p></td>
+<td><p>Ubuntu runner with Node 22 and pnpm.</p></td>
+<td><p>Build frontend, run lint, Vitest coverage, architecture tests, upload lcov.</p></td>
+</tr>
+<tr class="row-odd"><td><p>GitHub Actions E2E job</p></td>
+<td><p>Ubuntu runner with PostgreSQL service and Keycloak container.</p></td>
+<td><p>Start required services, install browsers, run Playwright E2E.</p></td>
+</tr>
+<tr class="row-even"><td><p>SonarCloud</p></td>
+<td><p>Uses uploaded backend and frontend coverage artifacts.</p></td>
+<td><p>Aggregate static analysis and coverage reporting.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="test-data-and-isolation">
+<h2>Test Data and Isolation<a class="headerlink" href="#test-data-and-isolation" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Test Area</p></th>
+<th class="head"><p>Isolation Strategy</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Backend unit and service tests</p></td>
+<td><p>Use mocks, dependency overrides, fake repositories, fake WebSockets, and patched database engine creation where needed.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Backend router tests</p></td>
+<td><p>Use FastAPI <code class="docutils literal notranslate"><span class="pre">TestClient</span></code> and dependency overrides to avoid requiring a live database for most cases.</p></td>
+</tr>
+<tr class="row-even"><td><p>Trivia tests</p></td>
+<td><p>Use fake upstream clients and fake cache repositories to cover cache hit, refill, invalid payload, and insufficient question paths.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Frontend unit/integration tests</p></td>
+<td><p>Use Testing Library, jsdom, mocked API clients, mocked navigation, and mocked Keycloak behavior.</p></td>
+</tr>
+<tr class="row-even"><td><p>E2E tests</p></td>
+<td><p>Use Playwright browser contexts, helper functions, Keycloak test users, and a real backend/Keycloak/PostgreSQL environment in CI.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Battle E2E tests</p></td>
+<td><p>Run sequentially because the queue and match state are shared through the backend process.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Test data should remain deterministic where possible. External services should be mocked in unit and component tests; live service interaction is reserved for E2E scenarios.</p>
+</section>
+<section id="ci-quality-gates">
+<h2>CI Quality Gates<a class="headerlink" href="#ci-quality-gates" title="Link to this heading">¶</a></h2>
+<p>The GitHub Actions <code class="docutils literal notranslate"><span class="pre">ci.yml</span></code> workflow runs on pushes and pull requests to <code class="docutils literal notranslate"><span class="pre">dev</span></code> and <code class="docutils literal notranslate"><span class="pre">main</span></code>.</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Job</p></th>
+<th class="head"><p>Gate</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">frontend-build</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">pnpm</span> <span class="pre">install</span> <span class="pre">--frozen-lockfile</span></code> and <code class="docutils literal notranslate"><span class="pre">pnpm</span> <span class="pre">build</span></code> must pass.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">backend-test</span></code></p></td>
+<td><p>Backend pytest with branch coverage must pass and upload <code class="docutils literal notranslate"><span class="pre">backend/coverage.xml</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">frontend-test</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">pnpm</span> <span class="pre">lint</span></code>, <code class="docutils literal notranslate"><span class="pre">pnpm</span> <span class="pre">test:coverage</span></code>, and <code class="docutils literal notranslate"><span class="pre">pnpm</span> <span class="pre">test:arch</span></code> must pass and upload frontend lcov.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">frontend-e2e</span></code></p></td>
+<td><p>Playwright tests must pass with PostgreSQL and Keycloak available.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sonarcloud</span></code></p></td>
+<td><p>SonarCloud scan runs after backend and frontend test jobs and consumes coverage artifacts.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>For small documentation-only changes, the documentation build is the primary local verification. For changes touching auth, WebSockets, ranking, question handling, or navigation, run the affected backend/frontend tests plus E2E tests before merging.</p>
+</section>
+<section id="coverage-and-reporting">
+<h2>Coverage and Reporting<a class="headerlink" href="#coverage-and-reporting" title="Link to this heading">¶</a></h2>
+<p>The project coverage target is at least 80 percent. Frontend coverage thresholds of 80 percent for lines, functions, branches, and statements are enforced in <code class="docutils literal notranslate"><span class="pre">vitest.config.ts</span></code>. Backend and frontend coverage are measured in CI and reported to SonarCloud; backend coverage does not currently define a separate numeric pytest threshold in the repository.</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Report</p></th>
+<th class="head"><p>Location / Consumer</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Backend terminal coverage</p></td>
+<td><p>Printed by pytest in CI with <code class="docutils literal notranslate"><span class="pre">--cov-report=term-missing</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Backend XML coverage</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">backend/coverage.xml</span></code>, uploaded as <code class="docutils literal notranslate"><span class="pre">backend-coverage</span></code>, consumed by SonarCloud.</p></td>
+</tr>
+<tr class="row-even"><td><p>Frontend lcov coverage</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">frontend/quizzard-of-oz/test-results/coverage/lcov.info</span></code>, uploaded as <code class="docutils literal notranslate"><span class="pre">frontend-coverage</span></code>, consumed by SonarCloud.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Frontend HTML coverage</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">frontend/quizzard-of-oz/test-results/coverage</span></code>, useful for local inspection.</p></td>
+</tr>
+<tr class="row-even"><td><p>Playwright HTML report</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">frontend/quizzard-of-oz/test-results/playwright-report</span></code>, useful for E2E debugging.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Playwright traces</p></td>
+<td><p>Captured on first retry according to <code class="docutils literal notranslate"><span class="pre">playwright.config.ts</span></code>.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>SonarCloud is the central quality and coverage reporting tool in CI. The GitHub Actions workflow uploads backend XML coverage and frontend lcov coverage before running the SonarCloud scan.</p>
+</section>
+<section id="recommended-local-test-selection">
+<h2>Recommended Local Test Selection<a class="headerlink" href="#recommended-local-test-selection" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Change Type</p></th>
+<th class="head"><p>Recommended Checks</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Documentation only</p></td>
+<td><p>Sphinx build.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Backend router/service/CRUD change</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">pytest</span> <span class="pre">tests</span> <span class="pre">-q</span></code> from <code class="docutils literal notranslate"><span class="pre">backend</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p>Frontend component/page/client change</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">pnpm</span> <span class="pre">lint</span></code>, <code class="docutils literal notranslate"><span class="pre">pnpm</span> <span class="pre">test:coverage</span></code>, and <code class="docutils literal notranslate"><span class="pre">pnpm</span> <span class="pre">test:arch</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Authentication/session change</p></td>
+<td><p>Backend auth/WebSocket auth tests, frontend auth tests, and relevant Playwright auth scenarios.</p></td>
+</tr>
+<tr class="row-even"><td><p>Battle or matchmaking change</p></td>
+<td><p>Backend battle/matchmaking tests, frontend battle tests, and Playwright battle scenarios.</p></td>
+</tr>
+<tr class="row-odd"><td><p>CI/Docker/deployment change</p></td>
+<td><p>Relevant GitHub Actions job locally where possible, plus Docker Compose smoke test.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="known-gaps-and-risks">
+<h2>Known Gaps and Risks<a class="headerlink" href="#known-gaps-and-risks" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Gap or Risk</p></th>
+<th class="head"><p>Impact</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>No visible load or performance tests</p></td>
+<td><p>Queue behavior, WebSocket scaling, and battle latency under many concurrent players are not measured.</p></td>
+</tr>
+<tr class="row-odd"><td><p>No database migration tests</p></td>
+<td><p>The backend currently creates tables with SQLAlchemy metadata; future schema migrations would need dedicated tests.</p></td>
+</tr>
+<tr class="row-even"><td><p>No dedicated backend architecture-test tool</p></td>
+<td><p>Backend layering is not enforced by import-linter or pytest-arch today.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Limited production observability tests</p></td>
+<td><p>Logging is covered indirectly, but metrics, tracing, alerting, and log aggregation are not tested.</p></td>
+</tr>
+<tr class="row-even"><td><p>E2E tests depend on shared infrastructure</p></td>
+<td><p>PostgreSQL, Keycloak, backend state, and WebSocket queues make isolation harder than pure unit tests.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Browser coverage is Chromium-only</p></td>
+<td><p>Cross-browser behavior is not covered by the current Playwright configuration.</p></td>
+</tr>
+<tr class="row-even"><td><p>External Trivia API is mocked in most tests</p></td>
+<td><p>This improves determinism but means provider contract changes require targeted integration checks.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="maintenance-rules">
+<h2>Maintenance Rules<a class="headerlink" href="#maintenance-rules" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Add or update tests in the same change when behavior changes.</p></li>
+<li><p>Prefer unit and service tests for detailed edge cases; reserve Playwright for user-critical end-to-end behavior.</p></li>
+<li><p>Keep architecture tests aligned with actual frontend layering rules.</p></li>
+<li><p>Keep test documentation updated when commands, CI jobs, coverage thresholds, or test folders change.</p></li>
+<li><p>Do not rely on manual verification as the only evidence for auth, ranking, battle, or persistence changes.</p></li>
+</ul>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          <a class="prev-page" href="decisions.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Architecture Decisions</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Quizzard of Oz Team
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Test Concept</a><ul>
+<li><a class="reference internal" href="#problem">Problem</a></li>
+<li><a class="reference internal" href="#purpose-and-goals">Purpose and Goals</a></li>
+<li><a class="reference internal" href="#test-pyramid-overview">Test Pyramid Overview</a></li>
+<li><a class="reference internal" href="#test-scope">Test Scope</a></li>
+<li><a class="reference internal" href="#test-levels-and-tools">Test Levels and Tools</a><ul>
+<li><a class="reference internal" href="#static-and-build-checks">Static and Build Checks</a></li>
+<li><a class="reference internal" href="#backend-tests">Backend Tests</a></li>
+<li><a class="reference internal" href="#frontend-unit-integration-security-and-architecture-tests">Frontend Unit, Integration, Security, and Architecture Tests</a></li>
+<li><a class="reference internal" href="#security-and-penetration-test-approach">Security and Penetration Test Approach</a></li>
+<li><a class="reference internal" href="#architecture-test-approach">Architecture Test Approach</a></li>
+<li><a class="reference internal" href="#end-to-end-tests">End-to-End Tests</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#test-environments">Test Environments</a></li>
+<li><a class="reference internal" href="#test-data-and-isolation">Test Data and Isolation</a></li>
+<li><a class="reference internal" href="#ci-quality-gates">CI Quality Gates</a></li>
+<li><a class="reference internal" href="#coverage-and-reporting">Coverage and Reporting</a></li>
+<li><a class="reference internal" href="#recommended-local-test-selection">Recommended Local Test Selection</a></li>
+<li><a class="reference internal" href="#known-gaps-and-risks">Known Gaps and Risks</a></li>
+<li><a class="reference internal" href="#maintenance-rules">Maintenance Rules</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    </body>
+</html>

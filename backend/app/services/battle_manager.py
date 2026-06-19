@@ -148,9 +148,8 @@ from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app.models.match_result import ENDED_AS_FORFEIT
 from app.models.user import User
-from app.services.ranking_service import apply_match_result
-from app.services.ws_auth import authenticate_ws
 from app.services.quiz_service import QuizService, get_quiz_service
+from app.services.ranking_service import apply_match_result
 from app.services.trivia_client import (
     TriviaUpstreamPayloadError,
     TriviaUpstreamResponseError,
@@ -158,6 +157,7 @@ from app.services.trivia_client import (
 )
 from app.services.trivia_service import TriviaInsufficientQuestionsError
 from app.services.trivia_types import Question
+from app.services.ws_auth import authenticate_ws
 
 # WebSocket close codes for match-specific errors
 _CLOSE_FULL      = 4004  # Second player cannot join; match is full

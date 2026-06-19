@@ -1,18 +1,19 @@
-import pytest
+from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
-from datetime import datetime, timezone, timedelta
 from uuid import uuid4
+
+import pytest
 
 with patch("sqlalchemy.create_engine"):
     with patch("app.database.Base.metadata.create_all"):
-        from main import app
+        from main import app as _app  # noqa: F401
 
 from app.services.ws_auth import (
-    authenticate_ws,
-    _client_label,
-    SESSION_COOKIE_NAME,
-    _CLOSE_UNAUTHORIZED,
     _CLOSE_EXPIRED,
+    _CLOSE_UNAUTHORIZED,
+    SESSION_COOKIE_NAME,
+    _client_label,
+    authenticate_ws,
 )
 
 

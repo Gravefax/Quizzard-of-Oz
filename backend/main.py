@@ -3,14 +3,12 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import app.models  # noqa: F401
-from app.database import engine, Base
-from app.routers import quiz
-from app.routers import user, auth, battle, ranking
-from app.routers import trivia
+
+from app import models as _models  # noqa: F401
+from app.database import Base, engine
+from app.routers import auth, battle, quiz, ranking, trivia, user
 from app.services.trivia_service import close_trivia_resources
 from app.settings import get_app_settings
-
 
 LOG_FORMAT = "%(asctime)s.%(msecs)03d | %(levelname)s | %(name)s | %(message)s"
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
@@ -28,7 +26,8 @@ def _configure_logging() -> None:
 Base.metadata.create_all(bind=engine)
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(application: FastAPI):
+    _ = application
     _configure_logging()
     yield
     close_trivia_resources()

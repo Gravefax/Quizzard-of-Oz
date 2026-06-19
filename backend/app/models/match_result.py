@@ -1,7 +1,9 @@
 import uuid
+from datetime import datetime
 
-from sqlalchemy import Column, DateTime, ForeignKey, String, func
+from sqlalchemy import DateTime, ForeignKey, String, func
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
 
@@ -13,8 +15,27 @@ ENDED_AS_FORFEIT = "forfeit"
 class MatchResult(Base):
     __tablename__ = "match_results"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    winner_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
-    loser_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
-    ended_as = Column(String(16), nullable=False, default=ENDED_AS_NORMAL, server_default=ENDED_AS_NORMAL)
-    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    winner_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id"),
+        nullable=False,
+        index=True,
+    )
+    loser_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id"),
+        nullable=False,
+        index=True,
+    )
+    ended_as: Mapped[str] = mapped_column(
+        String(16),
+        nullable=False,
+        default=ENDED_AS_NORMAL,
+        server_default=ENDED_AS_NORMAL,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )

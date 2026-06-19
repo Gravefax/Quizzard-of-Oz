@@ -6,10 +6,10 @@ import pytest
 
 from app.services import battle_manager
 from app.services.battle_manager import (
-    BattleManager,
-    MatchState,
     _CLOSE_INTERNAL,
     _PREPARE_QUESTIONS_ERROR,
+    BattleManager,
+    MatchState,
 )
 from app.services.trivia_service import TriviaInsufficientQuestionsError
 from app.services.trivia_types import Question

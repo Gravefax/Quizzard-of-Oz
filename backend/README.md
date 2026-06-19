@@ -42,6 +42,13 @@ Run tests with:
 python -m pytest tests -q
 ```
 
+Run backend linting and static type checks with:
+
+```powershell
+python -m ruff check .
+python -m mypy
+```
+
 ## Trivia Endpoints
 
 New stable internal Trivia endpoint:

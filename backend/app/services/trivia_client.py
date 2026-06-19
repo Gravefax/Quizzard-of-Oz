@@ -6,9 +6,8 @@ from typing import Any, Callable
 
 import httpx
 
-from app.settings import TriviaSettings
 from app.services.trivia_types import QuestionFilters
-
+from app.settings import TriviaSettings
 
 TRIVIA_QUESTIONS_PATH = "/v2/questions"
 RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}

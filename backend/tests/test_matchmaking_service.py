@@ -1,13 +1,15 @@
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
+import pytest
+
 with patch("sqlalchemy.create_engine"):
     with patch("app.database.Base.metadata.create_all"):
-        from main import app
+        from main import app as _app  # noqa: F401
+
+from fastapi import WebSocketDisconnect
 
 from app.services.matchmaking_service import MatchmakingService
-from fastapi import WebSocketDisconnect
 
 
 def _make_websocket(*, user_id=None):

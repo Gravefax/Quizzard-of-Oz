@@ -17,7 +17,6 @@ from app.services.trivia_client import (
 from app.services.trivia_service import TriviaInsufficientQuestionsError
 from app.services.trivia_types import Question, QuestionBatch
 
-
 client = TestClient(app)
 
 

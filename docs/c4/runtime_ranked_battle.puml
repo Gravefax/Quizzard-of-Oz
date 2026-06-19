@@ -1,0 +1,146 @@
+@startuml Runtime_Ranked_Battle
+
+title Runtime View - Authenticated Ranked Battle from Queue to Game Over
+
+actor "Player 1" as P1
+actor "Player 2" as P2
+participant "Next.js frontend P1" as F1
+participant "Next.js frontend P2" as F2
+participant "BattleRouter" as Router
+participant "WsAuthService" as WsAuth
+participant "MatchmakingService" as Matchmaking
+participant "BattleManager" as BattleManager
+participant "QuizService / TriviaQuestionService" as TriviaService
+participant "RankingService" as RankingService
+database "PostgreSQL" as DB
+participant "Keycloak" as Keycloak
+participant "The Trivia API" as TriviaAPI
+
+note over P1, P2
+  Preconditions:
+  Both players already completed Keycloak login.
+  The backend created PostgreSQL-backed sessions and set HttpOnly session cookies.
+end note
+
+P1 -> F1: Open ranked mode
+F1 -> Router: WebSocket /battle/queue\nCookie: backend session
+Router -> WsAuth: authenticate_ws(websocket, db)
+WsAuth -> DB: get_session(session_id), get_user(user_id)
+alt missing, invalid, not-found session or user
+  WsAuth --> F1: close 4001
+else expired session
+  WsAuth --> F1: close 4003
+else valid session
+  WsAuth --> Router: User
+  Router -> Matchmaking: join(websocket, user, db)
+  Matchmaking -> RankingService: get_user_ranking(db, user_id)
+  RankingService -> DB: get_or_create_ranking(user_id)
+  Matchmaking --> F1: queued
+end
+
+P2 -> F2: Open ranked mode
+F2 -> Router: WebSocket /battle/queue\nCookie: backend session
+Router -> WsAuth: authenticate_ws(websocket, db)
+WsAuth -> DB: get_session(session_id), get_user(user_id)
+WsAuth --> Router: User
+Router -> Matchmaking: join(websocket, user, db)
+Matchmaking -> RankingService: get_user_ranking(db, user_id)
+RankingService -> DB: get_or_create_ranking(user_id)
+Matchmaking -> Matchmaking: Match closest eligible Elo pair\nbase delta 75, +50 every 5s
+Matchmaking --> F1: matched {match_id}
+Matchmaking --> F2: matched {match_id}
+
+F1 -> F1: Navigate to /battle/{match_id}
+F2 -> F2: Navigate to /battle/{match_id}
+
+F1 -> Router: WebSocket /battle/ws/{match_id}\nCookie: backend session
+Router -> WsAuth: authenticate_ws(websocket, db)
+WsAuth -> DB: get_session(session_id), get_user(user_id)
+WsAuth --> Router: User
+Router -> BattleManager: connect(websocket, match_id, user)
+BattleManager --> F1: waiting_for_opponent
+
+F2 -> Router: WebSocket /battle/ws/{match_id}\nCookie: backend session
+Router -> WsAuth: authenticate_ws(websocket, db)
+WsAuth -> DB: get_session(session_id), get_user(user_id)
+WsAuth --> Router: User
+Router -> BattleManager: connect(websocket, match_id, user)
+BattleManager -> BattleManager: create/update MatchState\nchoose first category picker
+BattleManager --> F1: match_ready
+BattleManager --> F2: match_ready
+
+loop rounds until first player has 3 round wins
+  BattleManager -> TriviaService: get_category_options(3 categories,\n3 questions each, exclude used ids)
+  TriviaService -> DB: get_categories_with_minimum_questions()
+  alt cache insufficient
+    TriviaService -> TriviaAPI: GET /v2/questions
+    alt upstream unavailable or insufficient questions
+      TriviaService --> BattleManager: error
+      BattleManager --> F1: close 1011\nUnable to prepare questions
+      BattleManager --> F2: close 1011\nUnable to prepare questions
+      BattleManager -> BattleManager: remove MatchState
+    else valid upstream payload
+      TriviaService -> DB: upsert normalized questions
+    end
+  end
+
+  BattleManager --> F1: pick_category {categories, deadline_seconds=30}
+  BattleManager --> F2: waiting_for_category {picker_username}
+  F1 -> Router: pick_category {category}
+  Router -> BattleManager: handle_message()
+  alt invalid picker, wrong phase, or invalid category
+    BattleManager -> BattleManager: ignore/reject event and keep authoritative state
+  else valid category
+    BattleManager -> TriviaService: get_questions(n=3, category, exclude used ids)
+    TriviaService -> DB: get_random_questions()
+    BattleManager --> F1: category_chosen
+    BattleManager --> F2: category_chosen
+
+    loop 3 questions in selected category
+      BattleManager --> F1: question {question_id, text, answers, category}
+      BattleManager --> F2: question {question_id, text, answers, category}
+      BattleManager -> BattleManager: start 20-second answer deadline
+      F1 -> Router: answer {question_id, answer}
+      Router -> BattleManager: handle_message()
+      BattleManager -> TriviaService: check_answer(question_id, answer)
+      BattleManager --> F1: answer_received {your_answer}
+      F2 -> Router: answer {question_id, answer}
+      Router -> BattleManager: handle_message()
+      BattleManager -> TriviaService: check_answer(question_id, answer)
+      BattleManager --> F2: answer_received {your_answer}
+      BattleManager --> F1: question_result {correct, correct_answer, your_answer}
+      BattleManager --> F2: question_result {correct, correct_answer, your_answer}
+    end
+
+    BattleManager -> BattleManager: compute round score and next picker
+    BattleManager --> F1: round_result
+    BattleManager --> F2: round_result
+  end
+end
+
+BattleManager -> BattleManager: determine match winner
+BattleManager --> F1: game_over
+BattleManager --> F2: game_over
+BattleManager -> RankingService: apply_match_result(db, winner_id, loser_id)
+RankingService -> DB: update rankings and insert match_results row
+BattleManager -> BattleManager: remove MatchState from memory
+
+alt surrender or disconnect during picking/questions
+  F1 -> Router: surrender or disconnect
+  Router -> BattleManager: disconnect() or handle_message(surrender)
+  BattleManager --> F2: opponent_forfeit
+  BattleManager -> RankingService: apply_match_result(..., ended_as="forfeit")
+  RankingService -> DB: update rankings and insert match_results row
+  BattleManager -> BattleManager: remove MatchState from memory
+else disconnect before match start
+  BattleManager --> F2: opponent_disconnected
+  BattleManager -> BattleManager: cleanup without forfeit
+end
+
+note over BattleManager
+  Active queue and match state is process-local.
+  Backend restart loses active queue entries and active matches.
+  Durable outcomes are rankings and match_results rows in PostgreSQL.
+end note
+
+@enduml

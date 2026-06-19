@@ -10,7 +10,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 BACKEND_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-ENV_FILE = os.path.join(BACKEND_ROOT, ".env")
+PROJECT_ROOT = os.path.abspath(os.path.join(BACKEND_ROOT, ".."))
+ENV_FILE = os.path.join(PROJECT_ROOT, ".env")
 
 
 class AppSettings(BaseSettings):

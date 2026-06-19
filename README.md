@@ -51,7 +51,7 @@ Voraussetzung: [Docker](https://www.docker.com/) und Docker Compose
 ```bash
 git clone https://github.com/Gravefax/SQS-Team-11
 cd SQS-Team-11
-cp backend/.env.example backend/.env
+cp .env.example .env
 docker compose up -d
 ```
 

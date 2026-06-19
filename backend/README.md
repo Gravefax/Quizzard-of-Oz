@@ -23,7 +23,7 @@ Trivia integration variables:
 - `TRIVIA_REFILL_BATCH_SIZE`
 - `TRIVIA_MAX_LIMIT`
 
-Copy `backend/.env.example` to `backend/.env` and adjust values for your machine.
+Copy the root `.env.example` to `.env` (in the repository root) and adjust values for your machine.
 
 
 

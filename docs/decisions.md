@@ -158,7 +158,37 @@ Accepted
 - Neutral: requires team familiarity with event-driven patterns while existing
   REST endpoints continue to be used where appropriate
 
-## ADR 7: Authentication with Keycloak
+## ADR 7: Initial Google Login
+
+**Context**
+
+The project needed an authentication mechanism for registered players. Google
+OAuth was considered because it provides a familiar login flow and avoids
+building password handling directly into the application.
+
+**Decision**
+
+Use Google login as the initial identity-provider approach for player
+authentication.
+
+**Status**
+
+Overruled by ADR 8
+
+**Consequences**
+
+- Positive: users with an existing Google account would have had a familiar
+  login experience
+- Positive: the application team would not have needed to operate a separate
+  identity provider
+- Negative: automated E2E tests would have depended on an external commercial
+  login flow that is difficult to control in Playwright
+- Negative: registration would have required a Google account and would not
+  have supported the project's minimal username/password registration goal
+- Neutral: this decision is kept as historical context; the implemented system
+  uses Keycloak as defined in ADR 8
+
+## ADR 8: Authentication with Keycloak
 
 **Context**
 
@@ -179,36 +209,6 @@ Accepted
 - Positive: Keycloak is open-source and self-hosted, removing the dependency on Google API policies.
 - Negative: adds a Keycloak container to the deployment stack, which must be kept healthy and configured.
 - Neutral: the backend continues to manage application sessions and authorization for protected routes.
-
-## ADR 8: Initial Google Login
-
-**Context**
-
-The project needed an authentication mechanism for registered players. Google
-OAuth was considered because it provides a familiar login flow and avoids
-building password handling directly into the application.
-
-**Decision**
-
-Use Google login as the initial identity-provider approach for player
-authentication.
-
-**Status**
-
-Overruled by ADR 7
-
-**Consequences**
-
-- Positive: users with an existing Google account would have had a familiar
-  login experience
-- Positive: the application team would not have needed to operate a separate
-  identity provider
-- Negative: automated E2E tests would have depended on an external commercial
-  login flow that is difficult to control in Playwright
-- Negative: registration would have required a Google account and would not
-  have supported the project's minimal username/password registration goal
-- Neutral: this decision is kept as historical context; the implemented system
-  uses Keycloak as defined in ADR 7
 
 ## ADR 9: Backend-Managed Sessions with HttpOnly Cookies
 

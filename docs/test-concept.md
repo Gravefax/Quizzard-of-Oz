@@ -2,6 +2,12 @@
 
 This document describes the testing strategy for Quizzard of Oz. It consolidates the tests that are currently visible in the repository and explains how they protect the main quality goals: reliable gameplay, secure authentication, maintainable architecture, and repeatable delivery.
 
+## Problem
+
+The project already implements tests across the complete test pyramid: unit tests, integration tests, end-to-end UI automation with Playwright, security/authentication tests, and architecture tests. Without one written test concept, reviewers and contributors cannot easily see which test level uses which tool, where the tests are stored, and which quality risk each level covers.
+
+This page is the documented test concept for the project. It is linked from `docs/index.md`, included in the Sphinx toctree, and is therefore part of the Read the Docs build.
+
 ## Purpose and Goals
 
 The test concept defines which risks are covered by automated tests, which tools are used, and which checks should pass before changes are merged.
@@ -13,6 +19,18 @@ The main goals are:
 - enforce basic architecture boundaries in the frontend
 - provide coverage reports for local feedback and SonarCloud
 - keep CI results reproducible through pinned dependency files and explicit GitHub Actions jobs
+
+## Test Pyramid Overview
+
+The project follows the test pyramid by combining many fast, isolated tests with fewer cross-component and full-system tests. The table below names every level required for the project checklist and maps it to the concrete implementation in this repository.
+
+| Pyramid Level | Tool / Framework | Test Location | Goal and Scope |
+| --- | --- | --- | --- |
+| Unit tests | Backend: `pytest`; frontend: Vitest with Testing Library and jsdom | Backend: `backend/tests/`; frontend: `frontend/quizzard-of-oz/app/__tests__/unit` | Verify individual functions, services, stores, API clients, and UI components in isolation. |
+| Integration tests | Backend: `pytest` with FastAPI `TestClient`, dependency overrides, fake services; frontend: Vitest with Testing Library | Backend: `backend/tests/`; frontend: `frontend/quizzard-of-oz/app/__tests__/integration` | Verify interaction between routers, services, CRUD boundaries, frontend pages, and combined UI flows without requiring the complete deployed system. |
+| End-to-end UI automation | Playwright with Chromium | `frontend/quizzard-of-oz/app/__tests__/e2e` | Verify user-visible browser flows such as navigation, practice quiz, ranked queue, battle behavior, leaderboard, authentication, and leave guards. |
+| Penetration / security tests | Automated negative and authentication tests with `pytest`, Vitest, and Playwright | Backend auth/session tests in `backend/tests/`; frontend security tests in `frontend/quizzard-of-oz/app/__tests__/security`; auth E2E specs in `frontend/quizzard-of-oz/app/__tests__/e2e` | Validate unauthorized access handling, invalid tokens/cookies, expired sessions, protected route behavior, and authentication-related failure paths. These are automated security regression tests, not a full manual penetration test. |
+| Architecture tests | Frontend: dependency-cruiser through Vitest; backend: no dedicated import-linter or pytest-arch configuration is currently present | Frontend: `frontend/quizzard-of-oz/app/__tests__/arch`; backend architecture constraints are currently checked indirectly through pytest/service structure and code review | Enforce frontend dependency rules and document the current backend architecture-test gap. A future backend architecture-test implementation should use a dedicated tool such as import-linter or pytest-arch if stricter backend layer enforcement is required. |
 
 ## Test Scope
 
@@ -27,7 +45,7 @@ The main goals are:
 | Security checks | Protected API route behavior and backend session/JWKS validation paths. |
 | Architecture rules | No frontend circular dependencies, no component imports from API routes, and no production imports from test files. |
 
-Out of scope for the current automated test suite are production load testing, browser compatibility beyond Chromium E2E, database migration testing, and infrastructure failover testing.
+Out of scope for the current automated test suite are production load testing, a full manual penetration test, browser compatibility beyond Chromium E2E, database migration testing, dedicated backend architecture tests with import-linter/pytest-arch, and infrastructure failover testing.
 
 ## Test Levels and Tools
 
@@ -86,6 +104,28 @@ pnpm test:arch
 ```
 
 Vitest is configured in `vitest.config.ts` with jsdom, `vitest.setup.ts`, V8 coverage, and 80 percent thresholds for lines, functions, branches, and statements. Coverage reports are written to `frontend/quizzard-of-oz/test-results/coverage` as text, HTML, and lcov.
+
+### Security and Penetration Test Approach
+
+The current security test approach is automated and regression-oriented. It focuses on negative authentication and authorization paths that are important for this application:
+
+- missing, malformed, invalid, or expired backend session cookies
+- invalid Keycloak bearer tokens and missing `sub` claims
+- WebSocket handshake rejection for unauthenticated or expired sessions
+- protected route responses for missing or wrong cookies
+- logout and battle-leave behavior that should not silently keep privileged state alive
+
+These tests reduce the risk of accidental security regressions, but they do not replace a full manual penetration test, threat-modeling workshop, or external security assessment.
+
+### Architecture Test Approach
+
+Frontend architecture rules are implemented as executable tests with dependency-cruiser in `frontend/quizzard-of-oz/app/__tests__/arch/architecture.test.ts`. They currently enforce:
+
+- no circular dependencies in `app/`
+- no imports from `app/components` directly into `app/api`
+- no production source imports from test files
+
+The backend does not currently include a dedicated architecture-test tool such as import-linter or pytest-arch. Backend layering is protected by module structure, service/router/CRUD tests, and code review. If stricter backend architecture enforcement becomes required, import-linter or pytest-arch should be added as a separate backend architecture test level.
 
 ### End-to-End Tests
 
@@ -160,6 +200,8 @@ For small documentation-only changes, the documentation build is the primary loc
 
 ## Coverage and Reporting
 
+The project coverage target is at least 80 percent. Frontend coverage thresholds of 80 percent for lines, functions, branches, and statements are enforced in `vitest.config.ts`. Backend and frontend coverage are measured in CI and reported to SonarCloud; backend coverage does not currently define a separate numeric pytest threshold in the repository.
+
 | Report | Location / Consumer |
 | --- | --- |
 | Backend terminal coverage | Printed by pytest in CI with `--cov-report=term-missing`. |
@@ -168,6 +210,8 @@ For small documentation-only changes, the documentation build is the primary loc
 | Frontend HTML coverage | `frontend/quizzard-of-oz/test-results/coverage`, useful for local inspection. |
 | Playwright HTML report | `frontend/quizzard-of-oz/test-results/playwright-report`, useful for E2E debugging. |
 | Playwright traces | Captured on first retry according to `playwright.config.ts`. |
+
+SonarCloud is the central quality and coverage reporting tool in CI. The GitHub Actions workflow uploads backend XML coverage and frontend lcov coverage before running the SonarCloud scan.
 
 ## Recommended Local Test Selection
 
@@ -186,6 +230,7 @@ For small documentation-only changes, the documentation build is the primary loc
 | --- | --- |
 | No visible load or performance tests | Queue behavior, WebSocket scaling, and battle latency under many concurrent players are not measured. |
 | No database migration tests | The backend currently creates tables with SQLAlchemy metadata; future schema migrations would need dedicated tests. |
+| No dedicated backend architecture-test tool | Backend layering is not enforced by import-linter or pytest-arch today. |
 | Limited production observability tests | Logging is covered indirectly, but metrics, tracing, alerting, and log aggregation are not tested. |
 | E2E tests depend on shared infrastructure | PostgreSQL, Keycloak, backend state, and WebSocket queues make isolation harder than pure unit tests. |
 | Browser coverage is Chromium-only | Cross-browser behavior is not covered by the current Playwright configuration. |

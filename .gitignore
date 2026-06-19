@@ -1,4 +1,5 @@
 docs/_build/
+docs/build/
 .claude
 CLAUDE.md
 AGENTS.md

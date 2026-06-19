@@ -1,0 +1,102 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: quizzard-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "11000:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.2.5
+    container_name: quizzard-keycloak
+    restart: unless-stopped
+    command: ["start", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      # Keycloak wird über das Frontend unter https://<frontend-domain>/auth getunnelt.
+      # KC_HOSTNAME = nur die Frontend-Basis (ohne /auth), den Pfad setzt KC_HTTP_RELATIVE_PATH.
+      KC_HOSTNAME: ${KEYCLOAK_PUBLIC_URL}
+      KC_HTTP_RELATIVE_PATH: /auth
+      KC_PROXY_HEADERS: xforwarded
+      KC_HTTP_ENABLED: "true"
+      KC_HOSTNAME_STRICT: "false"
+      KC_HEALTH_ENABLED: "true"
+    volumes:
+      # Relativer Pfad funktioniert, weil Portainer das Repo auscheckt
+      - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
+    # Port nur fürs LAN (Admin/Debug). Ins Internet geht Keycloak NUR über das
+    # Frontend unter /auth – dafür ist kein öffentlicher Proxy-Eintrag nötig.
+    ports:
+      - "11001:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/8080' 2>/dev/null && echo healthy || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 40s
+
+  backend:
+    image: ghcr.io/gravefax/quizzard-of-oz-backend:dev
+    container_name: quizzard-backend
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_PORT: 5432
+      POSTGRES_HOST: postgres
+      API_SECRET: ${API_SECRET}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      # --- Keycloak (ersetzt Google) ---
+      KEYCLOAK_URL: http://keycloak:8080/auth   # intern, nur für JWKS/Token-Prüfung (relative path /auth)
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM}
+      # --- Trivia ---
+      TRIVIA_API_BASE_URL: ${TRIVIA_API_BASE_URL}
+      TRIVIA_API_KEY: ${TRIVIA_API_KEY}
+      TRIVIA_TIMEOUT_SECONDS: ${TRIVIA_TIMEOUT_SECONDS}
+      TRIVIA_MAX_RETRIES: ${TRIVIA_MAX_RETRIES}
+      TRIVIA_BACKOFF_SECONDS: ${TRIVIA_BACKOFF_SECONDS}
+      TRIVIA_REFILL_ATTEMPTS: ${TRIVIA_REFILL_ATTEMPTS}
+      TRIVIA_REFILL_BATCH_SIZE: ${TRIVIA_REFILL_BATCH_SIZE}
+      TRIVIA_MAX_LIMIT: ${TRIVIA_MAX_LIMIT}
+      # --- Session / Cookies ---
+      SESSION_EXP_MINUTES: ${SESSION_EXP_MINUTES}
+      COOKIE_SECURE: ${COOKIE_SECURE}
+      COOKIE_SAMESITE: ${COOKIE_SAMESITE}
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN}
+      SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME}
+    ports:
+      - "11002:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+
+  frontend:
+    # WICHTIG: Image muss mit den öffentlichen NEXT_PUBLIC_KEYCLOAK_* Build-Args gebaut sein!
+    image: ghcr.io/gravefax/quizzard-of-oz-frontend:dev
+    container_name: quizzard-frontend
+    restart: unless-stopped
+    environment:
+      API_SECRET: ${API_SECRET}
+    ports:
+      - "11003:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

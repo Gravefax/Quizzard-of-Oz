@@ -7,10 +7,16 @@ const nextConfig: NextConfig = {
   output: "standalone",
   async rewrites() {
     const backendUrl = process.env.BACKEND_URL || "http://localhost:8000";
+    const keycloakUrl = process.env.KEYCLOAK_INTERNAL_URL || "http://keycloak:8080";
     return [
       {
         source: "/api/:path*",
         destination: `${backendUrl}/:path*`,
+      },
+      {
+        // Keycloak wird nur intern erreicht und über das Frontend unter /auth getunnelt.
+        source: "/auth/:path*",
+        destination: `${keycloakUrl}/auth/:path*`,
       },
     ];
   },

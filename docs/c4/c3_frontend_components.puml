@@ -3,85 +3,58 @@
 
 LAYOUT_WITH_LEGEND()
 
-title C4 Model - Level 3: Frontend Components\nNext.js Frontend
+title C3 - Component View\nNext.js Frontend
 
-Person_Ext(user, "Nutzer", "Interagiert mit der Web-App\nim Browser.")
-Container_Ext(backend, "FastAPI Backend", "Python / FastAPI", "REST-API und WebSocket-Server.")
-System_Ext(keycloak, "Keycloak", "OIDC Identity Provider.\nLogin & Registrierung via\nAuthorization Code + PKCE.")
+Person_Ext(guest, "Guest player", "Uses public practice and leaderboard pages.")
+Person_Ext(registered, "Registered player", "Uses authenticated ranked battle mode.")
+Container_Ext(backend, "FastAPI backend", "Python / FastAPI", "REST API and WebSocket server.")
+System_Ext(keycloak, "Keycloak", "OIDC identity provider", "Login and registration through Authorization Code + PKCE.")
 
-Container_Boundary(frontend, "Next.js Frontend") {
+Container_Boundary(frontend, "Next.js frontend") {
+    Component(app_layout, "App layout and navbar", "app/layout.tsx, app/Navbar.tsx", "Wraps providers, renders navigation, validates public Keycloak configuration.")
+    Component(landing_page, "Landing page", "app/page.tsx, components/LandingPage.tsx", "Product entry with ranked battle CTA, practice CTA, and top leaderboard preview.")
+    Component(practice_page, "Practice mode", "app/trainings-modus/PracticeQuiz.tsx", "Ten-question solo quiz without login.")
+    Component(ranked_page, "Ranked mode", "app/ranked-modus/page.tsx", "Authenticated entry point for ranked queue.")
+    Component(battle_page, "Battle arena", "app/battle/[match_id]/page.tsx, components/battle/*", "Live battle UI for categories, questions, answer feedback, scores, and end screen.")
+    Component(leaderboard_page, "Leaderboard pages", "app/leaderboard/*", "Public leaderboard and search views.")
 
-    ' ── Pages ──────────────────────────────────────────────────
-    Component(landing_page, "LandingPage", "Next.js Page\napp/page.tsx", "Startseite mit Moduswahl.\nZeigt Login-Button für\nnicht authentifizierte Nutzer.")
-
-    Component(practice_page, "PracticePage", "Next.js Page\napp/trainings-modus/page.tsx", "Solo-Übungsmodus.\n10 Multiple-Choice-Fragen,\nkein Account erforderlich.")
-
-    Component(ranked_page, "RankedPage", "Next.js Page\napp/ranked-modus/page.tsx", "Einstieg in Matchmaking-Queue\nfür Ranked- und Unranked-Matches.\nErfordert Authentifizierung.")
-
-    Component(leaderboard_page, "LeaderboardPage", "Next.js Page\napp/leaderboard/page.tsx", "Globale Rangliste aller Spieler.\nPaginiert, öffentlich zugänglich.")
-
-    Component(battle_arena_page, "BattleArenaPage", "Next.js Page\napp/battle/[match_id]/page.tsx", "Live-Multiplayer-Match-Interface.\nKategorienwahl, Fragerunden,\nRundenauswertung, Endscreen.")
-
-    ' ── Components ─────────────────────────────────────────────
-    Component(login_button, "LoginButton", "React Component\nkeycloak-js", "Leitet zu Keycloak-Login weiter.\nNach Redirect: Access Token\nwird an Backend übergeben.")
-
-    Component(user_menu, "UserMenu", "React Component", "Zeigt Nutzerprofil und Elo.\nLogout-Funktion.")
-
-    Component(queue_component, "Queue", "React Component", "Matchmaking-Queue-UI.\nZeigt Wartestatus in Echtzeit.\nVerbindet WebSocket zu /battle/queue.")
-
-    Component(battle_components, "BattleComponents", "React Components\n(CategoryPicker, QuestionCard,\nAnswerFeedback, ScoreBoard)", "UI-Elemente für den Match-Ablauf.\nKategorienwahl, Fragen,\nAntwort-Feedback, Punktestand.")
-
-    ' ── Provider ───────────────────────────────────────────────
-    Component(keycloak_provider, "KeycloakProvider", "React Context Provider\napp/providers/KeycloakProvider.tsx", "Initialisiert keycloak-js.\nStellt Keycloak-Instanz via\nContext bereit.")
-
-    ' ── State ──────────────────────────────────────────────────
-    Component(auth_store, "AuthStore", "Zustand Store\napp/stores/authStore.ts", "Globaler Auth-State.\nSpeichert User-Credentials,\nSession-Token und User-Profil.")
-
-    ' ── API Clients ────────────────────────────────────────────
-    Component(auth_client, "AuthClient", "TypeScript Client\napp/lib/auth/authClient.ts", "Session-Validierung gegen Backend.\nÜberträgt Keycloak Access Token\nan POST /auth/login.")
-
-    Component(quiz_api_client, "QuizApiClient", "Axios Client\napp/lib/api/quiz.ts", "GET /quiz/practice/questions\nPOST /quiz/practice/answer\nFür den Übungsmodus.")
-
-    Component(ranking_api_client, "RankingApiClient", "Axios Client\napp/lib/api/ranking.ts", "GET /ranking/leaderboard\nGET /ranking/users/{id}\nFür Leaderboard & Profil.")
-
-    Component(ws_client, "WebSocketClient", "Browser WebSocket API\napp/lib/utils/wsUrl.ts", "Verbindet zu /battle/queue\nund /battle/ws/{match_id}.\nVerarbeitet Match-Events.")
+    Component(keycloak_provider, "Keycloak provider", "app/providers/KeycloakProvider.tsx", "Initializes keycloak-js and exposes Keycloak state to React components.")
+    Component(theme_provider, "Theme provider", "app/providers/ThemeProvider.tsx", "Applies frontend theme state.")
+    Component(auth_store, "Auth store", "app/stores/authStore.ts", "Stores display credentials and authentication state. Backend session remains an HttpOnly browser cookie.")
+    Component(auth_client, "Auth client", "app/lib/auth/authClient.ts", "Exchanges Keycloak access token for backend session and refreshes/logs out sessions.")
+    Component(quiz_client, "Quiz API client", "app/lib/api/quiz.ts", "Calls practice question and answer-check endpoints.")
+    Component(ranking_client, "Ranking API client", "app/lib/api/ranking.ts", "Calls leaderboard, search, and ranking endpoints.")
+    Component(ws_url, "WebSocket URL helper", "app/lib/utils/wsUrl.ts", "Derives ws/wss URLs from NEXT_PUBLIC_API_BASE.")
+    Component(queue_component, "Queue component", "app/components/Queue.tsx", "Opens /battle/queue, handles queued/matched events, navigates to battle route.")
+    Component(battle_components, "Battle components", "app/components/battle/*", "Renders server-authoritative battle phases and sends pick_category, answer, and surrender events.")
 }
 
-' ── Nutzer → Pages ─────────────────────────────────────────────
-Rel(user, landing_page, "Öffnet Startseite", "HTTPS")
-Rel(user, practice_page, "Startet Übungsmodus", "HTTPS")
-Rel(user, ranked_page, "Betritt Matchmaking-Queue", "HTTPS")
-Rel(user, leaderboard_page, "Betrachtet Rangliste", "HTTPS")
-Rel(user, battle_arena_page, "Spielt Match", "HTTPS / WebSocket")
+Rel(guest, landing_page, "Opens", "HTTPS")
+Rel(guest, practice_page, "Practices", "HTTPS")
+Rel(guest, leaderboard_page, "Reads leaderboard", "HTTPS")
+Rel(registered, ranked_page, "Enters ranked queue", "HTTPS")
+Rel(registered, battle_page, "Plays active battle", "HTTPS / WebSocket")
 
-' ── Pages → Components ─────────────────────────────────────────
-Rel(landing_page, login_button, "Zeigt Login-Button")
-Rel(landing_page, user_menu, "Zeigt User-Menü (auth)")
-Rel(ranked_page, queue_component, "Rendert Queue-UI")
-Rel(battle_arena_page, battle_components, "Rendert Match-Elemente")
+Rel(app_layout, keycloak_provider, "Wraps")
+Rel(app_layout, theme_provider, "Wraps")
+Rel(app_layout, auth_store, "Reads auth state")
+Rel(landing_page, ranking_client, "Loads top leaderboard preview")
+Rel(practice_page, quiz_client, "Loads questions and checks answers")
+Rel(ranked_page, auth_store, "Requires authenticated state")
+Rel(ranked_page, queue_component, "Renders")
+Rel(queue_component, ws_url, "Builds queue URL")
+Rel(queue_component, backend, "WS /battle/queue", "WebSocket")
+Rel(queue_component, battle_page, "Navigates on matched event")
+Rel(battle_page, battle_components, "Renders phases")
+Rel(battle_page, ws_url, "Builds match URL")
+Rel(battle_components, backend, "WS /battle/ws/{match_id}", "WebSocket")
+Rel(leaderboard_page, ranking_client, "Loads leaderboard/search data")
 
-' ── Components → Clients ───────────────────────────────────────
-Rel(login_button, keycloak, "Authorization Code + PKCE\n(Redirect)", "HTTPS")
-Rel(login_button, auth_client, "Keycloak Access Token übergeben")
-Rel(queue_component, ws_client, "WS /battle/queue")
-Rel(battle_arena_page, ws_client, "WS /battle/ws/{match_id}")
-Rel(practice_page, quiz_api_client, "Fragen laden & Antwort senden")
-Rel(leaderboard_page, ranking_api_client, "Leaderboard laden")
-Rel(battle_arena_page, ranking_api_client, "Nutzer-Ranking laden")
-
-' ── Provider ───────────────────────────────────────────────────
-Rel(keycloak_provider, keycloak, "OIDC Init\n(checkLoginIframe: false)", "HTTPS")
-Rel(login_button, keycloak_provider, "useKeycloak()")
-
-' ── Clients ↔ State ────────────────────────────────────────────
-Rel(auth_client, auth_store, "Auth-State updaten")
-Rel(user_menu, auth_store, "Auth-State lesen")
-Rel(ranked_page, auth_store, "Session-Token lesen")
-
-' ── Clients → Backend ──────────────────────────────────────────
-Rel(auth_client, backend, "POST /auth/login\nGET /auth/refresh\nSession-Cookie empfangen", "HTTPS / JSON")
-Rel(quiz_api_client, backend, "GET /quiz/practice/questions\nPOST /quiz/practice/answer", "HTTPS / JSON")
-Rel(ranking_api_client, backend, "GET /ranking/leaderboard\nGET /ranking/users/{id}", "HTTPS / JSON")
-Rel(ws_client, backend, "WS /battle/queue\nWS /battle/ws/{match_id}", "WebSocket")
+Rel(keycloak_provider, keycloak, "Initializes OIDC client", "HTTPS")
+Rel(auth_client, keycloak, "Uses access token from keycloak-js")
+Rel(auth_client, backend, "POST /auth/login, GET /auth/refresh, POST /auth/logout", "HTTP JSON with credentials")
+Rel(auth_client, auth_store, "Stores display user state")
+Rel(quiz_client, backend, "GET /quiz/practice/questions, POST /quiz/practice/answer", "HTTP JSON")
+Rel(ranking_client, backend, "GET /ranking/leaderboard and search", "HTTP JSON")
 
 @enduml

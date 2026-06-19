@@ -3,50 +3,51 @@
 
 LAYOUT_WITH_LEGEND()
 
-title C4 Model - Dynamic Diagram: Multiplayer-Match-Flow\nQuizzard of Oz (Ranked / Unranked)
+title Dynamic View - Ranked Match Runtime\nQuizzard of Oz
 
-Person(player1, "Spieler 1", "Ranked/Unranked Spieler.")
-Person(player2, "Spieler 2", "Ranked/Unranked Spieler.")
+Person(player1, "Player 1", "Authenticated ranked player.")
+Person(player2, "Player 2", "Authenticated ranked player.")
 
-Container(frontend1, "Frontend (S1)", "Next.js / WebSocket", "Interface für Spieler 1.")
-Container(frontend2, "Frontend (S2)", "Next.js / WebSocket", "Interface für Spieler 2.")
+Container(frontend1, "Frontend P1", "Next.js / Browser WebSocket", "Queue and battle UI for player 1.")
+Container(frontend2, "Frontend P2", "Next.js / Browser WebSocket", "Queue and battle UI for player 2.")
+Container(backend, "FastAPI backend", "BattleRouter, MatchmakingService, BattleManager", "Server-authoritative queue and battle runtime.")
+ContainerDb(database, "PostgreSQL", "PostgreSQL", "Rankings, question cache, match results, sessions.")
+System_Ext(trivia_api, "The Trivia API", "External HTTPS API", "Fallback source when cache is insufficient.")
 
-Container(backend, "FastAPI Backend", "Python / FastAPI", "BattleRouter,\nMatchmakingService,\nBattleManagerService.")
+Rel(player1, frontend1, "1. Joins ranked queue", "HTTPS")
+Rel(frontend1, backend, "2. WS /battle/queue with session cookie", "WebSocket")
+Rel(backend, database, "3. Reads Player 1 ranking", "SQL")
+Rel(backend, frontend1, "4. queued", "WebSocket event")
 
-ContainerDb(database, "PostgreSQL", "PostgreSQL 18.3", "rankings, question_cache.")
+Rel(player2, frontend2, "5. Joins ranked queue", "HTTPS")
+Rel(frontend2, backend, "6. WS /battle/queue with session cookie", "WebSocket")
+Rel(backend, database, "7. Reads Player 2 ranking", "SQL")
+Rel(backend, backend, "8. Matches closest eligible Elo pair and creates match UUID", "Process-local memory")
+Rel(backend, frontend1, "9. matched {match_id}", "WebSocket event")
+Rel(backend, frontend2, "10. matched {match_id}", "WebSocket event")
 
-' ── Phase 1: Matchmaking ───────────────────────────────────────
-Rel(player1, frontend1, "1", "Queue beitreten (Ranked/Unranked)")
-Rel(frontend1, backend, "2", "WS /battle/queue\ntype: queued")
-Rel(player2, frontend2, "3", "Queue beitreten")
-Rel(frontend2, backend, "4", "WS /battle/queue\ntype: queued")
-Rel(backend, backend, "5", "MatchmakingService:\nElo-Range prüfen → Match gefunden")
-Rel(backend, frontend1, "6", "type: matched\nmatch_id: [uuid]")
-Rel(backend, frontend2, "7", "type: matched\nmatch_id: [uuid]")
+Rel(frontend1, backend, "11. WS /battle/ws/{match_id}", "WebSocket")
+Rel(frontend2, backend, "12. WS /battle/ws/{match_id}", "WebSocket")
+Rel(backend, frontend1, "13. match_ready", "WebSocket event")
+Rel(backend, frontend2, "14. match_ready", "WebSocket event")
 
-' ── Phase 2: Match-Verbindung ──────────────────────────────────
-Rel(frontend1, backend, "8", "WS /battle/ws/[match_id]\n(Session-Cookie validieren)")
-Rel(frontend2, backend, "9", "WS /battle/ws/[match_id]\n(Session-Cookie validieren)")
-Rel(backend, frontend1, "10", "type: match_ready\nopponent: Spieler 2")
-Rel(backend, frontend2, "11", "type: match_ready\nopponent: Spieler 1")
+Rel(backend, frontend1, "15. pick_category with three categories", "WebSocket event")
+Rel(backend, frontend2, "16. waiting_for_category", "WebSocket event")
+Rel(frontend1, backend, "17. pick_category {category}", "WebSocket event")
+Rel(backend, database, "18. Loads three cached questions for category", "SQL")
+Rel(backend, trivia_api, "19. Optional cache refill when insufficient", "HTTPS JSON")
+Rel(backend, frontend1, "20. category_chosen, then question", "WebSocket events")
+Rel(backend, frontend2, "21. category_chosen, then question", "WebSocket events")
+Rel(frontend1, backend, "22. answer", "WebSocket event")
+Rel(backend, frontend1, "23. answer_received", "WebSocket event")
+Rel(frontend2, backend, "24. answer", "WebSocket event")
+Rel(backend, frontend2, "25. answer_received", "WebSocket event")
+Rel(backend, frontend1, "26. question_result, round_result", "WebSocket events")
+Rel(backend, frontend2, "27. question_result, round_result", "WebSocket events")
 
-' ── Phase 3: Runde (wiederholt bis 3 gewonnene Runden) ────────
-Rel(backend, frontend1, "12", "type: pick_category\ncategories: [A, B, C]\n(Spieler 1 wählt in Runde 1)")
-Rel(frontend1, backend, "13", "type: pick_category\ncategory: Science")
-Rel(backend, frontend2, "14", "type: category_chosen\ncategory: Science")
-Rel(backend, database, "15", "Fragen aus question_cache laden\n(Kategorie: Science, 3 Fragen)")
-Rel(backend, frontend1, "16", "type: question\nquestion: [...]")
-Rel(backend, frontend2, "17", "type: question\nquestion: [...]")
-Rel(frontend1, backend, "18", "type: answer\nanswer: B")
-Rel(frontend2, backend, "19", "type: answer\nanswer: C")
-Rel(backend, frontend1, "20", "type: answer_result\ncorrect: true, score: 1")
-Rel(backend, frontend2, "21", "type: answer_result\ncorrect: false, score: 0")
-Rel(backend, frontend1, "22", "type: round_result\nwinner: Spieler 1, scores: [...]")
-Rel(backend, frontend2, "23", "type: round_result\nwinner: Spieler 1, scores: [...]")
-
-' ── Phase 4: Match-Ende ───────────────────────────────────────
-Rel(backend, frontend1, "24", "type: game_over\nwinner: Spieler 1\nelo_change: +18")
-Rel(backend, frontend2, "25", "type: game_over\nwinner: Spieler 1\nelo_change: -18")
-Rel(backend, database, "26", "Elo-Rating updaten\n(K=32, beide Spieler)\nranking Tabelle")
+Rel(backend, frontend1, "28. game_over", "WebSocket event")
+Rel(backend, frontend2, "29. game_over", "WebSocket event")
+Rel(backend, database, "30. Applies Elo and records match_results row", "SQL")
+Rel(backend, backend, "31. Removes MatchState from memory", "Process-local cleanup")
 
 @enduml

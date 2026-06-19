@@ -22,6 +22,10 @@ Trivia integration variables:
 - `TRIVIA_REFILL_ATTEMPTS`
 - `TRIVIA_REFILL_BATCH_SIZE`
 - `TRIVIA_MAX_LIMIT`
+- `TRIVIA_BREAKER_FAIL_MAX`
+  Consecutive upstream failures before the circuit breaker opens and fails fast. Default: `5`.
+- `TRIVIA_BREAKER_RESET_TIMEOUT`
+  Cooldown in seconds before the open breaker moves to half-open and retries upstream. Default: `30`.
 
 Copy `backend/.env.example` to `backend/.env` and adjust values for your machine.
 

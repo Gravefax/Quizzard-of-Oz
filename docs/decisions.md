@@ -279,3 +279,55 @@ Accepted
   queue and battle state are shared through the backend process
 - Neutral: completed match results and ranking updates remain persistent in
   PostgreSQL
+
+## ADR 11: Circuit Breaker for the External Trivia API
+
+**Context**
+
+The external trivia provider (`/v2/questions`) is reached through
+`TriviaApiClient`, which already protects each call with a request timeout,
+retry with exponential backoff, and a local question cache as fallback. These
+guards handle short, transient hiccups, but they do not handle a prolonged
+upstream outage well: every incoming request still pays the full timeout and
+retry budget before failing, which wastes time and connections and keeps
+hammering a service that is already down. The canonical resilience pattern for
+this situation is a circuit breaker that detects a sustained failure streak and
+fails fast instead of retrying on every request.
+
+**Decision**
+
+Wrap the external trivia call with a circuit breaker using the `pybreaker`
+library. The breaker is layered *outside* the existing retry loop, so one fully
+failed `fetch_questions` call (after its internal retries) counts as a single
+breaker failure. After a configurable number of consecutive failures the breaker
+opens and short-circuits further upstream calls, raising
+`TriviaUpstreamUnavailableError` immediately. After a configurable cooldown the
+breaker moves to half-open and closes again on the next successful call.
+Non-outage errors (non-retryable HTTP responses and invalid payloads) are
+excluded from breaker accounting because they do not indicate provider
+unavailability. The thresholds are configured via `TRIVIA_BREAKER_FAIL_MAX` and
+`TRIVIA_BREAKER_RESET_TIMEOUT`, analogous to the other `TRIVIA_*` settings.
+
+While the breaker is open the existing degradation strategy still applies: the
+trivia service always serves matching questions from the local cache first, and
+only short-circuits (fast 503 for HTTP callers, controlled abort for battle
+setup) when the cache cannot satisfy the request — now without the prior
+per-request timeout and retry penalty.
+
+**Status**
+
+Accepted
+
+**Consequences**
+
+- Positive: during a sustained upstream outage the backend fails fast instead of
+  exhausting timeout and retry budgets on every request, reducing latency and
+  load on an already failing provider
+- Positive: thresholds are environment-configurable and consistent with the
+  existing `TRIVIA_*` settings convention
+- Positive: automatic recovery via the half-open state requires no manual
+  intervention once the provider returns
+- Negative: adds the `pybreaker` dependency and a shared breaker state object
+  that must be sized correctly to avoid premature opening
+- Neutral: the breaker state is process-local, matching the single-backend
+  deployment model described in ADR 10

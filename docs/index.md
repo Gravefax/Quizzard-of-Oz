@@ -31,6 +31,11 @@
     <h2>Key technology decisions</h2>
     <p>Track the current decisions behind the frontend, backend, and package management stack.</p>
   </a>
+  <a class="card" href="test-concept.html">
+    <span class="card-label">Testing</span>
+    <h2>Documented test concept</h2>
+    <p>Review the test levels, tools, CI quality gates, coverage reports, and known test gaps.</p>
+  </a>
 </section>
 ```
 
@@ -39,6 +44,7 @@
 - Start with [Architecture](architecture.md) if you need the big-picture system design.
 - Open [Planning](planning.md) if you want the gameplay rules, flow, and domain model.
 - Review [Architecture Decisions](decisions.md) when you need the reasoning behind the chosen stack.
+- Read [Test Concept](test-concept.md) when you need the test strategy, quality gates, and execution commands.
 
 ## Project Links
 
@@ -57,4 +63,5 @@
 architecture
 planning
 decisions
+test-concept
 ```

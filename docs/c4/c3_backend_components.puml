@@ -75,7 +75,7 @@ Rel(trivia_service, trivia_client, "Fetches upstream questions when cache is ins
 Rel(trivia_client, trivia_api, "GET /v2/questions", "HTTPS JSON")
 
 Rel(ranking_service, ranking_crud, "Reads/updates rankings and leaderboard")
-Rel(ranking_service, models, "Creates MatchResult records")
+Rel(ranking_service, ranking_crud, "Creates MatchResult records")
 Rel(user_session_crud, models, "Uses User and Session models")
 Rel(ranking_crud, models, "Uses Ranking and User models")
 Rel(question_cache_repo, models, "Uses QuestionCache model")

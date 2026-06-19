@@ -5,10 +5,12 @@ on:
     branches:
       - dev
       - main
+      - Updates
   pull_request:
     branches:
       - dev
       - main
+      - Updates
 
 jobs:
   frontend-build:

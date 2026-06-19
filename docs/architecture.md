@@ -134,7 +134,7 @@ The context view makes identity delegation, external question supply, durable st
 
 ## Building Block View
 
-### Whitebox Overall System
+### Level 1 — Whitebox Overall System
 
 | Building Block | Responsibility | Main Technologies |
 | --- | --- | --- |

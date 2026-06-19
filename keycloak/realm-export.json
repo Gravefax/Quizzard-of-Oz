@@ -26,14 +26,16 @@
       "serviceAccountsEnabled": false,
       "protocol": "openid-connect",
       "redirectUris": [
-        "http://localhost:3000/*"
+        "http://localhost:3000/*",
+        "https://qoo.dev.grabher.myds.me/*"
       ],
       "webOrigins": [
-        "http://localhost:3000"
+        "http://localhost:3000",
+        "https://qoo.dev.grabher.myds.me"
       ],
       "attributes": {
         "pkce.code.challenge.method": "S256",
-        "post.logout.redirect.uris": "http://localhost:3000/*"
+        "post.logout.redirect.uris": "http://localhost:3000/*##https://qoo.dev.grabher.myds.me/*"
       },
       "fullScopeAllowed": true,
       "defaultClientScopes": [

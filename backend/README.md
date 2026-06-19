@@ -27,7 +27,7 @@ Trivia integration variables:
 - `TRIVIA_BREAKER_RESET_TIMEOUT`
   Cooldown in seconds before the open breaker moves to half-open and retries upstream. Default: `30`.
 
-Copy `backend/.env.example` to `backend/.env` and adjust values for your machine.
+Copy the root `.env.example` to `.env` (in the repository root) and adjust values for your machine.
 
 
 

@@ -2,3 +2,9 @@
 allowBuilds:
   sharp: true
   unrs-resolver: true
+
+# Supply-chain protection: only install package versions that have been
+# published for at least this many minutes (1440 = 1 day). Keeps freshly
+# published (potentially compromised) releases out of the lockfile and makes
+# the policy explicit/consistent across local, Docker and CI (pnpm >= 11).
+minimumReleaseAge: 1440

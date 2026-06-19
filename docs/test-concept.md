@@ -2,12 +2,6 @@
 
 This document describes the testing strategy for Quizzard of Oz. It consolidates the tests that are currently visible in the repository and explains how they protect the main quality goals: reliable gameplay, secure authentication, maintainable architecture, and repeatable delivery.
 
-## Problem
-
-The project already implements tests across the complete test pyramid: unit tests, integration tests, end-to-end UI automation with Playwright, security/authentication tests, and architecture tests. Without one written test concept, reviewers and contributors cannot easily see which test level uses which tool, where the tests are stored, and which quality risk each level covers.
-
-This page is the documented test concept for the project. It is linked from `docs/index.md`, included in the Sphinx toctree, and is therefore part of the Read the Docs build.
-
 ## Purpose and Goals
 
 The test concept defines which risks are covered by automated tests, which tools are used, and which checks should pass before changes are merged.

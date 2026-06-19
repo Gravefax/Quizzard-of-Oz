@@ -1,0 +1,235 @@
+@startuml C4_Battle_Runtime_Code
+
+title C4 - Code / Class View\nBattleManager and Ranked Battle Runtime
+
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+hide empty members
+
+package "WebSocket entry" {
+  class "BattleRouter\napp/routers/battle.py" as BattleRouter <<module>> {
+    +queue_ws(websocket, db)
+    +battle_ws(websocket, match_id, db)
+    -manager: BattleManager
+    -matchmaking: MatchmakingService
+  }
+
+  class "WsAuthService\napp/services/ws_auth.py" as WsAuthService <<module>> {
+    +authenticate_ws(websocket, db): User or None
+    -close 4001: missing/invalid/not found
+    -close 4003: expired session
+  }
+}
+
+package "Matchmaking" {
+  class "MatchmakingService\napp/services/matchmaking_service.py" as MatchmakingService {
+    -_queue: list[QueueEntry]
+    -_lock: asyncio.Lock
+    -_entry_seq: int
+    +authenticate(websocket, db): User or None
+    +join(websocket, user, db)
+    -_allowed_elo_delta(queued_at, now): int
+    -_attempt_match_locked(): tuple or None
+    -_notify_matched(p1, p2)
+  }
+
+  class "QueueEntry\nTypedDict" as QueueEntry <<runtime state>> {
+    ws: WebSocket
+    user: User
+    elo: int
+    queued_at: float
+    seq: int
+  }
+}
+
+package "Battle runtime" {
+  class "BattleManager\napp/services/battle_manager.py" as BattleManager {
+    -_matches: dict[str, MatchState]
+    -_quiz: QuizService
+    +authenticate(websocket, db): User or None
+    +connect(websocket, match_id, user): bool
+    +disconnect(websocket, match_id, user)
+    +handle_message(match_id, user, raw)
+    -_start_game(state, match_id)
+    -_start_round(state, match_id)
+    -_handle_category_pick(match_id, state, user, data)
+    -_handle_answer(match_id, state, user, data)
+    -_finish_question(match_id, state)
+    -_end_round(match_id, state)
+    -_end_game(match_id, state)
+    -_forfeit_match(match_id, state, remaining, winner, loser)
+    -_abort_match(match_id, state, reason)
+  }
+
+  class "MatchState\ndataclass" as MatchState <<process-local state>> {
+    players: list[dict]
+    round_wins: dict[str, int]
+    current_round: int
+    picker_idx: int
+    phase: waiting or picking or questions or finished
+    round_questions: list[Question]
+    question_idx: int
+    round_scores: dict[str, int]
+    current_answers: dict[str, str]
+    current_correct: dict[str, bool]
+    offered_categories: list[str]
+    used_question_ids: set[str]
+    revealing: bool
+    question_timer_task: asyncio.Task or None
+    category_timer_task: asyncio.Task or None
+    advance_task: asyncio.Task or None
+    lock: asyncio.Lock
+  }
+
+  class "Player entry\nlist[dict]" as PlayerEntry <<implementation detail>> {
+    ws: WebSocket
+    user: User
+  }
+
+  class "QuizService\napp/services/quiz_service.py" as QuizService {
+    +get_questions(n, categories, exclude_ids)
+    +get_category_options(option_count, questions_per_category, exclude_ids)
+    +check_answer(question_id, answer)
+  }
+
+  class "Question\napp/services/trivia_types.py" as Question <<value object>> {
+    id: str
+    text: str
+    answers: list[str]
+    correct_answer: str
+    category: str
+    difficulty: str
+  }
+}
+
+package "Trivia and ranking services" {
+  class "TriviaQuestionService\napp/services/trivia_service.py" as TriviaQuestionService {
+    +get_questions(filters, exclude_ids, db)
+    +get_question(question_id, db)
+    +check_answer(question_id, answer, db)
+    +get_category_options(option_count, questions_per_category, exclude_ids, db)
+  }
+
+  class "QuestionCacheRepository\napp/crud/question_cache.py" as QuestionCacheRepository {
+    +get_random_questions(db, filters, limit, exclude_ids)
+    +get_question(db, question_id)
+    +upsert_questions(db, questions)
+    +get_categories_with_minimum_questions(db, minimum_questions, exclude_ids)
+  }
+
+  class "RankingService\napp/services/ranking_service.py" as RankingService <<module>> {
+    +apply_match_result(db, winner_id, loser_id, ended_as)
+    +get_user_ranking(db, user_id)
+    +get_leaderboard_page(db, page, username_query)
+    K_FACTOR = 32
+  }
+
+  class "RankingCRUD\napp/crud/ranking.py" as RankingCRUD <<module>> {
+    +get_or_create_ranking(db, user_id)
+    +save_rankings(db, rankings)
+    +list_leaderboard_page(db, page, page_size, username_query)
+  }
+}
+
+package "Session and persistent models" {
+  class "SessionCRUD\napp/crud/session.py" as SessionCRUD <<module>> {
+    +create_session(db, user_id, expires_at)
+    +get_session(db, session_id)
+    +extend_session(db, session, expires_at)
+    +delete_session(db, session_id)
+  }
+
+  class "UserCRUD\napp/crud/user.py" as UserCRUD <<module>> {
+    +get_user(db, user_id)
+    +get_user_by_keycloak_sub(db, keycloak_sub)
+    +create_user(db, username, keycloak_sub, email)
+  }
+
+  class "User\napp/models/user.py" as User <<SQLAlchemy model>> {
+    id: UUID
+    keycloak_sub: str
+    email: str
+    username: str
+    created_at: datetime
+  }
+
+  class "Session\napp/models/session.py" as SessionModel <<SQLAlchemy model>> {
+    id: UUID
+    user_id: UUID
+    expires_at: datetime
+    created_at: datetime
+  }
+
+  class "Ranking\napp/models/ranking.py" as RankingModel <<SQLAlchemy model>> {
+    user_id: UUID
+    elo_rating: int
+    wins: int
+    losses: int
+    total_matches: int
+    last_win_at: datetime or None
+  }
+
+  class "QuestionCache\napp/models/question_cache.py" as QuestionCacheModel <<SQLAlchemy model>> {
+    id: UUID
+    external_id: str
+    question_text: str
+    answers: list[str]
+    correct_answer: str
+    category: str
+    difficulty: str
+  }
+
+  class "MatchResult\napp/models/match_result.py" as MatchResultModel <<SQLAlchemy model>> {
+    winner_id: UUID
+    loser_id: UUID
+    ended_as: normal or forfeit
+    created_at: datetime
+  }
+
+  class "WebSocket\nFastAPI" as WebSocketClass <<external>> {
+    +send_json(payload)
+    +close(code, reason)
+  }
+}
+
+BattleRouter --> WsAuthService : authenticates queue and battle sockets
+BattleRouter --> MatchmakingService : delegates /battle/queue
+BattleRouter --> BattleManager : delegates /battle/ws/{match_id}
+
+WsAuthService --> SessionCRUD : validates session cookie
+WsAuthService --> UserCRUD : loads user
+SessionCRUD --> SessionModel
+UserCRUD --> User
+
+MatchmakingService o-- QueueEntry : keeps process-local queue
+MatchmakingService --> WsAuthService : authenticates queue socket
+MatchmakingService --> RankingService : reads Elo
+
+BattleManager o-- MatchState : owns active matches in memory
+MatchState o-- PlayerEntry : stores connected players
+PlayerEntry --> User
+PlayerEntry --> WebSocketClass
+MatchState o-- Question : current round questions
+
+BattleManager --> WsAuthService : authenticates battle socket
+BattleManager --> QuizService : category options, questions, answer checks
+BattleManager --> RankingService : normal and forfeit outcomes
+QuizService --> TriviaQuestionService : delegates cache/question access
+TriviaQuestionService --> QuestionCacheRepository : reads/refills cache
+QuestionCacheRepository --> QuestionCacheModel
+RankingService --> RankingCRUD : reads/updates rankings
+RankingService --> MatchResultModel : records match result
+RankingCRUD --> RankingModel
+
+note right of MatchState
+  Active queue and match state is process-local memory.
+  It is not persisted and is lost on backend restart.
+  Each MatchState has an asyncio.Lock for state mutations.
+end note
+
+note bottom of BattleManager
+  The current code does not define a separate PlayerState class.
+  Player connections are stored as dictionaries in MatchState.players.
+end note
+
+@enduml

@@ -22,6 +22,10 @@ Trivia integration variables:
 - `TRIVIA_REFILL_ATTEMPTS`
 - `TRIVIA_REFILL_BATCH_SIZE`
 - `TRIVIA_MAX_LIMIT`
+- `TRIVIA_BREAKER_FAIL_MAX`
+  Consecutive upstream failures before the circuit breaker opens and fails fast. Default: `5`.
+- `TRIVIA_BREAKER_RESET_TIMEOUT`
+  Cooldown in seconds before the open breaker moves to half-open and retries upstream. Default: `30`.
 
 Copy the root `.env.example` to `.env` (in the repository root) and adjust values for your machine.
 
@@ -40,6 +44,13 @@ Run tests with:
 
 ```powershell
 python -m pytest tests -q
+```
+
+Run backend linting and static type checks with:
+
+```powershell
+python -m ruff check .
+python -m mypy
 ```
 
 ## Trivia Endpoints

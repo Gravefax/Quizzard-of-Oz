@@ -3,32 +3,26 @@
 
 LAYOUT_WITH_LEGEND()
 
-title C4 Model - Dynamic Diagram: Keycloak Login-Flow\nQuizzard of Oz
+title Dynamic View - Login and Backend Session\nQuizzard of Oz
 
-Person(user, "Nutzer", "Klickt auf Login-Button.")
+Person(user, "Registered player", "Starts login in the browser.")
+Container(frontend, "Next.js frontend", "Next.js / React / keycloak-js", "Runs the OIDC client and stores display auth state.")
+Container(backend, "FastAPI backend", "FastAPI / PyJWT", "Verifies Keycloak tokens and manages application sessions.")
+ContainerDb(database, "PostgreSQL", "PostgreSQL", "Stores users and backend sessions.")
+System_Ext(keycloak, "Keycloak", "OIDC identity provider", "Owns identity and exposes JWKS.")
 
-Container(frontend, "Next.js Frontend", "Next.js / React", "Rendert LoginButton\nvia keycloak-js.")
-
-Container(backend, "FastAPI Backend", "Python / FastAPI", "Validiert Access Token\nund erstellt Session.")
-
-ContainerDb(database, "PostgreSQL", "PostgreSQL 18.3", "Speichert User & Session.")
-
-System_Ext(keycloak, "Keycloak", "OIDC Identity Provider.")
-
-Rel(user, frontend, "1", "Klickt Login-Button")
-Rel(frontend, keycloak, "2", "Authorization Code + PKCE\n(Redirect, HTTPS)")
-Rel(keycloak, user, "3", "Login-Formular\nausfüllen")
-Rel(keycloak, frontend, "4", "Authorization Code\n(Redirect zurück)")
-Rel(frontend, keycloak, "5", "Code gegen Token tauschen\n(PKCE Code Verifier, HTTPS)")
-Rel(keycloak, frontend, "6", "Access Token (JWT) zurückgeben")
-Rel(frontend, backend, "7", "POST /auth/login\nAuthorization: Bearer [JWT]")
-Rel(backend, keycloak, "8", "JWKS abrufen\n(Public Key, HTTPS)")
-Rel(keycloak, backend, "9", "JWKS-Schlüssel zurückgeben")
-Rel(backend, database, "10", "Nutzer anlegen/aktualisieren\n(users Tabelle)")
-Rel(backend, database, "11", "Session erstellen\n(sessions Tabelle, expires_at)")
-Rel(database, backend, "12", "Session-ID zurückgeben")
-Rel(backend, frontend, "13", "200 OK + HttpOnly-Cookie\n(session_id)")
-Rel(frontend, frontend, "14", "AuthStore updaten\n(user, isAuthenticated: true)")
-Rel(frontend, user, "15", "UserMenu anzeigen")
+Rel(user, frontend, "1. Clicks login", "HTTPS")
+Rel(frontend, keycloak, "2. Starts Authorization Code + PKCE", "HTTPS")
+Rel(keycloak, user, "3. Shows login / registration form", "HTTPS")
+Rel(keycloak, frontend, "4. Redirects back with authorization code", "HTTPS")
+Rel(frontend, keycloak, "5. Exchanges code for access token", "HTTPS")
+Rel(keycloak, frontend, "6. Returns Keycloak access token", "JWT")
+Rel(frontend, backend, "7. POST /auth/login with Authorization: Bearer token", "HTTP JSON")
+Rel(backend, keycloak, "8. Retrieves JWKS and verifies token", "HTTPS")
+Rel(backend, database, "9. Finds or creates User by keycloak_sub", "SQL")
+Rel(backend, database, "10. Creates Session with expires_at", "SQL")
+Rel(backend, frontend, "11. Returns user data and sets HttpOnly session cookie", "HTTP Set-Cookie")
+Rel(frontend, frontend, "12. Stores display credentials in Zustand", "Browser state")
+Rel(frontend, user, "13. Shows authenticated navigation state", "HTTPS")
 
 @enduml

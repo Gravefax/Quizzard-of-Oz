@@ -11,7 +11,11 @@ from app.schemas.ranking import (
     LeaderboardResponse,
     RankingUserResponse,
 )
-from app.services.ranking_service import LEADERBOARD_PAGE_SIZE, get_leaderboard_page, get_user_ranking
+from app.services.ranking_service import (
+    LEADERBOARD_PAGE_SIZE,
+    get_leaderboard_page,
+    get_user_ranking,
+)
 
 router = APIRouter(prefix="/ranking", tags=["ranking"])
 

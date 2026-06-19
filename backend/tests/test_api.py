@@ -14,7 +14,6 @@ from app.services.trivia_client import TriviaUpstreamUnavailableError
 from app.services.trivia_service import TriviaInsufficientQuestionsError
 from app.services.trivia_types import Question
 
-
 client = TestClient(app)
 
 

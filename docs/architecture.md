@@ -2,48 +2,42 @@
 
 ## Introduction and Goals
 
-Quizzard of Oz is a web-based quiz platform for players who want either a
-casual solo experience or a competitive multiplayer match with visible
-progress. The system exists to combine accessible quiz gameplay, persistent
-player identity and synchronized sessions in one product that is simple for
-players to use and maintainable for the team to evolve.
+Quizzard of Oz is a web-based quiz application for solo practice and real-time competitive play. The product combines a Next.js browser frontend, a FastAPI backend, Keycloak-based identity, PostgreSQL persistence, a local trivia-question cache, and WebSocket-driven battle sessions.
+
+The project was developed in the Software Quality and Security module at Technische Hochschule Rosenheim. 
 
 ### Requirements Overview
 
-The most important functional requirements for the current system are:
-
-1. The platform must support three quiz experiences: practice mode for solo
-   play, unranked multiplayer sessions for casual competition and ranked
-   multiplayer sessions with Elo updates.
-2. Public users must be able to access core product pages such as the
-   leaderboard, practice mode, unranked mode and session settings without
-   requiring a login.
-3. Registered users must have a persistent player identity that connects their
-   profile, match history and ranked progression.
-4. Ranked and profile-related features must be protected by authentication so
-   only authorized users can access them.
-5. Multiplayer sessions must stay synchronized across both players, including
-   session state, question flow, scoring and round progression.
-6. The backend must retrieve quiz questions from an external trivia provider
-   and cache them locally to reduce latency and dependency on repeated live API
-   calls.
+| Requirement | Current Implementation |
+| --- | --- |
+| Practice quiz | The frontend page `app/trainings-modus` starts a 10-question solo quiz via `GET /quiz/practice/questions` and checks answers via `POST /quiz/practice/answer`. |
+| Ranked battle | Authenticated users enter the ranked queue through `app/ranked-modus`. Matchmaking uses WebSocket `/battle/queue`; matches run on `/battle/ws/{match_id}`. |
+| Shared battle UI | The `Queue` component supports ranked and unranked labels, but the current landing page exposes ranked battle and practice mode. No separate unranked route is visible in the current frontend. |
+| Leaderboard | Public leaderboard and search pages call `/ranking/leaderboard` and `/ranking/leaderboard/search`, using server-side pagination with a page size of 50. |
+| Authentication | Browser login uses Keycloak OIDC/PKCE through `keycloak-js`. The backend verifies the Keycloak access token via JWKS and then issues its own HttpOnly session cookie. |
+| WebSocket authorization | Queue and battle WebSockets validate the backend session cookie during the handshake before accepting the connection. |
+| Ranking | The backend stores one ranking per user, applies Elo updates with `K_FACTOR = 32`, records wins, losses, total matches, last win time, and match history. |
+| Question supply | The backend retrieves questions from The Trivia API `/v2/questions`, normalizes valid items, stores them in `question_cache`, and serves later requests from cache when possible. |
+| Deployment for local and CI use | Docker Compose starts PostgreSQL, Keycloak, backend, and frontend. GitHub Actions build, test, analyze, and publish container images. |
 
 ### Quality Goals
 
-| Priority | Quality Goal | Why It Matters | Concrete Expectation |
-| --- | --- | --- | --- |
-| 1 | Performance | Quiz rounds should feel immediate, especially in ranked and unranked matches where waiting breaks the game flow. | A player should receive the next question or round update without noticeable delay during an active session because the backend uses cached questions and lightweight APIs. |
-| 2 | Security | Ranked progression, user profiles and future personal data must be protected from unauthorized access or manipulation. | Only authenticated users can access ranked-only capabilities and credentials are stored as password hashes while session access is controlled through tokens. |
-| 3 | Maintainability | The project is developed in a course and team setting, so new contributors must understand and change the system without high onboarding cost. | Frontend, backend, persistence and documentation responsibilities stay clearly separated so a new developer can identify the relevant component quickly. |
-| 4 | Reliability | A multiplayer match must behave consistently even when external services are slow or temporarily unavailable. | Running matches should continue without direct dependency on every external trivia request because question data is prepared from local cache whenever possible. |
+| Priority | Quality Goal | Concrete Scenario |
+| --- | --- | --- |
+| 1 | Responsive gameplay | During an active battle, both players receive question, answer acknowledgement, reveal, round result, and game-over events without waiting for a live trivia request on every question. |
+| 2 | Security | Ranked queue and battle sockets reject clients without a valid backend session cookie. Backend login accepts only Keycloak tokens that can be verified through the realm JWKS. |
+| 3 | Maintainability | A developer can locate a feature by layer: pages/components in the frontend, routers in `app/routers`, business rules in `app/services`, persistence in `app/crud` and `app/models`. |
+| 4 | Reliability | If the external trivia provider is unavailable or returns invalid data, the backend maps the failure to explicit 502/503 responses or aborts the battle with a controlled WebSocket close. |
+| 5 | Testability | Backend pytest tests cover auth, ranking, trivia, WebSocket auth, matchmaking, and battle logic. Frontend Vitest, architecture, security, and Playwright tests cover UI flows and boundaries. |
 
 ### Stakeholders
 
-| Role | Expectations | Architectural Interest |
+| Stakeholder | Expectations | Architectural Interest |
 | --- | --- | --- |
-| Players | Want responsive quiz gameplay, fair ranked and unranked sessions and a clear user experience across public and authenticated features. | Low latency, reliable session handling, transparent ranking behavior and stable frontend interactions. |
-| Development Team | Needs a codebase that is understandable, modular and realistic to extend during the project. | Clear separation of frontend, backend, persistence and external integrations; understandable documentation and interfaces. |
-| Reviewers / Instructors | Need to understand the system quickly and evaluate technical decisions, quality and progress. | Traceable requirements, explicit architectural reasoning and documentation that reflects the implemented system. |
+| Players | Fast quiz interaction, clear ranking, reliable login, stable battle state. | Low latency, fair scoring, predictable session behavior, useful error states. |
+| Development team | Small-team codebase that can be changed safely. | Clear modules, explicit interfaces, repeatable local setup, CI feedback. |
+| Reviewers and instructors | Evidence that implementation and documentation reflect course quality and security goals. | Traceable requirements, decision records, risk visibility, test coverage. |
+| Operators or maintainers | Simple service startup and diagnosable failures. | Docker Compose, health checks, environment variables, logs, persistence boundaries. |
 
 ## Constraints
 
@@ -51,459 +45,501 @@ The most important functional requirements for the current system are:
 
 | Constraint | Architectural Impact |
 | --- | --- |
-| The player-facing application is built with Next.js, React and browser-based delivery. | The architecture separates UI state, API access and WebSocket game updates so the frontend can remain responsive while backend services own authentication, matchmaking, scoring and persistence. |
-| The backend is implemented in Python with FastAPI. | Backend functionality is exposed through explicit REST and WebSocket interfaces, with Pydantic validation and service-layer code used to keep request handling, business rules and data access understandable. |
-| Persistent state is stored in PostgreSQL through SQLAlchemy models. | Users, sessions, rankings and cached questions are modeled relationally so game state and leaderboard data are durable and consistent. This also means schema changes require deliberate modeling and migration discipline. |
-| Ranked and unranked multiplayer sessions require near real-time synchronization. | Battle mode uses WebSocket-style communication for session events, which makes connection lifecycle, reconnect handling, event ordering and future horizontal scaling relevant architectural concerns. |
-| Quiz questions come from an external Trivia API. | The backend must avoid depending on live upstream calls during every round, so question caching, API timeouts, retries and graceful fallback behavior are part of the core architecture. |
-| Authentication uses Keycloak (OIDC/PKCE) and backend-managed session cookies. | Login depends on correct Keycloak realm configuration, JWT verification via JWKS and secure cookie handling. Protected routes and E2E tests must account for the identity provider and application-level session state. |
-| Local and deployment workflows use Docker, GitHub Actions, SonarCloud, Sphinx and Read the Docs. | Services and documentation must remain buildable in repeatable environments. Architectural changes should preserve CI checks for backend tests, frontend build and linting, frontend tests, E2E tests, architecture tests and static analysis. |
+| Frontend uses Next.js 16, React 19, TypeScript, Tailwind CSS v4, Zustand, and `keycloak-js`. | UI behavior is organized around App Router pages, client components, browser WebSockets, and environment-provided public URLs. |
+| Backend uses Python 3.12, FastAPI, Uvicorn, SQLAlchemy 2, Pydantic, PyJWT, httpx, and PostgreSQL. | HTTP APIs, WebSocket endpoints, validation, ORM models, and service classes form the backend architecture. |
+| Authentication is delegated to Keycloak 26. | The application does not store user passwords. It stores Keycloak subject identifiers and backend sessions. |
+| Application sessions are backend-managed. | Login creates a `sessions` row and sets an HttpOnly cookie. Refresh extends the same session. Logout deletes it and clears the cookie. |
+| Battle state is held in backend process memory. | Active matches, queue entries, timers, WebSocket connections, round scores, and selected categories are lost on backend restart and cannot be shared across multiple backend replicas without further work. |
+| PostgreSQL schema is created through `Base.metadata.create_all(...)` at startup. | No migration tool is visible. Schema changes require extra discipline and are a technical debt item for production use. |
+| Trivia questions come from an external provider. | The backend must handle upstream timeouts, retryable status codes, invalid payloads, and cache refill limits. |
+| Frontend WebSocket URLs are derived from `NEXT_PUBLIC_API_BASE`. | The client rewrites `http` to `ws` and `https` to `wss`; the visible `NEXT_PUBLIC_WS_BASE` documentation is not used by `app/lib/utils/wsUrl.ts`. |
 
 ### Organizational Constraints
 
 | Constraint | Architectural Impact |
 | --- | --- |
-| The project has no dedicated budget. | The architecture favors open-source frameworks, simple infrastructure, public or educational free tiers and limited managed-service dependency. Costly commercial services are avoided unless they are clearly necessary. |
-| The project deadline is June 30, 2026. | Implementation choices should prioritize proven technologies, incremental delivery and scoped features over experimental infrastructure or complex rewrites that would add schedule risk. |
-| The development team consists of 3 developers. | Component boundaries must remain easy to understand and maintain. The system avoids unnecessary service decomposition, specialized operational tooling and patterns that require dedicated platform ownership. |
-| The system is developed in a course and team setting. | Documentation, traceable decisions and readable interfaces are architectural requirements, not optional extras, because reviewers and new contributors must understand the system quickly. |
-| Development is governed by the existing CI and quality process. | Architectural changes must stay testable through the current backend, frontend, E2E, architecture and SonarCloud checks. This encourages modular code and clear contracts between frontend, backend and persistence. |
-| Maintenance responsibility remains with the small project team. | The architecture should keep deployment, configuration, observability and troubleshooting straightforward, with a small number of services and explicit environment variables. |
+| The project is built by a small course team. | The system remains a modular monolith plus frontend rather than many independently deployed services. |
+| No dedicated operations budget is visible. | The stack relies on open-source technologies and simple container orchestration. |
+| CI and quality gates are part of the project workflow. | Changes should keep pytest, Vitest, Playwright, architecture tests, SonarCloud, and Docker builds working. |
+| Documentation is published via Read the Docs. | Markdown must remain compatible with Sphinx/MyST and the existing Furo documentation setup. |
 
-### Legal and Regulatory Requirements
+### Legal and Regulatory Constraints
 
-| Requirement or Constraint | Architectural Impact |
+| Constraint | Architectural Impact |
 | --- | --- |
-| The system stores personal or user-related data such as Keycloak subject identifiers, email addresses, usernames, sessions, rankings and match-related state. | Data handling must follow data-protection principles such as purpose limitation, data minimization, storage limitation, integrity and confidentiality. The system should store only data needed for gameplay, authentication and ranking. |
-| Authentication and session data must be protected against unauthorized access. | Session cookies should be HttpOnly, secure in production and scoped appropriately. CORS configuration, secret management and protected-route checks must be treated as security-sensitive architecture concerns. |
-| Keycloak is self-hosted and subject to its open-source license and operational responsibilities. | The system should request only the user information required for login, verify access tokens on the backend via JWKS, configure the Keycloak realm per environment and avoid storing unnecessary identity data outside the documented authentication purpose. |
-| Trivia API usage is subject to the provider's terms, licensing and access limits. | The backend keeps upstream trivia identifiers internal, caches only permitted question content and uses retries, timeouts and cache refill limits to respect provider availability and usage constraints. Commercial use or enhanced provider features would require checking the applicable plan. |
-| Open-source dependencies carry licensing obligations. | Frontend and backend dependency choices should remain trackable through package manifests and lock files, and incompatible licenses should be avoided before adding new libraries or deployment components. |
-| Logs, storage and access control must avoid unnecessary exposure of sensitive data. | Application logs should not contain OAuth tokens, session identifiers, passwords or unnecessary personal data. Access to ranked mode, profiles and session-backed actions must remain enforced by backend authorization checks. |
+| User-related data is stored in PostgreSQL. | The system stores only data needed for login, sessions, rankings, and match history: Keycloak subject, email, username, sessions, rankings, and match results. |
+| Session data is security-sensitive. | Cookies must be HttpOnly, appropriately scoped, and secure in production. Logs must avoid tokens, passwords, and session identifiers. |
+| Keycloak is self-hosted open-source software. | The realm configuration in `keycloak/realm-export.json` is part of the deployment and test setup. |
+| The Trivia API has external terms and availability limits. | Caching and retry settings reduce repeated upstream calls. Commercial or heavier use would require checking the provider plan and terms. |
+| Open-source dependencies have license obligations. | Dependency manifests and lock files must remain reviewable before adding libraries. |
 
 ## Context and Scope
 
 ### Business Context
 
-Quizzard of Oz is used by public players, authenticated players and project
-stakeholders. External organizations and services provide identity, question
-content, quality checks, documentation hosting and container publication.
-
-| Actor or External Party | Business Interaction |
+| Actor or System | Interaction with Quizzard of Oz |
 | --- | --- |
-| Guest players | Use public product pages, practice mode, leaderboard views and unranked play without creating a persistent account. |
-| Registered players | Sign in via Keycloak, play ranked matches, use persistent profile data and build leaderboard progress through stored rankings and match history. |
-| Development team | Builds and maintains the frontend, backend, persistence layer, CI workflows and architecture documentation. |
-| Reviewers / instructors | Evaluate whether the product, implementation and documentation meet the course requirements and quality expectations. |
-| Keycloak | Provides the trusted identity used to create or refresh an application session for registered players. |
-| Trivia API provider | Supplies external quiz-question content that the backend normalizes and caches for practice and multiplayer gameplay. |
-| GitHub, SonarCloud, Read the Docs and GHCR | Support repository collaboration, automated quality checks, published documentation and container image distribution. |
+| Guest player | Uses public pages such as the landing page, practice mode, and leaderboard without a backend login session. |
+| Registered player | Logs in through Keycloak, receives a backend session, enters ranked battle, and appears in rankings after match results. |
+| Keycloak | Provides identity through OIDC/PKCE and exposes JWKS for backend token verification. |
+| The Trivia API | Supplies multiple-choice questions that the backend normalizes and caches. |
+| PostgreSQL | Stores application users, backend sessions, rankings, cached questions, and match result history. |
+| GitHub Actions | Runs build, test, E2E, architecture, SonarCloud, Docker, and diagram-generation workflows. |
+| SonarCloud | Receives backend and frontend coverage reports and reports quality metrics. |
+| Read the Docs | Builds and publishes Sphinx documentation. |
+| GHCR | Receives backend and frontend Docker images from the Docker workflow. |
 
 ### Technical Context
 
-The system boundary contains the Next.js frontend and FastAPI backend. The
-following interfaces connect the system to users, infrastructure and external
-services.
-
-| Interface | Protocol / Mechanism | Purpose and Data Exchanged |
+| Interface | Mechanism | Data Exchanged |
 | --- | --- | --- |
-| Browser to frontend | HTTP/HTTPS | Delivers Next.js pages, JavaScript, styles and static assets for public pages, authentication flows and game screens. |
-| Frontend to backend REST APIs | HTTP JSON through `NEXT_PUBLIC_API_BASE` | Exchanges authentication requests, practice questions and answers, trivia batches, user data, rankings and leaderboard search results. |
-| Frontend to backend battle queue | WebSocket JSON at `/battle/queue` | Connects authenticated players to matchmaking and sends queue or match assignment events. |
-| Frontend to backend battle session | WebSocket JSON at `/battle/ws/{match_id}` | Sends and receives live battle events such as waiting state, category selection, questions, submitted answers, scoring and match results. |
-| Keycloak to backend authentication | Keycloak access token in `Authorization: Bearer ...` for `POST /auth/login` | Lets the backend verify identity via JWKS, create or find the local user and issue a backend-managed session cookie. |
-| Backend-managed session | HttpOnly cookie named by `SESSION_COOKIE_NAME` | Authenticates refresh, logout, protected HTTP requests and WebSocket handshakes without exposing the session identifier to frontend JavaScript. |
-| Backend to PostgreSQL | SQLAlchemy over `psycopg2` / PostgreSQL protocol | Persists users, sessions, rankings, battle-related state and cached trivia questions. |
-| Backend to Trivia API | Outbound HTTPS JSON | Retrieves question data from the external provider and stores normalized questions in the local cache with retry, timeout and refill limits. |
-| Runtime configuration | Environment variables | Supplies API base URLs, Keycloak URL/realm/client ID, database credentials, CORS origins, cookie settings and Trivia API settings. |
-| CI, documentation and container tooling | GitHub Actions, SonarCloud, Sphinx / Read the Docs and GHCR | Builds and tests the system, publishes documentation, reports quality metrics and publishes frontend/backend container images. |
+| Browser to frontend | HTTP/HTTPS | Next.js pages, JavaScript, CSS, static assets, manifest, favicon. |
+| Frontend to backend REST | HTTP JSON through `NEXT_PUBLIC_API_BASE`; local Next.js rewrites can proxy `/api/*` to the backend. | Login, refresh, logout, practice questions, answer checks, trivia batches, rankings, leaderboard search. |
+| Frontend to backend queue | WebSocket `/battle/queue` | Session-cookie-authenticated matchmaking. Messages include `queued` and `matched`. |
+| Frontend to backend match | WebSocket `/battle/ws/{match_id}` | Live match protocol: category picking, questions, answer submission, answer acknowledgement, `question_result`, round results, surrender, forfeit, and game over. |
+| Frontend to Keycloak | OIDC Authorization Code + PKCE via `keycloak-js` | Login, registration, access token acquisition, logout redirect. |
+| Backend to Keycloak | HTTPS JWKS lookup | Public keys for verifying Keycloak access tokens. |
+| Backend to PostgreSQL | SQLAlchemy over PostgreSQL protocol | CRUD for users, sessions, rankings, cached questions, and match results. |
+| Backend to The Trivia API | HTTPS JSON via httpx | `/v2/questions` requests with limit, categories, difficulties, optional API key, timeout, retries, backoff, and a circuit breaker for sustained outages. |
+| Configuration | Environment variables and Docker build args | Database credentials, CORS origins, session cookie settings, Keycloak URL/realm/client ID, Trivia API settings, API base URL, build commit. |
 
-### Context Diagram
+### System Boundary
+
+Quizzard of Oz contains the Next.js frontend and FastAPI backend. PostgreSQL and Keycloak are part of the local/container deployment but remain separate runtime services. The Trivia API, GitHub Actions, SonarCloud, GHCR, and Read the Docs are external supporting systems.
+
+PlantUML sources live in `docs/c4` and are the authoritative diagram definitions. Generated SVGs live in `docs/images` and are regenerated by the `plantuml.yml` workflow. If a rendered SVG lags behind a PlantUML source change, treat the source file and the prose in this document as authoritative.
+
+### System Context Diagram
+
+Purpose: show the users, the Quizzard of Oz system boundary, and external runtime/supporting systems.
+
+Main elements: guest player, registered player, development team, reviewers, operators, Quizzard of Oz, Keycloak, PostgreSQL, The Trivia API, GitHub Actions, SonarCloud, GHCR, and Read the Docs.
 
 ![System context diagram](images/C1_Context.svg)
 
-Diagram source: [docs/c4/c1_context.puml](c4/c1_context.puml)
+Source: `docs/c4/c1_context.puml`
+
+The context view makes identity delegation, external question supply, durable storage, and CI/documentation infrastructure explicit. Quizzard of Oz contains the Next.js frontend and FastAPI backend; PostgreSQL and Keycloak are shown as separate runtime services.
 
 ## Solution Strategy
 
-The table below maps each quality goal to the primary architectural decision
-that addresses it.
-
-| Quality Goal | Architectural Decision | Concrete Mechanism |
-| --- | --- | --- |
-| Performance | Cache trivia questions locally in PostgreSQL | TriviaService refills the cache in configurable batches; active match rounds and practice mode read exclusively from `question_cache`, never from the live Trivia API. |
-| Security | Keycloak OIDC/PKCE + backend-managed session cookies | The frontend exchanges an authorization code for a short-lived access token and passes it to the backend once via `POST /auth/login`. The backend issues an HttpOnly session cookie for all subsequent requests so JWTs are never stored in browser-accessible storage. |
-| Maintainability | Strict three-layer backend architecture with enforced import rules | Routers delegate to Services, Services call CRUD functions. Cross-layer imports in the wrong direction are detected and blocked by architecture tests (`pytest-arch`) on every pull request. |
-| Maintainability | Separation of concerns across independent containers | Frontend owns rendering and user interaction; backend owns game logic, scoring and data; PostgreSQL owns persistence. Each container is independently deployable and replaceable. |
-| Reliability | Graceful degradation on external API failure | TriviaClient retries failed requests with configurable backoff. If the Trivia API remains unavailable the backend serves questions from cache or returns a structured error — it does not crash the running match. |
-| Reliability | Self-hosted Keycloak with automated realm import | Keycloak runs as a Docker container; the `quizzard` realm is imported on every startup from a committed JSON file, so the identity provider recovers automatically after a restart without manual configuration. |
+- Keep the product as a small modular web system: one Next.js frontend, one FastAPI backend, one PostgreSQL database, and one Keycloak identity service.
+- Use REST APIs for request/response interactions such as login, refresh, practice questions, answers, rankings, and leaderboard search.
+- Use WebSockets for battle queue and match runtime events because both players need low-latency, bidirectional state updates.
+- Delegate identity to Keycloak and keep application sessions in PostgreSQL-backed HttpOnly cookies so frontend JavaScript does not need direct access to the backend session identifier.
+- Keep battle orchestration in `BattleManager` and matchmaking in `MatchmakingService`; both are process-local and protected with asyncio locks for concurrent WebSocket actions.
+- Cache normalized trivia questions in PostgreSQL to decouple most gameplay from live upstream calls and reduce latency/rate-limit pressure.
+- Use SQLAlchemy models and CRUD repositories for persistent data access; use service classes for game, trivia, ranking, and auth-related behavior.
+- Keep quality feedback automated through backend pytest, frontend Vitest, architecture tests, security tests, Playwright E2E tests, SonarCloud, and Docker workflows.
 
 ## Building Block View
 
 ### Level 1 — Whitebox Overall System
 
-**Core building blocks**
-
-- Frontend application for navigation, game flows and player-facing UI
-- Backend application for auth, matchmaking, gameplay orchestration and scoring
-- Persistence layer for users, sessions, questions and ranking data
-- External trivia API used to populate and refresh the question cache
-
-**Important interfaces**
-
-- HTTP REST APIs between frontend and backend
-- WebSocket real-time communication for synchronized matches
-- Database access for gameplay and leaderboard state
-- Outbound HTTP calls for new question data from the Trivia API
-
-### Level 2 — Container View
+| Building Block | Responsibility | Main Technologies |
+| --- | --- | --- |
+| Next.js frontend | Player UI, route handling, Keycloak client initialization, auth state, theme state, REST clients, WebSocket clients, battle rendering. | Next.js, React, TypeScript, Zustand, keycloak-js, Axios, Tailwind CSS. |
+| FastAPI backend | REST API, WebSocket server, auth/session handling, matchmaking, battle state machine, ranking, trivia integration, persistence access. | FastAPI, Uvicorn, SQLAlchemy, Pydantic, PyJWT, httpx, websockets. |
+| PostgreSQL database | Durable data for users, sessions, rankings, question cache, and match result history. | PostgreSQL 18 in Docker Compose, PostgreSQL 16 in CI E2E service. |
+| Keycloak | Identity provider and realm configuration for login/registration. | Keycloak 26.2.5, imported `quizzard` realm. |
+| Trivia provider | External question source. | The Trivia API `/v2/questions`. |
 
 ![Container diagram](images/C2_Container.svg)
 
-Diagram source: [docs/c4/c2_container.puml](c4/c2_container.puml)
+Source: `docs/c4/c2_container.puml`
 
-| Container | Technology | Responsibility |
+Purpose: show the deployable/executable units and their runtime communication.
+
+Main elements: Next.js frontend and FastAPI backend inside the Quizzard of Oz boundary; PostgreSQL and Keycloak as separate runtime services; The Trivia API and supporting CI/documentation systems as external systems.
+
+The container view separates public browser delivery, REST JSON calls, queue WebSockets, battle WebSockets, OIDC/PKCE login, JWKS token verification, SQLAlchemy/PostgreSQL persistence, and outbound Trivia API access.
+
+### Frontend Building Blocks
+
+| Block | Implementation | Responsibility |
 | --- | --- | --- |
-| Next.js Frontend | Next.js 16, React 19, Tailwind CSS, Zustand, keycloak-js | Renders all player-facing pages, manages local UI state and auth context, communicates with the backend via REST and WebSocket. |
-| FastAPI Backend | Python 3.12, FastAPI, Uvicorn, SQLAlchemy 2.0, httpx | Exposes REST endpoints and WebSocket handlers for all game modes; owns all business logic, matchmaking, Elo calculation and session management. |
-| PostgreSQL | PostgreSQL 18.3-trixie | Persists users, backend sessions, Elo rankings and the cached trivia question pool across four tables: `users`, `sessions`, `rankings`, `question_cache`. |
-| Keycloak | Keycloak 26.2.5, OIDC/PKCE | Self-hosted identity provider. The realm `quizzard` is auto-imported via `--import-realm` on every container start. Issues access tokens the backend validates via JWKS. |
-
-### Level 3 — Backend Components
-
-![Backend component diagram](images/C3_Backend_Components.svg)
-
-Diagram source: [docs/c4/c3_backend_components.puml](c4/c3_backend_components.puml)
-
-The backend follows a strict three-layer architecture. Architecture tests
-enforced by `pytest-arch` prevent imports across layers in the wrong
-direction.
-
-| Layer | Components | Rule |
-| --- | --- | --- |
-| Routers | AuthRouter, QuizRouter, BattleRouter, RankingRouter, TriviaRouter | Accept HTTP/WebSocket requests, validate parameters with Pydantic and delegate to services. Must not contain business logic. |
-| Services | BattleManagerService, MatchmakingService, RankingService, QuizService, TriviaService, TriviaClient | Contain all business logic and orchestration. May call other services or CRUD functions. Must not import routers. |
-| CRUD | UserCRUD, SessionCRUD, RankingCRUD, QuestionCacheCRUD | Encapsulate all SQLAlchemy queries. Only layer that accesses the database directly. |
-
-Key service responsibilities:
-
-- **BattleManagerService** — owns the match state machine (`waiting → picking → questions → finished`), coordinates question loading per round and triggers Elo updates after a match ends.
-- **MatchmakingService** — manages the queue for ranked and unranked modes; assigns matches based on Elo proximity and notifies both clients via the queue WebSocket.
-- **TriviaService / TriviaClient** — manages the question cache lifecycle; TriviaClient fetches from the Trivia API with retry and backoff; TriviaService decides when to refill and how many questions to request.
-- **RankingService** — calculates Elo deltas using K-factor 32 and provides paginated leaderboard queries.
-
-### Level 3 — Frontend Components
+| App layout | `app/layout.tsx`, `Navbar`, providers | Wraps the app in theme and Keycloak providers, renders navigation, validates required Keycloak public config. |
+| Landing page | `app/page.tsx`, `components/LandingPage.tsx` | Shows product entry, ranked battle CTA, practice CTA, and top 3 leaderboard preview. |
+| Practice mode | `app/trainings-modus/PracticeQuiz.tsx`, `app/lib/api/quiz.ts` | Loads 10 practice questions and submits answer checks to the backend. |
+| Ranked mode | `app/ranked-modus/page.tsx`, `components/Queue.tsx` | Gates ranked queue by frontend auth state and opens WebSocket `/battle/queue`. |
+| Battle arena | `app/battle/[match_id]/page.tsx`, `components/battle/*` | Connects to `/battle/ws/{match_id}` and renders battle phases. |
+| Auth client | `app/lib/auth/authClient.ts`, `providers/KeycloakProvider.tsx`, `stores/authStore.ts` | Initializes Keycloak, exchanges Keycloak token for backend session, refreshes/logout sessions, stores display credential. |
+| Ranking client | `app/lib/api/ranking.ts` | Loads leaderboard and username search results. |
+| Architecture tests | `app/__tests__/arch/architecture.test.ts` | Enforces no circular dependencies, no component imports from API routes, and no production imports from test files. |
 
 ![Frontend component diagram](images/C3_Frontend_Components.svg)
 
-Diagram source: [docs/c4/c3_frontend_components.puml](c4/c3_frontend_components.puml)
+Source: `docs/c4/c3_frontend_components.puml`
 
-| Category | Components | Responsibility |
+### Backend Building Blocks
+
+| Block | Implementation | Responsibility |
 | --- | --- | --- |
-| Pages | LandingPage, PracticePage, RankedPage, LeaderboardPage, BattleArenaPage | Next.js file-based routes. Each page composes components and initiates data fetching. Must not be imported by components. |
-| Components | LoginButton, UserMenu, Queue, BattleComponents (CategoryPicker, QuestionCard, AnswerFeedback, ScoreBoard) | Reusable React components. May read from stores or call API clients. Must not import Pages. |
-| API Clients | AuthClient, QuizApiClient, RankingApiClient, WebSocketClient | Typed wrappers for all backend communication. Isolate HTTP and WebSocket transport details from UI code. |
-| State | AuthStore (Zustand) | Global authentication state. Stores user identity and session status after a successful login. |
-| Provider | KeycloakProvider | Initializes `keycloak-js` and exposes the Keycloak instance via React context to all components that need auth. |
+| Application entry | `backend/main.py` | Creates the FastAPI app, configures CORS, creates DB tables, includes routers, exposes `/` and `/health`, closes trivia client resources on shutdown. |
+| Settings | `app/settings.py`, `app/database.py` | Loads CORS and Trivia settings with Pydantic, loads DB environment variables, creates SQLAlchemy engine/session factory. |
+| Auth router | `app/routers/auth.py` | Verifies Keycloak bearer tokens, creates users, creates/extends/deletes backend sessions, sets and clears session cookies. |
+| WebSocket auth | `app/services/ws_auth.py` | Validates session cookie, session expiry, and user existence before accepting queue or battle sockets. |
+| User router/CRUD | `app/routers/user.py`, `app/crud/user.py` | Creates and reads users. Current create path uses username as `keycloak_sub`, so it is mainly useful for tests or internal setup. |
+| Quiz router/service | `app/routers/quiz.py`, `app/services/quiz_service.py` | Serves practice questions and checks practice answers through the trivia service. |
+| Trivia router/service/client | `app/routers/trivia.py`, `app/services/trivia_service.py`, `app/services/trivia_client.py` | Parses filters, fetches/cache-refills questions, validates payloads, exposes cached internal question IDs to clients. The client guards upstream calls with timeout, retry/backoff, and a `pybreaker` circuit breaker (ADR 11). |
+| Battle router | `app/routers/battle.py` | Exposes queue and battle WebSocket endpoints and delegates to matchmaking/battle services. |
+| Matchmaking service | `app/services/matchmaking_service.py` | Maintains in-memory queue, reads player Elo, matches closest eligible pair, expands allowed Elo delta over wait time, returns a match ID. |
+| Battle manager | `app/services/battle_manager.py` | Holds in-memory match state, enforces phases, handles category selection, questions, timers, scoring, surrender, disconnect, forfeit, game over. |
+| Ranking service | `app/services/ranking_service.py` | Applies Elo updates, records match results, computes leaderboard pages and shared ranks on ties. |
+| CRUD/models | `app/crud/*`, `app/models/*` | Encapsulate SQLAlchemy access to persistent tables. |
 
-Architecture tests enforced by `dependency-cruiser` prevent Pages from being
-imported by Components, keeping the component hierarchy unidirectional.
+![Backend component diagram](images/C3_Backend_Components.svg)
+
+Source: `docs/c4/c3_backend_components.puml`
+
+Purpose: decompose the FastAPI backend into routers, services, persistence adapters, models, schemas, and external adapters.
+
+Selected container: FastAPI backend.
+
+Main elements: `main.py`, settings/database, auth/user/quiz/trivia/ranking/battle routers, WebSocket auth, quiz/trivia/matchmaking/battle/ranking services, CRUD repositories, SQLAlchemy models, Pydantic schemas, PostgreSQL, Keycloak, and The Trivia API.
+
+The backend component view highlights the intended layering: routers own inbound protocol handling, services own business rules, CRUD repositories encapsulate database access, models define persistent tables, and external adapters isolate Keycloak and Trivia API communication.
+
+### Code/Class View: Battle Runtime
+
+Purpose: show the architecturally significant code-level structure around `BattleManager`, because ranked battles combine authentication, process-local state, WebSockets, timers, question loading, scoring, forfeit handling, and ranking updates.
+
+Selected component: `BattleManager` and the ranked battle runtime.
+
+Main elements: `BattleRouter`, `WsAuthService`, `MatchmakingService`, `QueueEntry`, `BattleManager`, `MatchState`, player entries stored in `MatchState.players`, `QuizService`, `TriviaQuestionService`, `QuestionCacheRepository`, `RankingService`, ranking/session/user CRUD modules, and the persistent `User`, `Session`, `Ranking`, `QuestionCache`, and `MatchResult` models.
+
+Source: `docs/c4/c4_battle_runtime_code.puml`
+
+Important implementation notes visible in the code-level view:
+
+- Active queue and battle state is process-local backend memory.
+- `MatchState` is the central runtime state object and protects state mutations with an `asyncio.Lock`.
+- The current code does not define a separate `PlayerState` class; connected players are stored as dictionaries in `MatchState.players`.
+- The repository does not currently contain a dedicated `MatchResultRepository`; `RankingService.apply_match_result` persists `MatchResult` through SQLAlchemy while updating rankings.
+- Durable state is limited to users, sessions, rankings, cached questions, and match results in PostgreSQL.
+
+### Persistent Data Model
+
+| Table | Purpose | Important Fields |
+| --- | --- | --- |
+| `users` | Local application user linked to Keycloak identity. | `id`, `keycloak_sub`, `email`, `username`, `created_at`. |
+| `sessions` | Backend-managed application sessions. | `id`, `user_id`, `expires_at`, `created_at`. |
+| `rankings` | One ranking row per user. | `user_id`, `elo_rating`, `wins`, `losses`, `total_matches`, `last_win_at`, `updated_at`. |
+| `question_cache` | Normalized local copy of Trivia API questions. | `external_id`, `question_text`, `answers`, `correct_answer`, `category`, `difficulty`, `cached_at`. |
+| `match_results` | Match history entry for ranking outcomes. | `winner_id`, `loser_id`, `ended_as` (`normal` or `forfeit`), `created_at`. |
+
+Active queue entries and active battle state are not stored in PostgreSQL. They live in memory inside `MatchmakingService` and `BattleManager`.
 
 ## Runtime View
 
-### Login Flow
+### Runtime Overview Diagram
 
-![Login flow](images/C4_Dynamic_Login.svg)
+![Ranked session flow](images/Runtime_Ranked_Battle.svg)
 
-Diagram source: [docs/c4/c4_dynamic_login.puml](c4/c4_dynamic_login.puml)
+This existing flow diagram summarizes the intended ranked battle lifecycle. The detailed runtime descriptions below are authoritative for the currently implemented WebSocket event names and persistence behavior.
 
-The login sequence follows the Authorization Code with PKCE flow:
+### Login and Session Flow
 
-1. The user clicks the login button; `keycloak-js` starts a PKCE flow and redirects the browser to Keycloak.
-2. The user submits credentials on Keycloak's login form.
-3. Keycloak redirects back to the frontend with an authorization code.
-4. The frontend exchanges the code for an access token (JWT) using the PKCE code verifier.
-5. The frontend sends `POST /auth/login` with `Authorization: Bearer <JWT>`.
-6. The backend fetches Keycloak's JWKS public keys and verifies the token signature and claims.
-7. The backend creates or updates the local user record in `users` and creates a new session row in `sessions`.
-8. The backend responds with HTTP 200 and sets an HttpOnly session cookie (`SESSION_COOKIE_NAME`).
-9. The frontend updates AuthStore with the user profile and renders the authenticated UI.
+![Keycloak login dynamic diagram](images/C4_Dynamic_Login.svg)
 
-### Practice Mode Flow
+Source: `docs/c4/c4_dynamic_login.puml`
 
-![Practice mode flow](images/C4_Dynamic_Practice.svg)
+1. The user clicks the login button in the frontend.
+2. `keycloak-js` runs the Keycloak Authorization Code + PKCE flow.
+3. The frontend receives a Keycloak access token.
+4. The frontend calls `POST /auth/login` with `Authorization: Bearer <token>`.
+5. The backend verifies the token through Keycloak JWKS and reads the `sub` claim.
+6. The backend finds or creates a `users` row using `keycloak_sub`.
+7. The backend creates a `sessions` row with `expires_at`.
+8. The backend returns username/email/expiry and sets the configured HttpOnly session cookie.
+9. The frontend stores display credentials in Zustand; the session cookie remains browser-managed.
 
-Diagram source: [docs/c4/c4_dynamic_practice.puml](c4/c4_dynamic_practice.puml)
+Refresh uses `GET /auth/refresh`, validates the existing cookie, extends expiry, and returns the same response shape. Logout uses `POST /auth/logout`, deletes the session if present, and clears the cookie.
 
-Practice mode is available to all visitors without login:
+### Practice Quiz Flow
 
-1. The player opens `/trainings-modus`.
-2. The frontend requests `GET /quiz/practice/questions` with optional category and difficulty parameters.
-3. QuizService reads up to the requested number of questions from `question_cache` for the given filter.
-4. If the cache has fewer questions than requested, TriviaService calls TriviaClient to fetch a fresh batch from the Trivia API (configurable retries and timeout via `TRIVIA_MAX_RETRIES` and `TRIVIA_TIMEOUT_SECONDS`). The fetched questions are normalized and stored in `question_cache`.
-5. The backend returns the question list; the frontend displays questions one at a time.
-6. After each selection the frontend posts `POST /quiz/practice/answer` with the chosen answer.
-7. The backend validates the answer and returns `{correct, correct_answer, score}`.
-8. Steps 6–7 repeat until all questions are answered.
+1. `PracticeQuiz` calls `GET /quiz/practice/questions`.
+2. `QuizService` requests 10 questions from `TriviaQuestionService`.
+3. The trivia service tries to serve matching cached questions first.
+4. If cache is insufficient, `TriviaApiClient` fetches `/v2/questions`, retries configured transient failures, and the service normalizes valid items.
+5. Normalized questions are upserted into `question_cache`.
+6. The frontend receives question IDs, text, answers, and categories, but not `correct_answer`.
+7. For each answer, the frontend calls `POST /quiz/practice/answer`.
+8. The backend compares the answer with the cached correct answer and returns correctness plus correct answer.
 
-### Ranked and Unranked Session Flow
+### Trivia Cache Refill Flow
 
-![Ranked and unranked session flow](images/ranked_session_flow.svg)
+1. The REST trivia endpoint accepts `limit`, `categories`, and `difficulties`.
+2. Unsupported query parameters, repeated `limit`, invalid limits, unsupported difficulties, and `query` are rejected with 400.
+3. The cache repository returns random matching questions, excluding IDs where required by battle flows.
+4. On cache miss, the client fetches from The Trivia API with configured timeout, retry count, backoff, and batch size. A circuit breaker wraps the call: after `TRIVIA_BREAKER_FAIL_MAX` consecutive failed fetches it opens and short-circuits further upstream calls, failing fast until `TRIVIA_BREAKER_RESET_TIMEOUT` elapses and it half-opens (closing again on the next success).
+5. Invalid upstream payload items are skipped; if all items are invalid, the backend raises a payload error. Non-retryable responses and payload errors do not count toward the breaker, since they are not upstream outages.
+6. If the cache still cannot satisfy the requested limit after refill attempts — or while the breaker is open and the cache is empty — the backend returns 503 for HTTP callers or aborts an active battle setup, now without paying the per-request timeout and retry budget. See ADR 11.
 
-Both synchronized game modes share the same broad sequence:
+### Authenticated Ranked Battle from Queue to Game Over
 
-1. Players enter a queue or session.
-2. The backend creates or activates a session.
-3. Questions are prepared from cached or newly fetched trivia data.
-4. Players answer questions round by round.
-5. The backend calculates scores and advances category selection.
-6. Ranked mode additionally updates Elo after the match ends.
+Scenario: two registered players enter ranked matchmaking, are matched by Elo, play a best-of-five battle, and persist the result.
 
-### Multiplayer Match Flow (Detailed)
+Trigger: an authenticated player opens the ranked mode and the frontend opens WebSocket `/battle/queue`.
 
-![Multiplayer match flow](images/C4_Dynamic_Match.svg)
+Preconditions:
 
-Diagram source: [docs/c4/c4_dynamic_match.puml](c4/c4_dynamic_match.puml)
+- Both players have completed Keycloak login.
+- The backend has verified each Keycloak access token via JWKS.
+- Each browser has a backend-managed HttpOnly session cookie.
+- PostgreSQL is reachable for session, ranking, question cache, and match result persistence.
 
-The multiplayer flow consists of four phases:
+Participants:
 
-**Phase 1 — Matchmaking:** Both players connect to `WS /battle/queue` and
-send `type: queued`. MatchmakingService checks the Elo range and, when a
-suitable opponent is found, assigns both players a shared `match_id` and
-sends `type: matched` to each.
+- Registered players and their browser frontends.
+- Next.js ranked page, `Queue`, and battle arena.
+- FastAPI `BattleRouter`.
+- `WsAuthService`, `MatchmakingService`, `BattleManager`, `QuizService`, `TriviaQuestionService`, and `RankingService`.
+- PostgreSQL for sessions, rankings, question cache, and match results.
+- The Trivia API when cache refill is required.
 
-**Phase 2 — Match connection:** Both players open a second WebSocket to
-`WS /battle/ws/{match_id}`. The backend validates the session cookie on
-connection. Once both clients are connected, each receives `type:
-match_ready` with the opponent's username.
+![Multiplayer match dynamic diagram](images/C4_Dynamic_Match.svg)
 
-**Phase 3 — Round loop** (repeated until one player wins 3 rounds): The
-active player receives `pick_category` with three choices, selects one and
-the backend broadcasts the choice. BattleManagerService reads three
-questions for that category from `question_cache` and sends `type:
-question` to both. Each player submits `type: answer` independently; the
-backend immediately responds with `type: answer_result` showing whether
-the answer was correct and the current score. After both players have
-answered all three questions the backend sends `type: round_result` with
-the round winner and cumulative scores.
+Source: `docs/c4/c4_dynamic_match.puml`
 
-**Phase 4 — Match end:** The backend sends `type: game_over` with the
-overall winner and, for ranked matches, the Elo delta for each player.
-RankingService updates both players' Elo ratings (K-factor 32) in the
-`rankings` table.
+Sequence diagram source: `docs/c4/runtime_ranked_battle.puml`
+
+Step-by-step flow:
+
+1. Player 1 opens WebSocket `/battle/queue`; the backend validates the session cookie before accepting the socket.
+2. `MatchmakingService` reads the player's ranking, queues the socket with Elo, queue time, and sequence number, and sends `queued` if no eligible opponent exists.
+3. Player 2 opens `/battle/queue`; the backend validates that session cookie and reads the player's ranking.
+4. Matching prefers the closest Elo pair. The initial allowed Elo delta is 75 and grows by 50 every 5 seconds.
+5. Both players receive `matched` with the same match UUID.
+6. Both clients navigate to `/battle/{match_id}` and open `/battle/ws/{match_id}`.
+7. The backend validates each session cookie again before accepting the battle socket.
+8. The first connected player receives `waiting_for_opponent`.
+9. When the second player connects, `BattleManager` creates or updates `MatchState`, sends `match_ready` to both players, and randomly chooses the first category picker.
+10. At each round, the picker receives `pick_category` with three categories and a 30-second category deadline; the other player receives `waiting_for_category`.
+11. The picker sends `pick_category`; the backend ignores invalid picker, wrong-phase, or invalid-category messages and keeps server-authoritative state.
+12. The backend loads three questions for the selected category from cache, refilling from The Trivia API if necessary, and tracks used question IDs.
+13. Both clients receive `category_chosen`, then each `question`.
+14. The server starts a 20-second answer deadline for each question.
+15. Each player sends `answer`; the backend records the answer and replies only to that player with `answer_received`.
+16. The backend hides the correct answer until both players answer or the timer expires.
+17. Both players receive `question_result` with correctness, correct answer, their submitted answer, and reveal duration.
+18. After three questions, both players receive `round_result`.
+19. The first player to 3 round wins wins the best-of-five battle.
+20. Both players receive `game_over`.
+21. `RankingService.apply_match_result` updates Elo, wins, losses, totals, and inserts a `match_results` row.
+22. `BattleManager` removes the in-memory `MatchState`.
+
+Alternative and error flows:
+
+- Missing, invalid, not-found session or missing user: WebSocket close 4001.
+- Expired session: WebSocket close 4003.
+- Invalid category picker, wrong phase, or invalid category: backend ignores/rejects the event and keeps authoritative server state.
+- Trivia upstream payload invalid: controlled upstream payload error.
+- Insufficient questions or upstream unavailable: HTTP callers receive 503; battle question preparation closes battle sockets with 1011 and a generic reason.
+- Surrender or disconnect during `picking` or `questions`: remaining player receives `opponent_forfeit`, rankings update, `match_results.ended_as = "forfeit"`, and in-memory match state is removed.
+- Disconnect before match start: does not count as a forfeit.
+- Backend restart: active queue entries and active matches are lost because both are process-local memory.
+
+Security considerations:
+
+- Keycloak owns identity; the backend owns application sessions.
+- WebSocket handshakes validate the backend session cookie.
+- The session cookie must be HttpOnly. Production cookies should also be Secure and scoped to the correct domain/SameSite policy.
+- Logs must avoid tokens, passwords, and session identifiers.
+
+Consistency and state considerations:
+
+- Active battle state is protected by per-match `asyncio.Lock` instances.
+- Matchmaking queue state is protected by its own service lock.
+- Durable ranking and match result updates happen after normal game over or forfeit.
+- Completed match results and ranking updates are persisted to PostgreSQL; active matches are not durable across backend restarts.
+
+Performance considerations:
+
+- WebSockets avoid polling for battle queue and runtime communication.
+- Cached questions avoid live upstream calls for every battle question.
+- Batch refill, category sampling, and random cache selection reduce latency and external API pressure.
+
+### Diagram Traceability
+
+| Trace | Mapping |
+| --- | --- |
+| C1 to C2 | The Quizzard of Oz system from C1 is refined into the Next.js frontend and FastAPI backend containers. Keycloak, PostgreSQL, The Trivia API, GitHub Actions, SonarCloud, GHCR, and Read the Docs remain outside the application boundary. |
+| C2 to C3 | The FastAPI backend container is refined into routers, services, CRUD repositories, models, schemas, and external adapters. The frontend container is refined separately into pages, providers, stores, clients, and battle components. |
+| C3 to C4 | The backend battle components are refined into `BattleRouter`, `WsAuthService`, `MatchmakingService`, `BattleManager`, `MatchState`, trivia/ranking services, CRUD modules, and persistent models. |
+| Runtime view | The ranked battle runtime uses the C1 registered player, C2 frontend/backend/PostgreSQL/Keycloak/Trivia API, C3 battle/auth/trivia/ranking components, and C4 `BattleManager`/`MatchState` code-level elements. |
+
+### Leaderboard Flow
+
+1. The landing page and leaderboard page call `/ranking/leaderboard?page=N`.
+2. Search calls `/ranking/leaderboard/search?username=<query>&page=N`.
+3. The backend joins rankings to users, orders by Elo, win/loss ratio, last win time, update time, and user ID.
+4. Fully tied leaderboard entries share the same rank.
+5. The response contains `page`, `page_size`, `total_players`, and entries with rank, user, Elo, wins, losses, total matches, and last win time.
 
 ## Deployment View
 
-### Infrastructure Level 1
+### Local Docker Compose Deployment
 
-- The frontend is deployed as a containerized Next.js application reachable via HTTPS.
-- The backend is deployed as a containerized FastAPI application with direct access to PostgreSQL and Keycloak.
-- Keycloak is deployed as a self-hosted container; the `quizzard` realm is auto-imported from `keycloak/realm-export.json` on every startup.
-- Documentation is deployed separately through Read the Docs using Sphinx.
-
-### Infrastructure Level 2 — Docker Compose Services
-
-![Deployment view](images/C4_Deployment.svg)
-
-Diagram source: [docs/c4/c4_deployment.puml](c4/c4_deployment.puml)
-
-All runtime services are defined in `docker-compose.yml` (local development)
-and `docker-compose.prod.yml` (production). The table below reflects the
-production configuration:
-
-| Service | Image | External Port | Depends On | Notes |
-| --- | --- | --- | --- | --- |
-| `postgres` | `postgres:18.3-trixie` | 11000 → 5432 | — | Persistent volume `postgres_data`; health-checked before backend starts. |
-| `keycloak` | `quay.io/keycloak/keycloak:26.2.5` | 11001 → 8080 | `postgres` (healthy) | Production mode (`start --import-realm`); realm auto-configured on startup. |
-| `backend` | `ghcr.io/gravefax/quizzard-of-oz-backend` | 11002 → 8000 | `postgres` (healthy), `keycloak` (healthy) | Uvicorn ASGI; creates all DB tables at startup via `Base.metadata.create_all()`. |
-| `frontend` | `ghcr.io/gravefax/quizzard-of-oz-frontend` | 11003 → 3000 | `backend` (healthy) | Multi-stage build; `NEXT_PUBLIC_*` values baked into the image at build time. |
-
-All sensitive values (database credentials, Keycloak admin password, API
-secrets, cookie settings and Trivia API keys) are supplied through environment
-variables defined in a `.env` file that is not committed to the repository. An
-`.env.example` template documents all required variables.
-
-### CI/CD Pipeline
-
-The project uses GitHub Actions for all automated quality and deployment steps.
-Workflow files are located in `.github/workflows/`.
-
-| Stage | Workflow | Trigger | Steps |
+| Service | Image or Build | Ports | Health / Dependency |
 | --- | --- | --- | --- |
-| Backend tests | `ci.yml` | Push / PR to `dev` or `main` | `pytest` with coverage, `ruff` lint, `mypy` strict type check, `pytest-arch` layer rules |
-| Frontend tests | `ci.yml` | Push / PR to `dev` or `main` | ESLint, `vitest` unit tests, Playwright E2E tests, `dependency-cruiser` architecture rules |
-| SonarCloud analysis | `ci.yml` | Push / PR | Aggregates coverage reports from backend and frontend; enforces quality gate |
-| Docker build & push | `docker.yml` | Push to `main` (backend or frontend path changed) | Builds images and pushes to `ghcr.io/gravefax/quizzard-of-oz-{backend,frontend}` |
-| PlantUML render | `plantuml.yml` | PR to `dev` with changes in `docs/c4/` | Renders all `.puml` files in `docs/c4/` to SVG and commits the result to `docs/images/` |
-| Docs publish | Read the Docs webhook | Merge to `main` | Read the Docs rebuilds and publishes the Sphinx documentation automatically |
+| `postgres` | `postgres:18.3-trixie` | `${POSTGRES_PORT:-5432}:5432` | `pg_isready`; backend waits for healthy DB. |
+| `keycloak` | `quay.io/keycloak/keycloak:26.2.5` | `8080:8080` | TCP health check; backend waits for healthy Keycloak. Imports `keycloak/realm-export.json`. |
+| `backend` | Built from `backend/Dockerfile` | `8000:8000` | `/health`; depends on PostgreSQL and Keycloak. |
+| `frontend` | Built from `frontend/quizzard-of-oz/Dockerfile` | `3000:3000` | Depends on healthy backend. |
+
+The backend image runs as a non-root `appuser`. The frontend image uses a multi-stage Next.js standalone build and runs as a non-root `nextjs` user with read-only application files after build.
+
+### Configuration
+
+| Area | Variables |
+| --- | --- |
+| Database | `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_PORT`, `POSTGRES_HOST`, `ECHO_DATABASE`. |
+| Session cookie | `SESSION_EXP_MINUTES`, `COOKIE_SECURE`, `COOKIE_SAMESITE`, `COOKIE_DOMAIN`, `SESSION_COOKIE_NAME`. |
+| Keycloak | Backend: `KEYCLOAK_URL`, `KEYCLOAK_REALM`; frontend: `NEXT_PUBLIC_KEYCLOAK_URL`, `NEXT_PUBLIC_KEYCLOAK_REALM`, `NEXT_PUBLIC_KEYCLOAK_CLIENT_ID`. |
+| Frontend/backend routing | `BACKEND_URL`, `NEXT_PUBLIC_API_BASE`. |
+| Trivia API | `TRIVIA_API_BASE_URL`, `TRIVIA_API_KEY`, `TRIVIA_TIMEOUT_SECONDS`, `TRIVIA_MAX_RETRIES`, `TRIVIA_BACKOFF_SECONDS`, `TRIVIA_REFILL_ATTEMPTS`, `TRIVIA_REFILL_BATCH_SIZE`, `TRIVIA_MAX_LIMIT`. |
+| Build metadata | `GIT_COMMIT` for frontend and backend Docker builds. |
+
+### CI/CD and Documentation Infrastructure
+
+| Workflow | Responsibility |
+| --- | --- |
+| `ci.yml` frontend build | Installs pnpm dependencies on Node 22 and runs `pnpm build`. |
+| `ci.yml` backend tests | Installs Python 3.12 dependencies and runs pytest with branch coverage and XML output. |
+| `ci.yml` frontend tests | Runs linting, Vitest coverage, and architecture tests. |
+| `ci.yml` E2E tests | Starts PostgreSQL service and Keycloak container, then runs Playwright with frontend and backend web servers. |
+| `ci.yml` SonarCloud | Downloads coverage artifacts and runs SonarCloud analysis. |
+| `docker.yml` | Builds and pushes backend/frontend images to GHCR for changes on `main` and `dev`. |
+| `plantuml.yml` | Regenerates PlantUML SVG diagrams for `docs/c4/*.puml`. |
+| Read the Docs | Builds Sphinx documentation from `docs/conf.py` using Python 3.13 and `docs/requirements.txt`. |
+
+### Production Deployment Open Questions
+
+No production hosting target, ingress, TLS termination, secrets manager, backup strategy, log aggregation, or scaling policy is visible in the repository. These must be defined before production use.
 
 ## Cross-cutting Concepts
 
-### Domain Model
+### Authentication and Sessions
 
-The system's four persistent entities and their relationships:
+Keycloak owns identity. The backend owns application sessions. The frontend sends the Keycloak access token only to `POST /auth/login`; after that, session continuity relies on the backend session cookie. HTTP APIs that need the session use browser credentials, and WebSocket handshakes validate the same cookie.
 
-| Entity | Table | Key Attributes | Relationships |
-| --- | --- | --- | --- |
-| User | `users` | `id`, `keycloak_sub` (unique), `username`, `email` | Has one Ranking; has many Sessions |
-| Session | `sessions` | `id`, `user_id` (FK), `expires_at` | Belongs to one User |
-| Ranking | `rankings` | `user_id` (FK, unique), `elo` (default 1000), `wins`, `losses` | Belongs to one User |
-| QuestionCache | `question_cache` | `id`, `category`, `difficulty`, `question`, `correct_answer`, `incorrect_answers` (JSON) | No user reference; shared across all game modes |
+Important session properties are environment-controlled: cookie name, SameSite mode, Secure flag, domain, and expiry. Production deployments should set `COOKIE_SECURE=true` and a domain appropriate to the deployed frontend/backend origin.
 
-A `User` is created on first login from the Keycloak `sub` claim. A `Ranking`
-row is created alongside the user with a starting Elo of 1000. `Session` rows
-expire at `expires_at`; the frontend uses `GET /auth/refresh` to extend them.
-`QuestionCache` rows have no expiry; they persist until replaced by a fresh
-batch from TriviaService.
+### Authorization Boundaries
 
-### Authentication and Session Management
-
-Authentication follows the Keycloak OIDC/PKCE flow (see [Login Flow](#login-flow)):
-
-- The frontend uses `keycloak-js` for the browser-side PKCE exchange and token retrieval.
-- The backend verifies the resulting JWT via Keycloak's JWKS endpoint using `PyJWT` and `PyJWKClient`.
-- After verification the backend issues a backend-managed HttpOnly session cookie (`SESSION_COOKIE_NAME`). The cookie is `Secure` and `SameSite` in production (values driven by `COOKIE_SECURE` and `COOKIE_SAMESITE` environment variables).
-- All protected REST endpoints read the session cookie and validate it against the `sessions` table before processing the request.
-- WebSocket handshakes for `/battle/queue` and `/battle/ws/{match_id}` also validate the session cookie; invalid or expired sessions cause an immediate close with code 1008.
-- The frontend stores user metadata in AuthStore (Zustand) for UI rendering; it does not store the session cookie or any token in JavaScript-accessible storage.
+Ranked queue and battle WebSockets require an authenticated backend session. The ranked page also checks frontend auth state and shows a login card when missing. Public features include the landing page, practice mode, and leaderboard. Backend ranking endpoints are currently public.
 
 ### Real-Time Communication
 
-Ranked and unranked matches use two WebSocket endpoints managed by BattleRouter:
+The battle protocol is server-authoritative. The client sends only category picks, answers, and surrender. The backend owns phase transitions, timers, scoring, round wins, game-over conditions, forfeit handling, and ranking updates.
 
-- `/battle/queue` — the matchmaking channel. A player sends `type: queued` after connecting; MatchmakingService assigns a match and sends `type: matched` with a `match_id` when a suitable opponent is found.
-- `/battle/ws/{match_id}` — the per-match channel used for the full game lifecycle. All game events (`match_ready`, `pick_category`, `category_chosen`, `question`, `answer`, `answer_result`, `round_result`, `game_over`) are exchanged as JSON objects with a `type` field on this channel.
+### State Management
 
-The backend closes connections cleanly with an appropriate close code when a
-match ends normally. Player disconnects during a match are detected via the
-WebSocket close event; the current implementation does not include a reconnect
-window.
+Persistent state is stored in PostgreSQL. Transient battle state is held in memory as `MatchState` objects. `asyncio.Lock` protects state mutations inside each match, and the matchmaking queue has its own lock.
+
+### Ranking
+
+Ranking uses Elo with `K_FACTOR = 32`. A normal match and a forfeit both update winner and loser ratings, wins/losses, and total matches. Forfeits are distinguished in `match_results.ended_as`.
 
 ### Question Caching
 
-Question data is fetched from the Trivia API and stored locally in
-`question_cache` to reduce latency and external API dependency:
-
-- TriviaService checks the cache before every question request.
-- If the available count for a category falls below the requested amount, TriviaService calls TriviaClient to fetch a configurable batch (`TRIVIA_REFILL_BATCH_SIZE`).
-- TriviaClient uses `httpx` with retry logic (up to `TRIVIA_MAX_RETRIES` attempts, `TRIVIA_BACKOFF_SECONDS` backoff).
-- If the Trivia API is unavailable after all retries, the backend returns whatever is in the cache; if the cache is empty it raises a structured error (HTTP 503 for practice requests). A running match is not affected because its questions are loaded from cache before the round starts.
-- Cached questions have no expiry timestamp; they remain until a future refill overwrites them.
-
-### Persistence
-
-The backend uses SQLAlchemy 2.0 with synchronous `psycopg2` sessions:
-
-- All database access is encapsulated in CRUD modules. No router or service writes SQL or calls `session.execute()` directly.
-- The database schema is created at backend startup via `Base.metadata.create_all()`. No migration framework (e.g. Alembic) is currently in use; schema changes require either a manual migration or a volume reset in development.
-- Foreign keys enforce referential integrity: `sessions.user_id` references `users.id`, `rankings.user_id` references `users.id`.
-- The `question_cache` table has no foreign keys; it is fully independent of the user model.
+The backend stores normalized question content in `question_cache` and exposes internal cached UUIDs to clients. Upstream question IDs remain internal as `external_id`. The service filters by category and difficulty, samples random cache entries, avoids reused question IDs during one match, and refills cache batches when needed.
 
 ### Error Handling
 
-| Error Type | Response | Strategy |
-| --- | --- | --- |
-| Invalid or expired session cookie | HTTP 401 | All protected endpoints return 401; the frontend redirects to the login page. |
-| WebSocket connection with invalid or missing session | WebSocket close 1008 | BattleRouter closes the connection before any game state is exchanged. |
-| Pydantic validation failure on incoming request | HTTP 422 | Generated automatically by FastAPI; includes field-level error details. |
-| Trivia API unavailable (all retries exhausted) | HTTP 503 (practice) or silent cache use (match) | Practice requests return 503 with a clear message. Active match rounds use the questions already loaded from cache for the current round. |
-| Database connection failure | HTTP 500 | SQLAlchemy exceptions propagate to FastAPI's global exception handler. |
-| Keycloak JWKS fetch failure at login | HTTP 401 | The backend cannot verify the token; returns 401 without creating a session. |
+Trivia failures are mapped to explicit HTTP errors: invalid client filters return 400, invalid upstream payloads return 502, upstream unavailability or insufficient questions return 503. Battle question-preparation failures close sockets with internal close code 1011 and a generic reason.
 
 ### Logging
 
-The backend uses Python's standard `logging` module configured at application
-startup:
+Backend logging is configured in `main.py` with timestamped log formatting for uvicorn loggers. Battle and trivia services log operational events without intentionally logging tokens, passwords, or session identifiers.
 
-- Log level is controlled by the `LOG_LEVEL` environment variable (default `INFO`).
-- Each log line format: `YYYY-MM-DD HH:MM:SS | LEVEL | module | message`.
-- WebSocket connection and disconnection events are logged at `INFO` level with the match ID and user ID.
-- External API call failures (Trivia API, Keycloak JWKS) are logged at `WARNING` or `ERROR` level including the exception message.
-- Sensitive values (session cookies, access tokens, passwords, database credentials) must never appear in log output.
+### Frontend Boundaries
+
+Frontend architecture tests enforce:
+
+- no circular dependencies in `app/`
+- no imports from `app/components` directly into `app/api`
+- no production source imports from test files
 
 ### Testing Strategy
 
-The test suite is organized across four levels for both frontend and backend:
+Backend tests cover routers, CRUD, services, settings, authentication, WebSocket auth, matchmaking, ranking, battle state, and trivia integration. Frontend tests cover unit, integration, security, architecture, and E2E scenarios. Playwright E2E runs sequentially because shared backend state, fixed test accounts, and WebSocket queues can create cross-test interference.
 
-| Level | Backend | Frontend | Tools |
-| --- | --- | --- | --- |
-| Unit | Service functions and CRUD operations in isolation | Zustand stores, API client wrappers, utility functions | `pytest`, `vitest` |
-| Integration | Router endpoints via FastAPI `TestClient`; CRUD operations against a real PostgreSQL instance | Component rendering with mocked API responses | `pytest`, `vitest` |
-| E2E | — | Full browser journeys: login, practice mode, queue entry, match play, Elo display | Playwright (Chromium) |
-| Architecture | Layer import rule enforcement | Module import rule enforcement | `pytest-arch`, `dependency-cruiser` |
+## Architecture Decisions
 
-Coverage target: ≥ 80 % line coverage for both backend and frontend, enforced
-by the SonarCloud quality gate. Pull requests that cause coverage to drop below
-the threshold cannot be merged.
+Detailed ADRs are documented in [Architecture Decisions](decisions.md). The most important accepted decisions are:
 
-Pull request merge criteria:
-- All CI workflow steps pass (tests, linting, type checks, architecture tests).
-- SonarCloud quality gate passes (no new bugs, no new vulnerabilities, coverage ≥ 80 %).
-- At least one approval from a different team member.
-
-### Code Quality and Static Analysis
-
-| Tool | Scope | What It Checks | Enforced in CI |
-| --- | --- | --- | --- |
-| `ruff` | Python | Linting and formatting | Yes |
-| `mypy` | Python (strict) | Static type correctness | Yes |
-| ESLint | TypeScript / JavaScript | Linting rules | Yes |
-| Prettier | Frontend | Code formatting | Yes |
-| `dependency-cruiser` | Frontend | Component layer import rules | Yes |
-| `pytest-arch` | Backend | Service layer import rules | Yes |
-| SonarCloud | Both | Bugs, vulnerabilities, code smells, duplication, coverage | Yes (quality gate) |
+| ADR | Decision | Architectural Effect |
+| --- | --- | --- |
+| ADR 1 | Use Next.js for the frontend. | App Router pages and React components form the UI architecture. |
+| ADR 2 | Use Python with FastAPI for backend services. | REST and WebSocket interfaces are implemented in one ASGI backend. |
+| ADR 3 | Use pnpm for frontend dependency management. | Frontend CI and Docker builds rely on pnpm lockfile reproducibility. |
+| ADR 4 | Use a relational database, specifically PostgreSQL. | Users, sessions, rankings, cache, and match results are relational tables. |
+| ADR 5 | Use SQLAlchemy ORM with Pydantic schemas. | Data access is encapsulated in models/CRUD while HTTP contracts use typed schemas. |
+| ADR 6 | Use WebSockets instead of polling for game communication. | Battle queue and match runtime use bidirectional WebSocket channels. |
+| ADR 7 | Initial Google login. | Historical decision that was overruled because it made E2E automation and custom registration harder. |
+| ADR 8 | Use Keycloak instead of Google OAuth. | Local/testable login, self-hosted realm import, and backend JWKS verification are part of the architecture. |
+| ADR 9 | Use backend-managed HttpOnly sessions. | Application authorization relies on PostgreSQL-backed sessions and browser-managed cookies. |
+| ADR 10 | Keep active matchmaking and battle state process-local. | Current runtime state is simple and fast, but backend restarts and horizontal scaling require mitigation. |
 
 ## Quality Requirements
 
-### Quality Tree
-
-| Quality Goal | Quality Attribute (ISO 25010) | Sub-characteristic Addressed |
-| --- | --- | --- |
-| Performance | Time behaviour | Question delivery latency; WebSocket event round-trip time; Trivia API response fallback time |
-| Security | Confidentiality, Integrity | Protected route enforcement; session cookie lifecycle; JWKS token verification |
-| Maintainability | Analysability, Modifiability | Layered architecture; architecture test enforcement; documentation coverage |
-| Reliability | Fault tolerance, Availability | Trivia API fallback behavior; question cache hit rate; Keycloak auto-recovery on restart |
-
 ### Quality Scenarios
 
-| ID | Quality Goal | Stimulus | Response | Metric |
-| --- | --- | --- | --- | --- |
-| QS-1 | Performance | A player in an active ranked match triggers the next question by submitting an answer. | BattleManagerService reads the next question from `question_cache` and broadcasts it via WebSocket. | Question event delivered in < 500 ms under normal load; no Trivia API call occurs during a running match. |
-| QS-2 | Performance | A guest player opens the practice mode page for the first time (cold cache). | TriviaService fetches a batch from the Trivia API, stores it in `question_cache` and returns 10 questions. | Full response including cache refill in < 10 s (`TRIVIA_TIMEOUT_SECONDS`); warm cache response in < 500 ms. |
-| QS-3 | Security | An unauthenticated HTTP request reaches a protected endpoint (e.g. `GET /ranking/users/{id}`). | The backend rejects the request without leaking data. | HTTP 401 returned; no user data included in the response body. |
-| QS-4 | Security | A WebSocket client presents an expired or tampered session cookie when connecting to `/battle/ws/{match_id}`. | The backend closes the connection immediately before any game state is exchanged. | WebSocket close code 1008 sent; no match events delivered. |
-| QS-5 | Reliability | The Trivia API is unavailable during a practice session question request. | TriviaService retries up to `TRIVIA_MAX_RETRIES` times; if all fail it serves questions from the existing cache. | Practice session continues without an unhandled error if ≥ 10 questions are cached for the requested category; otherwise HTTP 503 is returned with a clear error message. |
-| QS-6 | Reliability | The Trivia API is unavailable during a running ranked match. | The match round continues using questions already loaded from cache for the current round. | Zero additional Trivia API calls during an active round; match reaches `game_over` normally. |
-| QS-7 | Reliability | The Keycloak container restarts while no player is actively logging in. | Keycloak reimports the `quizzard` realm automatically from `keycloak/realm-export.json`. | Identity provider is operational again without manual configuration once the container passes its health check. |
-| QS-8 | Maintainability | A new developer wants to understand which backend component is responsible for Elo calculation. | The layered code structure and this documentation lead them to `RankingService` and `RankingCRUD`. | The developer identifies the relevant file, understands the K-factor logic and can modify it without touching other layers. |
-| QS-9 | Maintainability | A CI run detects a router that directly imports a CRUD module, bypassing the service layer. | The `pytest-arch` architecture test step fails; the pull request cannot be merged. | Violation reported in the CI log with the offending import path; no code with layer violations reaches `main`. |
+| Quality | Scenario | Current Mechanism |
+| --- | --- | --- |
+| Performance | A battle round should not wait on a live upstream trivia call for every question. | Cached questions, category options from cache, batch refill, random cache selection. |
+| Security | A user without a valid session tries to join the queue. | WebSocket auth closes with 4001 for missing/invalid/not-found sessions and 4003 for expired sessions. |
+| Security | A forged Keycloak token is sent to `/auth/login`. | PyJWT/JWKS verification raises an error and the endpoint returns 401. |
+| Reliability | One player closes the browser during an active battle. | Backend records a forfeit win for the remaining player and cleans up match state. |
+| Reliability | The Trivia API returns malformed payload items. | Invalid items are skipped; all-invalid payloads become a controlled upstream payload error. |
+| Maintainability | A developer changes battle UI behavior. | Battle phase UI is split into `components/battle/phases`, while server rules stay in `BattleManager`. |
+| Testability | A frontend component accidentally imports an API route. | Dependency-cruiser architecture test fails. |
+| Operability | Docker Compose starts services locally. | PostgreSQL, Keycloak, and backend health checks order startup before frontend availability. |
+
+### Acceptance Checks
+
+- Backend tests: `python -m pytest tests -q` from `backend/`.
+- Frontend lint: `pnpm lint` from `frontend/quizzard-of-oz`.
+- Frontend coverage: `pnpm test:coverage` from `frontend/quizzard-of-oz`.
+- Frontend architecture tests: `pnpm test:arch` from `frontend/quizzard-of-oz`.
+- E2E tests: `pnpm test:e2e` with PostgreSQL, Keycloak, backend, and frontend available.
+- Documentation build: `python -m sphinx -b html docs docs/_build/html`.
 
 ## Risks and Technical Debts
 
-| ID | Type | Priority | Description | Status | Mitigation |
-| --- | --- | --- | --- | --- | --- |
-| R-1 | Risk | High | **External Trivia API availability** — the Trivia API has no SLA. Extended unavailability exhausts the question cache for less-popular categories, blocking practice mode and preventing match start. | Open | TriviaService retries aggressively and caches in batches. A cache-empty condition returns HTTP 503 rather than crashing. Long-term: pre-seed the cache during deployment or add a secondary question source. |
-| R-2 | Risk | Medium | **Keycloak operational dependency** — Keycloak is self-hosted. If the container is unhealthy all authentication is unavailable; no player can log in or join ranked matches. | Mitigated | Health checks in Docker Compose prevent the backend from starting before Keycloak is ready. The realm auto-imports on restart, so recovery is fully automated. |
-| R-3 | Risk | Medium | **WebSocket disconnect during a match** — if one player's WebSocket connection drops mid-match, BattleManagerService has no reconnect or timeout logic. The match remains in an open state indefinitely. | Open | See TD-2. Short-term: the match must be abandoned manually. Long-term: implement a per-match disconnect timeout and reconnect window in BattleManagerService. |
-| R-4 | Risk | Low | **Single-host deployment** — all services run on one machine. A host failure takes down the entire system with no automatic failover. | Accepted | Acceptable for a course project. Recovery requires only `docker compose up`; the `postgres_data` volume preserves all user data if the volume is intact. |
-| R-5 | Risk | Low | **No automated database backup** — a volume loss destroys all user data, rankings and cached questions. | Open | Acceptable for the current scope. Production use would require scheduled `pg_dump` exports to an off-host location. |
-| TD-1 | Technical Debt | High | **No database migration toolchain** — the schema is managed entirely by `Base.metadata.create_all()`. Incremental schema changes that modify existing tables require raw SQL or a full volume reset. | Open | Introduce Alembic before the next schema-breaking change. |
-| TD-2 | Technical Debt | Medium | **No WebSocket reconnect handling** — a disconnected player during a match has no way to rejoin; the match is effectively lost for both players. | Open | Add a per-match disconnect timeout (e.g. 30 s) and a reconnect window in BattleManagerService. |
-| TD-3 | Technical Debt | Low | **Question cache has no expiry** — cached questions are never invalidated. Questions removed or updated by the Trivia API provider remain in the cache indefinitely. | Open | Add a `cached_at` timestamp column and a periodic cleanup job or an admin endpoint for cache invalidation. |
+| Risk or Debt | Impact | Possible Mitigation |
+| --- | --- | --- |
+| In-memory queue and battle state | Backend restart drops active matches; multiple backend replicas cannot share matches. | Persist match state or introduce shared state/pub-sub before horizontal scaling. |
+| No migration tooling | Schema changes rely on `Base.metadata.create_all` and manual coordination. | Introduce Alembic migrations and document schema rollout. |
+| Production deployment unspecified | TLS, secrets, backups, log aggregation, and scaling are open. | Add deployment architecture, environment profiles, and operational runbook. |
+| Trivia API dependency | Cache misses can fail if upstream is unavailable, invalid, or rate-limited. | Pre-warm cache, monitor upstream errors, define fallback behavior. |
+| Documentation drift | Planning docs and generated C4 diagrams contain some planned or older details. | Treat `docs/architecture.md` as current source of truth and regenerate/update diagrams after architecture changes. |
+| Cookie/CORS configuration sensitivity | Wrong domain, SameSite, Secure, or CORS settings can break login or weaken security. | Add environment-specific examples and deployment checks. |
+| Limited observability | Logs exist, but no metrics/tracing stack is visible. | Add structured metrics for queue length, active matches, upstream failures, and WebSocket close codes. |
+| User-created route ambiguity | `/users/` can create users with `keycloak_sub=username`, which does not match normal Keycloak login semantics. | Restrict, remove, or document the endpoint if it is only for tests/admin setup. |
+| Frontend WebSocket env mismatch | README mentions `NEXT_PUBLIC_WS_BASE`, but `wsUrl.ts` derives from `NEXT_PUBLIC_API_BASE`. | Align README/config or implement explicit `NEXT_PUBLIC_WS_BASE` support. |
 
 ## Glossary
 
 | Term | Definition |
 | --- | --- |
-| Elo | Numerical rating used to estimate relative player skill in ranked matches. The starting value is 1000 and the K-factor is 32. |
-| Session | A backend-managed authentication record stored in the `sessions` table. Identified by an HttpOnly cookie (`SESSION_COOKIE_NAME`). Distinct from a game match. |
-| Match | A single multiplayer game instance shared between exactly two players. Has its own `match_id` (UUID) and progresses through a defined state machine (`waiting → picking → questions → finished`). |
-| Round | One sub-unit of a match. A round consists of one category choice and three questions. The player who answers more questions correctly wins the round. A match ends when one player wins three rounds. |
-| Question Cache | The `question_cache` PostgreSQL table that stores trivia questions fetched from the Trivia API. Questions are served from here during gameplay to avoid live upstream calls. |
-| Battle Mode | The multiplayer game mode available in ranked and unranked variants. Uses WebSockets for real-time event delivery between both players and the backend. |
-| Practice Mode | The solo quiz mode available to all visitors without login. Serves up to 10 questions per session from the question cache. |
-| PKCE | Proof Key for Code Exchange — an extension to the OAuth 2.0 authorization code flow that prevents authorization code interception attacks. Used by `keycloak-js` in the browser. |
-| JWKS | JSON Web Key Set — the public key material Keycloak publishes at a well-known URL so the backend can verify the signature of access tokens without sharing a secret key. |
-| OIDC | OpenID Connect — the identity layer on top of OAuth 2.0 used by Keycloak to authenticate players and provide a verifiable identity token. |
-| Realm | A Keycloak configuration unit that groups users, clients and identity settings. The project uses the realm named `quizzard`, defined in `keycloak/realm-export.json`. |
-| keycloak_sub | The stable, unique subject identifier (`sub` claim) issued by Keycloak for each user. Stored in `users.keycloak_sub` as the canonical link between the identity provider and the application user record. |
+| Battle | A real-time two-player quiz match run through backend WebSockets. |
+| Battle Arena | Frontend screen for an active match at `/battle/{match_id}`. |
+| CORS | Cross-Origin Resource Sharing rules configured in FastAPI to allow browser calls from configured frontend origins. |
+| Elo | Rating algorithm used to estimate player strength and update rankings after matches. |
+| Forfeit | Match ending caused by surrender or active-match disconnect; persisted as `ended_as = "forfeit"`. |
+| HttpOnly Cookie | Browser cookie inaccessible to JavaScript; used for backend application sessions. |
+| JWKS | JSON Web Key Set served by Keycloak and used by the backend to verify token signatures. |
+| Keycloak Realm | Isolated Keycloak configuration namespace. This project imports the `quizzard` realm. |
+| Match ID | UUID generated by matchmaking and used by both players to connect to the same battle WebSocket path. |
+| Match Result | Persistent record of winner, loser, end reason, and timestamp in `match_results`. |
+| OIDC/PKCE | OpenID Connect Authorization Code flow with Proof Key for Code Exchange, used by the browser login flow. |
+| Question Cache | PostgreSQL table containing normalized questions fetched from The Trivia API. |
+| Queue | In-memory matchmaking list maintained by `MatchmakingService`. |
+| Ranking | Persistent per-user Elo and win/loss statistics stored in `rankings`. |
+| Session | Backend-managed login record in `sessions`, referenced by the session cookie. |
+| The Trivia API | External provider used by the backend to fetch quiz questions from `/v2/questions`. |
+| WebSocket Close Code 4001 | Custom close code for unauthorized or invalid WebSocket sessions. |
+| WebSocket Close Code 4003 | Custom close code for expired WebSocket sessions. |

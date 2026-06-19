@@ -28,9 +28,10 @@ Match Flow (State Machine):
   3. _start_game() sends "match_ready" to both
      → Trigger _start_round()
   4. _start_round() sends categories to picker, "waiting_for_category" to non-picker
-     → Phase: "picking"
-  5. picker chooses category → _handle_category_pick()
-     → Phase: "questions", send "category_chosen", first question
+     → Phase: "picking", starts CATEGORY_TIME_SECONDS deadline (_category_timeout)
+  5. picker chooses category (or the deadline auto-picks one) → _apply_category_choice()
+     → Phase: "questions", send "category_chosen", hold CATEGORY_REVEAL_SECONDS,
+       then first question
   6. both players answer 3 questions:
      question → answer_received (ack, no solution) → once both answered or the
      question deadline (QUESTION_TIME_SECONDS) expires → question_result reveals
@@ -69,13 +70,15 @@ Message Protocol:
       "categories": [str, ...],
       "round": int,
       "your_wins": int,
-      "opponent_wins": int
+      "opponent_wins": int,
+      "deadline_seconds": int   # countdown until the server auto-picks
     }
     waiting_for_category: {
       "picker_username": str,
       "round": int,
       "your_wins": int,
-      "opponent_wins": int
+      "opponent_wins": int,
+      "deadline_seconds": int   # same countdown shown to the waiting player
     }
     category_chosen: {
       "category": str,
@@ -148,9 +151,8 @@ from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app.models.match_result import ENDED_AS_FORFEIT
 from app.models.user import User
-from app.services.ranking_service import apply_match_result
-from app.services.ws_auth import authenticate_ws
 from app.services.quiz_service import QuizService, get_quiz_service
+from app.services.ranking_service import apply_match_result
 from app.services.trivia_client import (
     TriviaUpstreamPayloadError,
     TriviaUpstreamResponseError,
@@ -158,6 +160,7 @@ from app.services.trivia_client import (
 )
 from app.services.trivia_service import TriviaInsufficientQuestionsError
 from app.services.trivia_types import Question
+from app.services.ws_auth import authenticate_ws
 
 # WebSocket close codes for match-specific errors
 _CLOSE_FULL      = 4004  # Second player cannot join; match is full
@@ -170,6 +173,8 @@ QUESTIONS_PER_ROUND   = 3   # Questions per round (both players answer)
 ROUNDS_TO_WIN         = 3   # Best-of-5 format: first player to 3 round wins
 CATEGORIES_TO_OFFER   = 3   # Number of categories the picker can choose from
 QUESTION_TIME_SECONDS = 20  # Server-side answer deadline per question
+CATEGORY_TIME_SECONDS = 30  # Server-side deadline for the picker to choose a category
+CATEGORY_REVEAL_SECONDS = 2  # Both players see the chosen category this long before Q1
 REVEAL_SECONDS        = 4   # Both players see the correct answer this long
 
 logger = logging.getLogger("uvicorn.error")
@@ -192,6 +197,8 @@ class MatchState:
     used_question_ids: set[str]     = field(default_factory=set)    # Avoid repeated questions inside one match
     revealing:       bool           = False                          # True while question_result reveal is in progress
     question_timer_task: asyncio.Task | None = None                 # Per-question deadline task
+    category_timer_task: asyncio.Task | None = None                 # Category-pick deadline task
+    picking_deadline: float | None = None                            # event-loop time when the category pick expires
     advance_task:    asyncio.Task | None = None                     # Delayed advance after reveal
     lock:            asyncio.Lock   = field(default_factory=asyncio.Lock)  # Protects all mutations
 
@@ -299,6 +306,7 @@ class BattleManager:
 
         # A running match cannot continue with one player; stop pending timers.
         self._cancel_task(state.question_timer_task)
+        self._cancel_task(state.category_timer_task)
         self._cancel_task(state.advance_task)
 
         for p in remaining:
@@ -422,6 +430,7 @@ class BattleManager:
             state.phase = "finished"
 
         self._cancel_task(state.question_timer_task)
+        self._cancel_task(state.category_timer_task)
         self._cancel_task(state.advance_task)
 
         uid = str(user.id)
@@ -476,6 +485,9 @@ class BattleManager:
         state.round_questions = []
         state.current_answers = {}
         state.offered_categories = []
+        self._cancel_task(state.category_timer_task)
+        state.category_timer_task = None
+        state.picking_deadline    = None
 
         try:
             offered = self._quiz.get_category_options(
@@ -506,6 +518,7 @@ class BattleManager:
             return
 
         state.offered_categories = offered
+        state.picking_deadline   = asyncio.get_event_loop().time() + CATEGORY_TIME_SECONDS
 
         logger.info("Battle round start")
 
@@ -515,20 +528,29 @@ class BattleManager:
         nid        = str(non_picker["user"].id)
 
         await picker["ws"].send_json({
-            "type":          "pick_category",
-            "categories":    offered,
-            "round":         state.current_round,
-            "your_wins":     state.round_wins.get(pid, 0),
-            "opponent_wins": state.round_wins.get(nid, 0),
+            "type":             "pick_category",
+            "categories":       offered,
+            "round":            state.current_round,
+            "your_wins":        state.round_wins.get(pid, 0),
+            "opponent_wins":    state.round_wins.get(nid, 0),
+            "deadline_seconds": CATEGORY_TIME_SECONDS,
         })
 
         await non_picker["ws"].send_json({
-            "type":            "waiting_for_category",
-            "picker_username": picker["user"].username,
-            "round":           state.current_round,
-            "your_wins":       state.round_wins.get(nid, 0),
-            "opponent_wins":   state.round_wins.get(pid, 0),
+            "type":             "waiting_for_category",
+            "picker_username":  picker["user"].username,
+            "round":            state.current_round,
+            "your_wins":        state.round_wins.get(nid, 0),
+            "opponent_wins":    state.round_wins.get(pid, 0),
+            "deadline_seconds": CATEGORY_TIME_SECONDS,
         })
+
+        # Server-side deadline: if the picker stalls, auto-pick a valid category
+        # so the waiting player never gets stuck on "waiting_for_category".
+        self._cancel_task(state.category_timer_task)
+        state.category_timer_task = asyncio.create_task(
+            self._category_timeout(match_id, state, state.current_round)
+        )
 
     async def _handle_category_pick(
         self,
@@ -552,8 +574,45 @@ class BattleManager:
                 return
             state.phase = "questions"
 
-        logger.info("Battle category picked")
+        # Picker chose in time: stop the auto-pick deadline.
+        self._cancel_task(state.category_timer_task)
+        state.category_timer_task = None
+        state.picking_deadline    = None
 
+        logger.info("Battle category picked")
+        await self._apply_category_choice(match_id, state, category)
+
+    async def _category_timeout(self, match_id: str, state: MatchState, round_no: int) -> None:
+        """Deadline for the category pick: auto-select a valid offered category.
+
+        Prevents the waiting player from getting stuck if the picker never
+        chooses. The chosen category comes from the same options the picker saw,
+        so the round stays valid and both clients converge on the same state.
+        """
+        await asyncio.sleep(CATEGORY_TIME_SECONDS)
+
+        async with state.lock:
+            if state.phase != "picking" or state.current_round != round_no:
+                return
+            if not state.offered_categories:
+                return
+            category = secrets.choice(state.offered_categories)
+            state.phase = "questions"
+
+        state.category_timer_task = None
+        state.picking_deadline    = None
+
+        logger.info("Battle category auto-picked after deadline round=%s", round_no)
+        await self._apply_category_choice(match_id, state, category)
+
+    async def _apply_category_choice(
+        self, match_id: str, state: MatchState, category: str
+    ) -> None:
+        """Load the round's questions, reveal the category, then send question one.
+
+        Both players see the chosen category for CATEGORY_REVEAL_SECONDS before
+        the first question is sent, so the reveal stays in sync across clients.
+        """
         try:
             cat_q = self._quiz.get_questions(
                 n=QUESTIONS_PER_ROUND,
@@ -583,6 +642,14 @@ class BattleManager:
                 "category": category,
                 "round":    state.current_round,
             })
+
+        await asyncio.sleep(CATEGORY_REVEAL_SECONDS)
+
+        # The reveal pause is unlocked; bail out if the match ended meanwhile
+        # (e.g. a player disconnected and forfeited during the reveal).
+        if self._matches.get(match_id) is not state or len(state.players) < 2:
+            logger.info("Battle category reveal skipped: match no longer active")
+            return
 
         await self._send_current_question(state, match_id)
 
@@ -790,6 +857,7 @@ class BattleManager:
         """Send game_over to both players and delete match from memory."""
         state.phase = "finished"
         self._cancel_task(state.question_timer_task)
+        self._cancel_task(state.category_timer_task)
         self._cancel_task(state.advance_task)
         p1, p2      = state.players
         id1         = str(p1["user"].id)
@@ -835,6 +903,7 @@ class BattleManager:
         """Close all sockets and remove the match when question preparation fails."""
         state.phase = "finished"
         self._cancel_task(state.question_timer_task)
+        self._cancel_task(state.category_timer_task)
         self._cancel_task(state.advance_task)
         players = list(state.players)
 

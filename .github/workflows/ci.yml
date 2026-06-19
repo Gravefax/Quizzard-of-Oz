@@ -71,9 +71,19 @@ jobs:
           python -m venv .venv
           .venv/bin/pip install -r requirements.txt
 
+      - name: Lint backend
+        run: .venv/bin/ruff check .
+
+      - name: Type-check backend
+        run: .venv/bin/mypy
+
       - name: Run tests
         working-directory: .
         run: backend/.venv/bin/pytest backend/tests/ -v --cov=backend/app --cov-report=term-missing --cov-report=xml:backend/coverage.xml --cov-branch --cov-config=backend/.coveragerc
+
+      - name: Run penetration / security tests
+        working-directory: .
+        run: backend/.venv/bin/pytest backend/tests/security/ -m pentest -v
 
       - name: Upload backend coverage
         uses: actions/upload-artifact@v4

@@ -2,32 +2,43 @@ from __future__ import annotations
 
 import logging
 import os
+from datetime import datetime, timedelta, timezone
+from typing import Annotated, Literal, cast
 from uuid import UUID
-from typing import Annotated
 
 import jwt as pyjwt
-from fastapi import APIRouter, Header, HTTPException, status, Depends, Response, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
-from datetime import datetime, timedelta, timezone
 
-from app.database import get_db
 from app.crud import session as crud_session
 from app.crud import user as crud_user
+from app.database import get_db
 from app.schemas.login_response import LoginResponse
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 logger = logging.getLogger(__name__)
+
+CookieSameSite = Literal["lax", "strict", "none"]
 
 KEYCLOAK_URL = os.getenv("KEYCLOAK_URL")
 KEYCLOAK_REALM = os.getenv("KEYCLOAK_REALM", "quizzard")
 
 SESSION_EXP_MINUTES = int(os.getenv("SESSION_EXP_MINUTES", str(60 * 24 * 14)))
 COOKIE_SECURE = os.getenv("COOKIE_SECURE", "false").lower() == "true"
-COOKIE_SAMESITE = os.getenv("COOKIE_SAMESITE", "lax")
 COOKIE_DOMAIN = os.getenv("COOKIE_DOMAIN")
 SESSION_COOKIE_NAME = os.getenv("SESSION_COOKIE_NAME", "session_id")
 
 _jwks_client: pyjwt.PyJWKClient | None = None
+
+
+def _cookie_samesite(value: str) -> CookieSameSite:
+    normalized = value.lower()
+    if normalized in ("lax", "strict", "none"):
+        return cast(CookieSameSite, normalized)
+    return "lax"
+
+
+COOKIE_SAMESITE: CookieSameSite = _cookie_samesite(os.getenv("COOKIE_SAMESITE", "lax"))
 
 
 def _get_jwks_client() -> pyjwt.PyJWKClient:

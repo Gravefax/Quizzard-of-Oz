@@ -1,14 +1,13 @@
 import httpx
 import pytest
 
-from app.settings import load_trivia_settings
 from app.services.trivia_client import (
     TriviaApiClient,
     TriviaUpstreamPayloadError,
     TriviaUpstreamResponseError,
 )
 from app.services.trivia_types import QuestionFilters
-
+from app.settings import load_trivia_settings
 
 TRIVIA_ENV_KEYS = (
     "TRIVIA_API_BASE_URL",

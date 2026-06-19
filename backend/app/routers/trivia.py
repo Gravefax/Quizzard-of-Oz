@@ -21,7 +21,6 @@ from app.services.trivia_service import (
 )
 from app.services.trivia_types import QuestionFilters
 
-
 router = APIRouter(prefix="/api/trivia", tags=["trivia"])
 
 _ALLOWED_QUERY_PARAMS = {"limit", "categories", "difficulties", "query"}

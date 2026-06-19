@@ -1,9 +1,11 @@
 from typing import Annotated
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+
+from app.crud import user as crud_user
 from app.database import get_db
 from app.schemas.user import UserCreate, UserResponse
-from app.crud import user as crud_user
 
 router = APIRouter(prefix="/users", tags=["users"])
 

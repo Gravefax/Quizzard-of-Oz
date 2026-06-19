@@ -1,16 +1,16 @@
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 from types import SimpleNamespace
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
-from datetime import datetime, timezone
+
+import pytest
 
 # Patch DB engine creation before importing main
 with patch("sqlalchemy.create_engine"):
     with patch("app.database.Base.metadata.create_all"):
         from main import app
 
-from app.routers.battle import queue_ws, battle_ws
 from app.database import get_db
+from app.routers.battle import battle_ws, queue_ws
 
 
 @pytest.fixture(autouse=True)

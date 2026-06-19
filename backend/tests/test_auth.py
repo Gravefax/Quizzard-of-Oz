@@ -1,9 +1,10 @@
+from datetime import datetime, timedelta, timezone
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
+from uuid import uuid4
+
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import patch, MagicMock
-from types import SimpleNamespace
-from datetime import datetime, timedelta, timezone
-from uuid import uuid4
 
 # Patch DB engine creation before importing main
 with patch("sqlalchemy.create_engine") as mock_engine:

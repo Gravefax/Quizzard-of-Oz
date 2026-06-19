@@ -1,14 +1,13 @@
-import pytest
-from unittest.mock import patch, MagicMock
-from fastapi import HTTPException
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
+
+import pytest
 
 with patch("sqlalchemy.create_engine"):
     with patch("app.database.Base.metadata.create_all"):
         from main import app
 
 from fastapi.testclient import TestClient
-
 
 client = TestClient(app)
 
@@ -31,10 +30,8 @@ def override_db():
 
 def test_create_user_success(override_db):
     """Create new user successfully."""
-    from app.routers.user import router
-    from app.crud import user as crud_user
     from app.database import get_db
-    
+
     user_id = str(uuid4())
     
     # Mock CRUD functions

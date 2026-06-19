@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import time
 import uuid
+from typing import TypedDict
 
 from fastapi import WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session
@@ -14,6 +15,14 @@ from app.services.ws_auth import authenticate_ws
 _BASE_ELO_RANGE = 75
 _ELO_RANGE_STEP = 50
 _ELO_RANGE_STEP_SECONDS = 5
+
+
+class QueueEntry(TypedDict):
+    ws: WebSocket
+    user: User
+    elo: int
+    queued_at: float
+    seq: int
 
 
 class MatchmakingService:
@@ -30,7 +39,7 @@ class MatchmakingService:
     """
 
     def __init__(self) -> None:
-        self._queue: list[dict[str, object]] = []
+        self._queue: list[QueueEntry] = []
         self._lock = asyncio.Lock()
         self._entry_seq = 0
 
@@ -47,7 +56,7 @@ class MatchmakingService:
         Blocks until the player is matched or disconnects.
         """
         ranking = get_user_ranking(db, user_id=user.id)
-        entry: dict[str, object] = {
+        entry: QueueEntry = {
             "ws": websocket,
             "user": user,
             "elo": ranking.elo_rating,
@@ -83,9 +92,9 @@ class MatchmakingService:
         self,
         websocket: WebSocket,
         *,
-        entry: dict[str, object] | None = None,
+        entry: QueueEntry | None = None,
     ) -> bool:
-        matched_pair: tuple[dict[str, object], dict[str, object]] | None = None
+        matched_pair: tuple[QueueEntry, QueueEntry] | None = None
 
         async with self._lock:
             if entry is not None:
@@ -106,17 +115,17 @@ class MatchmakingService:
 
     def _pair_contains_ws(
         self,
-        pair: tuple[dict[str, object], dict[str, object]],
+        pair: tuple[QueueEntry, QueueEntry],
         websocket: WebSocket,
     ) -> bool:
         return any(player["ws"] is websocket for player in pair)
 
-    def _attempt_match_locked(self) -> tuple[dict[str, object], dict[str, object]] | None:
+    def _attempt_match_locked(self) -> tuple[QueueEntry, QueueEntry] | None:
         if len(self._queue) < 2:
             return None
 
         now = time.monotonic()
-        best_pair: tuple[dict[str, object], dict[str, object]] | None = None
+        best_pair: tuple[QueueEntry, QueueEntry] | None = None
         best_key: tuple[int, float, int] | None = None
 
         for left_idx in range(len(self._queue) - 1):
@@ -157,7 +166,7 @@ class MatchmakingService:
         ]
         return best_pair
 
-    async def _notify_matched(self, p1: dict[str, object], p2: dict[str, object]) -> None:
+    async def _notify_matched(self, p1: QueueEntry, p2: QueueEntry) -> None:
         match_id = str(uuid.uuid4())
         for p in (p1, p2):
             ws = p["ws"]

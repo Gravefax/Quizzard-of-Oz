@@ -7,7 +7,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app.crud import ranking as crud_ranking
-from app.models.match_result import ENDED_AS_NORMAL, MatchResult
+from app.models.match_result import ENDED_AS_NORMAL
 from app.models.ranking import Ranking
 
 K_FACTOR = 32
@@ -50,8 +50,14 @@ def apply_match_result(
     loser.losses += 1
     loser.total_matches += 1
 
-    # Match history entry; forfeits are labelled distinctly from regular losses.
-    db.add(MatchResult(winner_id=winner_id, loser_id=loser_id, ended_as=ended_as))
+    # Match history entry, staged via CRUD and committed together with both
+    # rankings in one transaction (see save_rankings).
+    crud_ranking.create_match_result(
+        db,
+        winner_id=winner_id,
+        loser_id=loser_id,
+        ended_as=ended_as,
+    )
 
     crud_ranking.save_rankings(db, winner, loser)
     return winner, loser

@@ -2,6 +2,7 @@ from unittest.mock import MagicMock
 from uuid import uuid4
 
 from app.crud import ranking as crud_ranking
+from app.models.match_result import ENDED_AS_FORFEIT, ENDED_AS_NORMAL, MatchResult
 from app.models.ranking import Ranking
 
 
@@ -39,6 +40,42 @@ def test_get_or_create_ranking_creates_new():
     db.add.assert_called_once_with(result)
     db.commit.assert_called_once_with()
     db.refresh.assert_called_once_with(result)
+
+
+def test_create_match_result_stages_normal_entry_without_commit():
+    db = MagicMock()
+    winner_id = uuid4()
+    loser_id = uuid4()
+
+    result = crud_ranking.create_match_result(
+        db,
+        winner_id=winner_id,
+        loser_id=loser_id,
+    )
+
+    assert isinstance(result, MatchResult)
+    assert result.winner_id == winner_id
+    assert result.loser_id == loser_id
+    assert result.ended_as == ENDED_AS_NORMAL
+    db.add.assert_called_once_with(result)
+    # No commit/refresh here: caller persists it in one transaction via save_rankings.
+    db.commit.assert_not_called()
+    db.refresh.assert_not_called()
+
+
+def test_create_match_result_records_forfeit():
+    db = MagicMock()
+
+    result = crud_ranking.create_match_result(
+        db,
+        winner_id=uuid4(),
+        loser_id=uuid4(),
+        ended_as=ENDED_AS_FORFEIT,
+    )
+
+    assert result.ended_as == ENDED_AS_FORFEIT
+    db.add.assert_called_once_with(result)
+    db.commit.assert_not_called()
 
 
 def test_save_rankings_adds_commits_and_refreshes_all():

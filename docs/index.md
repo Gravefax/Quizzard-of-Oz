@@ -55,10 +55,6 @@
 - Repository: [SQS-Team-11](https://github.com/Gravefax/SQS-Team-11)
 - Read the Docs: [Published documentation](https://quizzard-of-oz.readthedocs.io/en/latest)
 
-## Visual Overview
-
-![Ranked and unranked session flow](images/ranked_session_flow.svg)
-
 ```{toctree}
 :maxdepth: 2
 :caption: Documentation

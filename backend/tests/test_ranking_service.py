@@ -4,7 +4,7 @@ from uuid import uuid4
 
 import pytest
 
-from app.models.match_result import ENDED_AS_FORFEIT, ENDED_AS_NORMAL, MatchResult
+from app.models.match_result import ENDED_AS_FORFEIT, ENDED_AS_NORMAL
 from app.models.ranking import Ranking
 from app.services import ranking_service
 
@@ -22,6 +22,7 @@ def test_apply_match_result_updates_both_players(monkeypatch):
     loser = Ranking(user_id=loser_id, elo_rating=1000, wins=0, losses=0, total_matches=0)
 
     saved = {}
+    recorded = {}
 
     def fake_get_or_create(db, user_id):
         return winner if user_id == winner_id else loser
@@ -29,8 +30,12 @@ def test_apply_match_result_updates_both_players(monkeypatch):
     def fake_save(db, *rankings):
         saved["rankings"] = rankings
 
+    def fake_create_match_result(db, *, winner_id, loser_id, ended_as):
+        recorded.update(winner_id=winner_id, loser_id=loser_id, ended_as=ended_as)
+
     monkeypatch.setattr(ranking_service.crud_ranking, "get_or_create_ranking", fake_get_or_create)
     monkeypatch.setattr(ranking_service.crud_ranking, "save_rankings", fake_save)
+    monkeypatch.setattr(ranking_service.crud_ranking, "create_match_result", fake_create_match_result)
 
     db = MagicMock()
     updated_winner, updated_loser = ranking_service.apply_match_result(
@@ -54,12 +59,14 @@ def test_apply_match_result_updates_both_players(monkeypatch):
     assert loser.elo_rating == 984
     assert saved["rankings"] == (winner, loser)
 
+    # History entry is recorded via CRUD; the service no longer adds ORM objects.
+    db.add.assert_not_called()
     # A history entry is recorded; regular matches end as "normal".
-    recorded = db.add.call_args.args[0]
-    assert isinstance(recorded, MatchResult)
-    assert recorded.winner_id == winner_id
-    assert recorded.loser_id == loser_id
-    assert recorded.ended_as == ENDED_AS_NORMAL
+    assert recorded == {
+        "winner_id": winner_id,
+        "loser_id": loser_id,
+        "ended_as": ENDED_AS_NORMAL,
+    }
 
 
 def test_apply_match_result_records_forfeit_in_history(monkeypatch):
@@ -68,12 +75,19 @@ def test_apply_match_result_records_forfeit_in_history(monkeypatch):
     winner = Ranking(user_id=winner_id, elo_rating=1000, wins=0, losses=0, total_matches=0)
     loser = Ranking(user_id=loser_id, elo_rating=1000, wins=0, losses=0, total_matches=0)
 
+    recorded = {}
+
     monkeypatch.setattr(
         ranking_service.crud_ranking,
         "get_or_create_ranking",
         lambda db, user_id: winner if user_id == winner_id else loser,
     )
     monkeypatch.setattr(ranking_service.crud_ranking, "save_rankings", lambda db, *r: None)
+    monkeypatch.setattr(
+        ranking_service.crud_ranking,
+        "create_match_result",
+        lambda db, *, winner_id, loser_id, ended_as: recorded.update(ended_as=ended_as),
+    )
 
     db = MagicMock()
     ranking_service.apply_match_result(
@@ -87,9 +101,8 @@ def test_apply_match_result_records_forfeit_in_history(monkeypatch):
     assert winner.elo_rating == 1016
     assert loser.elo_rating == 984
     # … but the history entry is labelled as forfeit, not a plain loss.
-    recorded = db.add.call_args.args[0]
-    assert isinstance(recorded, MatchResult)
-    assert recorded.ended_as == ENDED_AS_FORFEIT
+    db.add.assert_not_called()
+    assert recorded["ended_as"] == ENDED_AS_FORFEIT
 
 
 def test_get_leaderboard_page_assigns_same_rank_on_full_tie(monkeypatch):

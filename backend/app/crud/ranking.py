@@ -6,6 +6,7 @@ from uuid import UUID
 from sqlalchemy import case, desc
 from sqlalchemy.orm import Query, Session
 
+from app.models.match_result import ENDED_AS_NORMAL, MatchResult
 from app.models.ranking import Ranking
 from app.models.user import User
 
@@ -24,6 +25,24 @@ def get_or_create_ranking(db: Session, user_id: UUID) -> Ranking:
     db.commit()
     db.refresh(ranking)
     return ranking
+
+
+def create_match_result(
+    db: Session,
+    *,
+    winner_id: UUID,
+    loser_id: UUID,
+    ended_as: str = ENDED_AS_NORMAL,
+) -> MatchResult:
+    """Stage a match history entry; the caller commits the transaction.
+
+    No commit here so the MatchResult and both rankings are persisted in a
+    single transaction (see ``save_rankings``). Forfeits are labelled distinctly
+    from regular losses via ``ended_as``.
+    """
+    match_result = MatchResult(winner_id=winner_id, loser_id=loser_id, ended_as=ended_as)
+    db.add(match_result)
+    return match_result
 
 
 def save_rankings(db: Session, *rankings: Ranking) -> None:

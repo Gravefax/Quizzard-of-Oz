@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 from uuid import uuid4
 
 from app.crud.question_cache import QuestionCacheRepository
-from app.services.trivia_types import CachedQuestionRecord, QuestionFilters
+from app.dtos.trivia_types import CachedQuestionRecord, QuestionFilters
 
 
 class FakeQuery:

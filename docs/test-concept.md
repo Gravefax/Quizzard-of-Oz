@@ -10,7 +10,7 @@ The main goals are:
 
 - detect regressions in authentication, session handling, quiz flow, ranking, trivia caching, and battle WebSocket behavior
 - keep frontend and backend behavior verifiable without relying on manual browser testing
-- enforce basic architecture boundaries in the frontend
+- enforce architecture boundaries in both the frontend and the backend
 - provide coverage reports for local feedback and SonarCloud
 - keep CI results reproducible through pinned dependency files and explicit GitHub Actions jobs
 
@@ -24,7 +24,7 @@ The project follows the test pyramid by combining many fast, isolated tests with
 | Integration tests | Backend: `pytest` with FastAPI `TestClient`, dependency overrides, fake services; frontend: Vitest with Testing Library | Backend: `backend/tests/`; frontend: `frontend/quizzard-of-oz/app/__tests__/integration` | Verify interaction between routers, services, CRUD boundaries, frontend pages, and combined UI flows without requiring the complete deployed system. |
 | End-to-end UI automation | Playwright with Chromium | `frontend/quizzard-of-oz/app/__tests__/e2e` | Verify user-visible browser flows such as navigation, practice quiz, ranked queue, battle behavior, leaderboard, authentication, and leave guards. |
 | Penetration / security tests | Automated negative and authentication tests with `pytest`, Vitest, and Playwright | Backend auth/session tests in `backend/tests/`; frontend security tests in `frontend/quizzard-of-oz/app/__tests__/security`; auth E2E specs in `frontend/quizzard-of-oz/app/__tests__/e2e` | Validate unauthorized access handling, invalid tokens/cookies, expired sessions, protected route behavior, and authentication-related failure paths. These are automated security regression tests, not a full manual penetration test. |
-| Architecture tests | Frontend: dependency-cruiser through Vitest; backend: no dedicated import-linter or pytest-arch configuration is currently present | Frontend: `frontend/quizzard-of-oz/app/__tests__/arch`; backend architecture constraints are currently checked indirectly through pytest/service structure and code review | Enforce frontend dependency rules and document the current backend architecture-test gap. A future backend architecture-test implementation should use a dedicated tool such as import-linter or pytest-arch if stricter backend layer enforcement is required. |
+| Architecture tests | Frontend: dependency-cruiser through Vitest; backend: import-linter driven from `pytest` | Frontend: `frontend/quizzard-of-oz/app/__tests__/arch`; backend: `backend/.importlinter` enforced by `backend/tests/test_architecture.py` | Enforce frontend dependency rules and backend layer boundaries (routers > services > crud > models), including a negative test that proves a deliberate violation breaks the build. |
 
 ## Test Scope
 
@@ -37,9 +37,9 @@ The project follows the test pyramid by combining many fast, isolated tests with
 | Battle and matchmaking | Queue authentication, Elo-based pairing, match state transitions, category selection, answer acknowledgement, reveal timing, round result, surrender, disconnect, forfeit. |
 | Frontend navigation and UI state | Landing page, ranked page, navbar, mobile menu, battle leave guard, Keycloak provider behavior, auth store, theme store. |
 | Security checks | Protected API route behavior and backend session/JWKS validation paths. |
-| Architecture rules | No frontend circular dependencies, no component imports from API routes, and no production imports from test files. |
+| Architecture rules | Frontend: no circular dependencies, no component imports from API routes, no production imports from test files. Backend: routers must reach persistence only through services, the CRUD layer must not import routers or services, and the layers routers > services > crud > models stay acyclic. |
 
-Out of scope for the current automated test suite are production load testing, a full manual penetration test, browser compatibility beyond Chromium E2E, database migration testing, dedicated backend architecture tests with import-linter/pytest-arch, and infrastructure failover testing.
+Out of scope for the current automated test suite are production load testing, a full manual penetration test, browser compatibility beyond Chromium E2E, database migration testing, and infrastructure failover testing.
 
 ## Test Levels and Tools
 
@@ -119,7 +119,13 @@ Frontend architecture rules are implemented as executable tests with dependency-
 - no imports from `app/components` directly into `app/api`
 - no production source imports from test files
 
-The backend does not currently include a dedicated architecture-test tool such as import-linter or pytest-arch. Backend layering is protected by module structure, service/router/CRUD tests, and code review. If stricter backend architecture enforcement becomes required, import-linter or pytest-arch should be added as a separate backend architecture test level.
+Backend architecture rules are enforced with [import-linter](https://import-linter.readthedocs.io). The contracts live in `backend/.importlinter` and are executed both directly in CI (`lint-imports`) and through `pytest` in `backend/tests/test_architecture.py`. They enforce:
+
+- **routers-no-direct-crud**: routers must not import the `app.crud` layer directly; persistence access goes through `app.services`. The `get_db` dependency from `app.database` is still allowed in routers, since it only injects the request-scoped session that is handed to the service layer.
+- **crud-isolated**: the `app.crud` layer must not import `app.routers` or `app.services`; it stays a leaf of the dependency graph.
+- **layers**: the layering `app.routers > app.services > app.crud > app.models` is enforced. Every reverse (lower-to-higher) import is rejected, which also guarantees there are no cyclic dependencies between these layers.
+
+`backend/tests/test_architecture.py` additionally runs a negative test: it temporarily writes a router module that imports `app.crud` directly and asserts that `lint-imports` reports the contract as broken, proving the rules actually fail the build on a violation.
 
 ### End-to-End Tests
 
@@ -185,7 +191,7 @@ The GitHub Actions `ci.yml` workflow runs on pushes and pull requests to `dev` a
 | Job | Gate |
 | --- | --- |
 | `frontend-build` | `pnpm install --frozen-lockfile` and `pnpm build` must pass. |
-| `backend-test` | Backend pytest with branch coverage must pass and upload `backend/coverage.xml`. |
+| `backend-test` | Backend `lint-imports` architecture contracts and pytest with branch coverage must pass and upload `backend/coverage.xml`. |
 | `frontend-test` | `pnpm lint`, `pnpm test:coverage`, and `pnpm test:arch` must pass and upload frontend lcov. |
 | `frontend-e2e` | Playwright tests must pass with PostgreSQL and Keycloak available. |
 | `sonarcloud` | SonarCloud scan runs after backend and frontend test jobs and consumes coverage artifacts. |
@@ -212,7 +218,7 @@ SonarCloud is the central quality and coverage reporting tool in CI. The GitHub 
 | Change Type | Recommended Checks |
 | --- | --- |
 | Documentation only | Sphinx build. |
-| Backend router/service/CRUD change | `python -m pytest tests -q` from `backend`. |
+| Backend router/service/CRUD change | `python -m pytest tests -q` and `lint-imports` from `backend`. |
 | Frontend component/page/client change | `pnpm lint`, `pnpm test:coverage`, and `pnpm test:arch`. |
 | Authentication/session change | Backend auth/WebSocket auth tests, frontend auth tests, and relevant Playwright auth scenarios. |
 | Battle or matchmaking change | Backend battle/matchmaking tests, frontend battle tests, and Playwright battle scenarios. |
@@ -224,7 +230,7 @@ SonarCloud is the central quality and coverage reporting tool in CI. The GitHub 
 | --- | --- |
 | No visible load or performance tests | Queue behavior, WebSocket scaling, and battle latency under many concurrent players are not measured. |
 | No database migration tests | The backend currently creates tables with SQLAlchemy metadata; future schema migrations would need dedicated tests. |
-| No dedicated backend architecture-test tool | Backend layering is not enforced by import-linter or pytest-arch today. |
+| Backend architecture tests check static imports only | import-linter enforces the layering through the import graph; runtime-only coupling (e.g. dynamic imports or string-based lookups) is not covered. |
 | Limited production observability tests | Logging is covered indirectly, but metrics, tracing, alerting, and log aggregation are not tested. |
 | E2E tests depend on shared infrastructure | PostgreSQL, Keycloak, backend state, and WebSocket queues make isolation harder than pure unit tests. |
 | Browser coverage is Chromium-only | Cross-browser behavior is not covered by the current Playwright configuration. |
@@ -234,6 +240,6 @@ SonarCloud is the central quality and coverage reporting tool in CI. The GitHub 
 
 - Add or update tests in the same change when behavior changes.
 - Prefer unit and service tests for detailed edge cases; reserve Playwright for user-critical end-to-end behavior.
-- Keep architecture tests aligned with actual frontend layering rules.
+- Keep architecture tests aligned with the actual frontend and backend layering rules.
 - Keep test documentation updated when commands, CI jobs, coverage thresholds, or test folders change.
 - Do not rely on manual verification as the only evidence for auth, ranking, battle, or persistence changes.

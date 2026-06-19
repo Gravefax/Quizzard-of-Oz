@@ -4,6 +4,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
+from app.dtos.trivia_types import QuestionFilters
 from app.schemas.trivia import (
     TriviaQuestionResponse,
     TriviaQuestionsMetaResponse,
@@ -19,7 +20,6 @@ from app.services.trivia_service import (
     TriviaQuestionService,
     get_trivia_question_service,
 )
-from app.services.trivia_types import QuestionFilters
 
 router = APIRouter(prefix="/api/trivia", tags=["trivia"])
 

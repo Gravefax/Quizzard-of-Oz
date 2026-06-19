@@ -149,6 +149,7 @@ from fastapi import WebSocket
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
+from app.dtos.trivia_types import Question
 from app.models.match_result import ENDED_AS_FORFEIT
 from app.models.user import User
 from app.services.quiz_service import QuizService, get_quiz_service
@@ -159,7 +160,6 @@ from app.services.trivia_client import (
     TriviaUpstreamUnavailableError,
 )
 from app.services.trivia_service import TriviaInsufficientQuestionsError
-from app.services.trivia_types import Question
 from app.services.ws_auth import authenticate_ws
 
 # WebSocket close codes for match-specific errors

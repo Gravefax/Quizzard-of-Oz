@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock
 
+from app.dtos.trivia_types import Question, QuestionBatch
 from app.services.quiz_service import QuizService
-from app.services.trivia_types import Question, QuestionBatch
 
 
 def test_get_questions_delegates_to_trivia_service():

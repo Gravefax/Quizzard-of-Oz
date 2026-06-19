@@ -4,6 +4,7 @@ from uuid import uuid4
 
 import pytest
 
+from app.dtos.trivia_types import Question
 from app.services import battle_manager
 from app.services.battle_manager import (
     _CLOSE_INTERNAL,
@@ -12,7 +13,6 @@ from app.services.battle_manager import (
     MatchState,
 )
 from app.services.trivia_service import TriviaInsufficientQuestionsError
-from app.services.trivia_types import Question
 
 
 def _make_user(*, user_id=None, username="TestPlayer", email="test@example.com"):

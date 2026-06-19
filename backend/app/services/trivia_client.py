@@ -7,7 +7,7 @@ from typing import Any, Callable
 import httpx
 import pybreaker
 
-from app.services.trivia_types import QuestionFilters
+from app.dtos.trivia_types import QuestionFilters
 from app.settings import TriviaSettings
 
 TRIVIA_QUESTIONS_PATH = "/v2/questions"

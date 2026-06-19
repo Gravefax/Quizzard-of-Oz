@@ -9,13 +9,13 @@ with patch("sqlalchemy.create_engine") as mock_engine:
     with patch("app.database.Base.metadata.create_all"):
         from main import app
 
+from app.dtos.trivia_types import Question, QuestionBatch
 from app.routers.trivia import get_trivia_question_service_dependency
 from app.services.trivia_client import (
     TriviaUpstreamPayloadError,
     TriviaUpstreamUnavailableError,
 )
 from app.services.trivia_service import TriviaInsufficientQuestionsError
-from app.services.trivia_types import Question, QuestionBatch
 
 client = TestClient(app)
 

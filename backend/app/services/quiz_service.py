@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from functools import lru_cache
 
+from app.dtos.trivia_types import Question, QuestionFilters
 from app.services.trivia_service import TriviaQuestionService, get_trivia_question_service
-from app.services.trivia_types import Question, QuestionFilters
 
 
 class QuizService:

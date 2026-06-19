@@ -3,9 +3,9 @@ from uuid import uuid4
 
 import pytest
 
+from app.dtos.trivia_types import QuestionFilters
 from app.services.trivia_client import TriviaUpstreamPayloadError
 from app.services.trivia_service import TriviaInsufficientQuestionsError, TriviaQuestionService
-from app.services.trivia_types import QuestionFilters
 from app.settings import load_trivia_settings
 
 

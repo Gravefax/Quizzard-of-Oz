@@ -75,6 +75,9 @@ jobs:
       - name: Type-check backend
         run: .venv/bin/mypy
 
+      - name: Architecture tests
+        run: .venv/bin/lint-imports
+
       - name: Run tests
         working-directory: .
         run: backend/.venv/bin/pytest backend/tests/ -v --cov=backend/app --cov-report=term-missing --cov-report=xml:backend/coverage.xml --cov-branch --cov-config=backend/.coveragerc

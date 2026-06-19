@@ -107,14 +107,14 @@ def test_login_existing_user_sets_cookie(monkeypatch, fixed_time):
         ),
     )
     monkeypatch.setattr(
-        auth_router.crud_user,
+        auth_router.user_service,
         "get_user_by_keycloak_sub",
         MagicMock(return_value=user),
     )
     create_user_mock = MagicMock()
-    monkeypatch.setattr(auth_router.crud_user, "create_user", create_user_mock)
+    monkeypatch.setattr(auth_router.user_service, "create_user", create_user_mock)
     monkeypatch.setattr(
-        auth_router.crud_session,
+        auth_router.session_service,
         "create_session",
         MagicMock(return_value=session),
     )
@@ -153,14 +153,14 @@ def test_login_creates_user_when_missing(monkeypatch, fixed_time):
         ),
     )
     monkeypatch.setattr(
-        auth_router.crud_user,
+        auth_router.user_service,
         "get_user_by_keycloak_sub",
         MagicMock(return_value=None),
     )
     create_user_mock = MagicMock(return_value=user)
-    monkeypatch.setattr(auth_router.crud_user, "create_user", create_user_mock)
+    monkeypatch.setattr(auth_router.user_service, "create_user", create_user_mock)
     monkeypatch.setattr(
-        auth_router.crud_session,
+        auth_router.session_service,
         "create_session",
         MagicMock(return_value=session),
     )
@@ -193,7 +193,7 @@ def test_refresh_invalid_cookie_uuid():
 def test_refresh_session_not_found(monkeypatch):
     session_id = uuid4()
     monkeypatch.setattr(
-        auth_router.crud_session,
+        auth_router.session_service,
         "get_session",
         MagicMock(return_value=None),
     )
@@ -212,12 +212,12 @@ def test_refresh_session_expired_deletes_session(monkeypatch, override_db):
         expires_at=datetime.now(timezone.utc) - timedelta(minutes=1),
     )
     monkeypatch.setattr(
-        auth_router.crud_session,
+        auth_router.session_service,
         "get_session",
         MagicMock(return_value=session),
     )
     delete_mock = MagicMock()
-    monkeypatch.setattr(auth_router.crud_session, "delete_session", delete_mock)
+    monkeypatch.setattr(auth_router.session_service, "delete_session", delete_mock)
 
     client.cookies.set(auth_router.SESSION_COOKIE_NAME, str(session_id))
     response = client.get("/auth/refresh")
@@ -231,13 +231,13 @@ def test_refresh_user_not_found(monkeypatch, override_db):
     session_id = uuid4()
     session = _make_session(session_id=session_id)
     monkeypatch.setattr(
-        auth_router.crud_session,
+        auth_router.session_service,
         "get_session",
         MagicMock(return_value=session),
     )
     delete_mock = MagicMock()
-    monkeypatch.setattr(auth_router.crud_session, "delete_session", delete_mock)
-    monkeypatch.setattr(auth_router.crud_user, "get_user", MagicMock(return_value=None))
+    monkeypatch.setattr(auth_router.session_service, "delete_session", delete_mock)
+    monkeypatch.setattr(auth_router.user_service, "get_user", MagicMock(return_value=None))
 
     client.cookies.set(auth_router.SESSION_COOKIE_NAME, str(session_id))
     response = client.get("/auth/refresh")
@@ -254,13 +254,13 @@ def test_refresh_success_extends_session(monkeypatch, fixed_time, override_db):
 
     monkeypatch.setattr(auth_router, "_session_expiry", lambda: fixed_time)
     monkeypatch.setattr(
-        auth_router.crud_session,
+        auth_router.session_service,
         "get_session",
         MagicMock(return_value=session),
     )
     extend_mock = MagicMock(return_value=session)
-    monkeypatch.setattr(auth_router.crud_session, "extend_session", extend_mock)
-    monkeypatch.setattr(auth_router.crud_user, "get_user", MagicMock(return_value=user))
+    monkeypatch.setattr(auth_router.session_service, "extend_session", extend_mock)
+    monkeypatch.setattr(auth_router.user_service, "get_user", MagicMock(return_value=user))
 
     client.cookies.set(auth_router.SESSION_COOKIE_NAME, str(session_id))
     response = client.get("/auth/refresh")
@@ -279,7 +279,7 @@ def test_refresh_success_extends_session(monkeypatch, fixed_time, override_db):
 def test_logout_with_valid_cookie(monkeypatch, override_db):
     session_id = uuid4()
     delete_mock = MagicMock()
-    monkeypatch.setattr(auth_router.crud_session, "delete_session", delete_mock)
+    monkeypatch.setattr(auth_router.session_service, "delete_session", delete_mock)
 
     client.cookies.set(auth_router.SESSION_COOKIE_NAME, str(session_id))
     response = client.post("/auth/logout")
@@ -291,7 +291,7 @@ def test_logout_with_valid_cookie(monkeypatch, override_db):
 
 def test_logout_with_invalid_cookie(monkeypatch):
     delete_mock = MagicMock()
-    monkeypatch.setattr(auth_router.crud_session, "delete_session", delete_mock)
+    monkeypatch.setattr(auth_router.session_service, "delete_session", delete_mock)
 
     client.cookies.set(auth_router.SESSION_COOKIE_NAME, "not-a-uuid")
     response = client.post("/auth/logout")
@@ -303,7 +303,7 @@ def test_logout_with_invalid_cookie(monkeypatch):
 
 def test_logout_without_any_cookie(monkeypatch):
     delete_mock = MagicMock()
-    monkeypatch.setattr(auth_router.crud_session, "delete_session", delete_mock)
+    monkeypatch.setattr(auth_router.session_service, "delete_session", delete_mock)
 
     client.cookies.clear()
     response = client.post("/auth/logout")
@@ -375,12 +375,12 @@ def test_login_username_falls_back_to_name(monkeypatch, fixed_time):
         MagicMock(return_value={"sub": "sub-789", "name": "grace_hopper"}),
     )
     monkeypatch.setattr(
-        auth_router.crud_user, "get_user_by_keycloak_sub", MagicMock(return_value=None)
+        auth_router.user_service, "get_user_by_keycloak_sub", MagicMock(return_value=None)
     )
     create_mock = MagicMock(return_value=user)
-    monkeypatch.setattr(auth_router.crud_user, "create_user", create_mock)
+    monkeypatch.setattr(auth_router.user_service, "create_user", create_mock)
     monkeypatch.setattr(
-        auth_router.crud_session, "create_session", MagicMock(return_value=session)
+        auth_router.session_service, "create_session", MagicMock(return_value=session)
     )
 
     response = client.post("/auth/login", headers={"Authorization": "Bearer tok"})
@@ -400,12 +400,12 @@ def test_login_username_falls_back_to_email_prefix(monkeypatch, fixed_time):
         MagicMock(return_value={"sub": "sub-789", "email": "grace@example.com"}),
     )
     monkeypatch.setattr(
-        auth_router.crud_user, "get_user_by_keycloak_sub", MagicMock(return_value=None)
+        auth_router.user_service, "get_user_by_keycloak_sub", MagicMock(return_value=None)
     )
     create_mock = MagicMock(return_value=user)
-    monkeypatch.setattr(auth_router.crud_user, "create_user", create_mock)
+    monkeypatch.setattr(auth_router.user_service, "create_user", create_mock)
     monkeypatch.setattr(
-        auth_router.crud_session, "create_session", MagicMock(return_value=session)
+        auth_router.session_service, "create_session", MagicMock(return_value=session)
     )
 
     response = client.post("/auth/login", headers={"Authorization": "Bearer tok"})
@@ -425,12 +425,12 @@ def test_login_username_falls_back_to_default_user(monkeypatch, fixed_time):
         MagicMock(return_value={"sub": "sub-789"}),
     )
     monkeypatch.setattr(
-        auth_router.crud_user, "get_user_by_keycloak_sub", MagicMock(return_value=None)
+        auth_router.user_service, "get_user_by_keycloak_sub", MagicMock(return_value=None)
     )
     create_mock = MagicMock(return_value=user)
-    monkeypatch.setattr(auth_router.crud_user, "create_user", create_mock)
+    monkeypatch.setattr(auth_router.user_service, "create_user", create_mock)
     monkeypatch.setattr(
-        auth_router.crud_session, "create_session", MagicMock(return_value=session)
+        auth_router.session_service, "create_session", MagicMock(return_value=session)
     )
 
     response = client.post("/auth/login", headers={"Authorization": "Bearer tok"})
@@ -448,13 +448,13 @@ def test_get_valid_session_with_naive_datetime_is_accepted(monkeypatch, override
     session = _make_session(session_id=session_id, user_id=user.id, expires_at=naive_future)
 
     monkeypatch.setattr(
-        auth_router.crud_session, "get_session", MagicMock(return_value=session)
+        auth_router.session_service, "get_session", MagicMock(return_value=session)
     )
     monkeypatch.setattr(auth_router, "_session_expiry", lambda: datetime.now(timezone.utc) + timedelta(hours=1))
     monkeypatch.setattr(
-        auth_router.crud_session, "extend_session", MagicMock(return_value=session)
+        auth_router.session_service, "extend_session", MagicMock(return_value=session)
     )
-    monkeypatch.setattr(auth_router.crud_user, "get_user", MagicMock(return_value=user))
+    monkeypatch.setattr(auth_router.user_service, "get_user", MagicMock(return_value=user))
 
     client.cookies.set(auth_router.SESSION_COOKIE_NAME, str(session_id))
     response = client.get("/auth/refresh")
@@ -471,10 +471,10 @@ def test_get_valid_session_with_non_datetime_expires_at_returns_401(monkeypatch)
         expires_at="not-a-datetime",
     )
     monkeypatch.setattr(
-        auth_router.crud_session, "get_session", MagicMock(return_value=broken_session)
+        auth_router.session_service, "get_session", MagicMock(return_value=broken_session)
     )
     delete_mock = MagicMock()
-    monkeypatch.setattr(auth_router.crud_session, "delete_session", delete_mock)
+    monkeypatch.setattr(auth_router.session_service, "delete_session", delete_mock)
 
     client.cookies.set(auth_router.SESSION_COOKIE_NAME, str(session_id))
     response = client.get("/auth/refresh")

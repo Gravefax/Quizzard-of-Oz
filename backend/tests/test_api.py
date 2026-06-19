@@ -9,10 +9,10 @@ with patch("sqlalchemy.create_engine") as mock_engine:
     with patch("app.database.Base.metadata.create_all"):
         from main import app
 
+from app.dtos.trivia_types import Question
 from app.routers.quiz import get_quiz_service_dependency
 from app.services.trivia_client import TriviaUpstreamUnavailableError
 from app.services.trivia_service import TriviaInsufficientQuestionsError
-from app.services.trivia_types import Question
 
 client = TestClient(app)
 

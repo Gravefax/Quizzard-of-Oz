@@ -15,7 +15,7 @@ export default function UserMenu({ displayName, onLogout }: Readonly<UserMenuPro
     if (!isOpen) return;
 
     const handleOutsideClick = (event: MouseEvent) => {
-      if (!containerRef.current?.contains(event.target as Node)) {
+      if (event.target instanceof Node && !containerRef.current?.contains(event.target)) {
         setIsOpen(false);
       }
     };
@@ -42,7 +42,7 @@ export default function UserMenu({ displayName, onLogout }: Readonly<UserMenuPro
         onClick={() => setIsOpen((prev) => !prev)}
         aria-haspopup="menu"
         aria-expanded={isOpen}
-        className="login-btn inline-flex items-center gap-2 px-6 py-2 font-medium rounded-lg"
+        className="nav-btn nav-btn-user"
       >
         <span>{displayName}</span>
       </button>
@@ -67,7 +67,7 @@ export default function UserMenu({ displayName, onLogout }: Readonly<UserMenuPro
             className="w-full px-4 py-3 text-left text-sm transition-colors hover:bg-white/10"
             style={{
               borderTop: "1px solid rgba(var(--oz-violet-light-rgb), 0.25)",
-              color: "rgba(var(--oz-gold-light-rgb), 0.95)",
+              color: "rgba(var(--oz-fire-title-rgb), 0.9)",
             }}
           >
             Abmelden

@@ -1,213 +1,131 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 
-const QUESTIONS = [
-  {
-    id: "q1",
-    text: "Was ist die Hauptstadt von Frankreich?",
-    answers: ["Paris", "London", "Berlin", "Madrid"],
-    category: "Geografie",
-    correctAnswer: "Paris",
-  },
-  {
-    id: "q2",
-    text: "Wie viele Beine haben Spinnen?",
-    answers: ["6", "8", "10", "12"],
-    category: "Natur",
-    correctAnswer: "8",
-  },
-  {
-    id: "q3",
-    text: "In welchem Jahr fiel die Berliner Mauer?",
-    answers: ["1987", "1988", "1989", "1990"],
-    category: "Geschichte",
-    correctAnswer: "1989",
-  },
-  {
-    id: "q4",
-    text: "Wer schrieb Faust?",
-    answers: ["Goethe", "Schiller", "Kafka", "Brecht"],
-    category: "Literatur",
-    correctAnswer: "Goethe",
-  },
-  {
-    id: "q5",
-    text: "Was ist das chemische Symbol für Gold?",
-    answers: ["Ag", "Au", "Fe", "Go"],
-    category: "Wissenschaft",
-    correctAnswer: "Au",
-  },
-  {
-    id: "q6",
-    text: "Wie viele Kontinente gibt es?",
-    answers: ["5", "6", "7", "8"],
-    category: "Geografie",
-    correctAnswer: "6",
-  },
-  {
-    id: "q7",
-    text: "Welcher Planet ist der größte in unserem Sonnensystem?",
-    answers: ["Mars", "Jupiter", "Saturn", "Neptun"],
-    category: "Astronomie",
-    correctAnswer: "Jupiter",
-  },
-  {
-    id: "q8",
-    text: "Welche Sprache wird in Brasilien gesprochen?",
-    answers: ["Spanisch", "Französisch", "Portugiesisch", "Italienisch"],
-    category: "Sprachen",
-    correctAnswer: "Portugiesisch",
-  },
-  {
-    id: "q9",
-    text: "Wie viele Knochen hat ein erwachsener Mensch?",
-    answers: ["186", "196", "206", "216"],
-    category: "Biologie",
-    correctAnswer: "206",
-  },
-  {
-    id: "q10",
-    text: "In welchem Jahr sank die Titanic?",
-    answers: ["1910", "1912", "1914", "1916"],
-    category: "Geschichte",
-    correctAnswer: "1912",
-  },
-] as const;
+// Answer buttons are rendered with the practice-answer CSS module class.
+// CSS Modules generate names like "practice_practice-answer-btn__<hash>",
+// so a partial attribute match reliably selects them.
+async function clickFirstAnswer(page: Page): Promise<void> {
+  const btn = page.locator('[class*="practice-answer-btn"]').first();
+  await btn.waitFor({ state: "visible", timeout: 5_000 });
+  await btn.click();
+}
 
-const CORRECT_ANSWERS = QUESTIONS.map((question) => question.correctAnswer);
+// Reads "Frage 1 / N" and returns N.
+async function readTotalQuestions(page: Page): Promise<number> {
+  const text = await page
+    .getByText(/frage 1 \/ \d+/i)
+    .textContent({ timeout: 15_000 });
+  return parseInt(text?.match(/\/\s*(\d+)/)?.[1] ?? "10", 10);
+}
 
-const TOTAL_QUESTIONS = CORRECT_ANSWERS.length;
+// Answers every question with the first available answer.
+async function completeFullQuiz(page: Page): Promise<void> {
+  const total = await readTotalQuestions(page);
+
+  for (let i = 0; i < total; i++) {
+    await expect(
+      page.getByText(new RegExp(`frage ${i + 1} \\/ ${total}`, "i")),
+    ).toBeVisible({ timeout: 5_000 });
+
+    await clickFirstAnswer(page);
+
+    // Wait for correct or wrong feedback before advancing
+    await expect(page.getByText(/✓ Richtig!|✗ Falsch/)).toBeVisible({
+      timeout: 5_000,
+    });
+
+    const isLastQuestion = i === total - 1;
+    const nextBtn = page.getByRole("button", {
+      name: isLastQuestion ? /ergebnis anzeigen/i : /nächste frage/i,
+    });
+    await expect(nextBtn).toBeVisible({ timeout: 5_000 });
+    await nextBtn.click();
+  }
+}
 
 test.describe("Practice Quiz", () => {
-  test.beforeEach(async ({ page }) => {
-    await page.route("**/quiz/practice/questions", async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify(
-          QUESTIONS.map(({ id, question, answers, category }) => ({
-            id,
-            question,
-            answers,
-            category,
-          })),
-        ),
-      });
-    });
-
-    await page.route("**/quiz/practice/answer", async (route) => {
-      const payload = route.request().postDataJSON() as {
-        question_id: string;
-        answer: string;
-      };
-      const question = QUESTIONS.find(({ id }) => id === payload.question_id);
-
-      if (!question) {
-        await route.fulfill({
-          status: 404,
-          contentType: "application/json",
-          body: JSON.stringify({ detail: "Question not found" }),
-        });
-        return;
-      }
-
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          correct: payload.answer === question.correctAnswer,
-          correct_answer: question.correctAnswer,
-        }),
-      });
-    });
-  });
-
   test("navigates from landing page to Übungsmodus", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: /übung/i }).click();
     await expect(page).toHaveURL(/trainings-modus/);
     await expect(
-      page.getByRole("heading", { name: /übungsmodus/i })
+      page.getByRole("heading", { name: /übungsmodus/i }),
     ).toBeVisible();
   });
 
   test("shows first question after starting quiz", async ({ page }) => {
     await page.goto("/trainings-modus");
     await page.getByRole("button", { name: /quiz starten/i }).click();
-    await expect(
-      page.getByText(new RegExp(`frage 1 / ${TOTAL_QUESTIONS}`, "i"))
-    ).toBeVisible({ timeout: 5000 });
+    // Real backend may need to fetch from Trivia API on first run
+    await expect(page.getByText(/frage 1 \/ \d+/i)).toBeVisible({
+      timeout: 15_000,
+    });
   });
 
-  test("completes full quiz with all correct answers and shows perfect score", async ({
+  test("shows answer feedback after selecting an answer", async ({ page }) => {
+    await page.goto("/trainings-modus");
+    await page.getByRole("button", { name: /quiz starten/i }).click();
+    await expect(page.getByText(/frage 1 \/ \d+/i)).toBeVisible({
+      timeout: 15_000,
+    });
+
+    await clickFirstAnswer(page);
+
+    await expect(page.getByText(/✓ Richtig!|✗ Falsch/)).toBeVisible({
+      timeout: 5_000,
+    });
+  });
+
+  test("answer buttons are disabled after selecting an answer", async ({
     page,
   }) => {
     await page.goto("/trainings-modus");
     await page.getByRole("button", { name: /quiz starten/i }).click();
+    await expect(page.getByText(/frage 1 \/ \d+/i)).toBeVisible({
+      timeout: 15_000,
+    });
 
-    for (let i = 0; i < TOTAL_QUESTIONS; i++) {
-      await expect(
-        page.getByText(new RegExp(`frage ${i + 1} / ${TOTAL_QUESTIONS}`, "i"))
-      ).toBeVisible({ timeout: 5000 });
+    await clickFirstAnswer(page);
 
-      await page
-        .getByRole("button", { name: CORRECT_ANSWERS[i], exact: true })
-        .click();
-
-      await expect(page.getByText(/✓ Richtig!/)).toBeVisible({ timeout: 5000 });
-
-      const isLastQuestion = i === TOTAL_QUESTIONS - 1;
-      const nextButton = page.getByRole("button", {
-        name: isLastQuestion ? /ergebnis anzeigen/i : /nächste frage/i,
-      });
-      await expect(nextButton).toBeVisible({ timeout: 5000 });
-      await nextButton.click();
+    // All answer buttons should now be disabled
+    const answerBtns = page.locator('[class*="practice-answer-btn"]');
+    const count = await answerBtns.count();
+    for (let i = 0; i < count; i++) {
+      await expect(answerBtns.nth(i)).toBeDisabled();
     }
-
-    await expect(
-      page.getByText(`${TOTAL_QUESTIONS} / ${TOTAL_QUESTIONS}`)
-    ).toBeVisible();
-    await expect(page.getByText(/perfekt/i)).toBeVisible();
   });
 
-  test("shows wrong feedback when answer is incorrect", async ({ page }) => {
+  test("completes full quiz and shows result screen with score", async ({
+    page,
+  }) => {
     await page.goto("/trainings-modus");
     await page.getByRole("button", { name: /quiz starten/i }).click();
-    await expect(
-      page.getByText(new RegExp(`frage 1 / ${TOTAL_QUESTIONS}`, "i"))
-    ).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/frage 1 \/ \d+/i)).toBeVisible({
+      timeout: 15_000,
+    });
 
-    // Click a wrong answer (London instead of Paris)
-    await page.getByRole("button", { name: "London", exact: true }).click();
+    const total = await readTotalQuestions(page);
+    await completeFullQuiz(page);
 
+    // Result screen shows "X / total"
     await expect(
-      page.getByText(/✗ Falsch – richtig wäre: Paris/)
-    ).toBeVisible({ timeout: 5000 });
+      page.getByText(new RegExp(`\\d+ / ${total}`)),
+    ).toBeVisible({ timeout: 5_000 });
   });
 
   test("can restart quiz from result screen", async ({ page }) => {
     await page.goto("/trainings-modus");
     await page.getByRole("button", { name: /quiz starten/i }).click();
+    await expect(page.getByText(/frage 1 \/ \d+/i)).toBeVisible({
+      timeout: 15_000,
+    });
 
-    for (let i = 0; i < TOTAL_QUESTIONS; i++) {
-      await expect(
-        page.getByText(new RegExp(`frage ${i + 1} / ${TOTAL_QUESTIONS}`, "i"))
-      ).toBeVisible({ timeout: 5000 });
-      await page
-        .getByRole("button", { name: CORRECT_ANSWERS[i], exact: true })
-        .click();
-      const isLastQuestion = i === TOTAL_QUESTIONS - 1;
-      const nextButton = page.getByRole("button", {
-        name: isLastQuestion ? /ergebnis anzeigen/i : /nächste frage/i,
-      });
-      await expect(nextButton).toBeVisible({ timeout: 5000 });
-      await nextButton.click();
-    }
+    await completeFullQuiz(page);
 
     await page.getByRole("button", { name: /nochmal spielen/i }).click();
 
-    await expect(
-      page.getByText(new RegExp(`frage 1 / ${TOTAL_QUESTIONS}`, "i"))
-    ).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/frage 1 \/ \d+/i)).toBeVisible({
+      timeout: 15_000,
+    });
   });
 
   test("back button navigates to landing page", async ({ page }) => {

@@ -5,10 +5,9 @@ import os
 from uuid import UUID
 from typing import Annotated
 
+import jwt as pyjwt
 from fastapi import APIRouter, Header, HTTPException, status, Depends, Response, Request
 from sqlalchemy.orm import Session
-from google.auth.transport import requests as google_requests
-from google.oauth2 import id_token
 from datetime import datetime, timedelta, timezone
 
 from app.database import get_db
@@ -19,14 +18,39 @@ from app.schemas.login_response import LoginResponse
 router = APIRouter(prefix="/auth", tags=["auth"])
 logger = logging.getLogger(__name__)
 
-GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
-GOOGLE_CLOCK_SKEW_SECONDS = int(os.getenv("GOOGLE_CLOCK_SKEW_SECONDS", "10"))
+KEYCLOAK_URL = os.getenv("KEYCLOAK_URL")
+KEYCLOAK_REALM = os.getenv("KEYCLOAK_REALM", "quizzard")
 
 SESSION_EXP_MINUTES = int(os.getenv("SESSION_EXP_MINUTES", str(60 * 24 * 14)))
 COOKIE_SECURE = os.getenv("COOKIE_SECURE", "false").lower() == "true"
 COOKIE_SAMESITE = os.getenv("COOKIE_SAMESITE", "lax")
 COOKIE_DOMAIN = os.getenv("COOKIE_DOMAIN")
 SESSION_COOKIE_NAME = os.getenv("SESSION_COOKIE_NAME", "session_id")
+
+_jwks_client: pyjwt.PyJWKClient | None = None
+
+
+def _get_jwks_client() -> pyjwt.PyJWKClient:
+    global _jwks_client
+    if _jwks_client is None:
+        jwks_url = f"{KEYCLOAK_URL}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/certs"
+        _jwks_client = pyjwt.PyJWKClient(jwks_url, cache_jwk_set=True, lifespan=300)
+    return _jwks_client
+
+
+def _verify_token(token: str) -> dict:
+    client = _get_jwks_client()
+    try:
+        signing_key = client.get_signing_key_from_jwt(token)
+        payload = pyjwt.decode(
+            token,
+            signing_key.key,
+            algorithms=["RS256", "RS384", "RS512"],
+            options={"verify_aud": False},
+        )
+    except pyjwt.exceptions.PyJWTError as exc:
+        raise ValueError(str(exc)) from exc
+    return payload
 
 
 def _set_cookie(response: Response, *, key: str, value: str, max_age_seconds: int):
@@ -89,12 +113,12 @@ def _get_valid_session(request: Request, db: Session):
 
 
 @router.post(
-    "/google/login",
+    "/login",
     status_code=status.HTTP_200_OK,
     response_model=LoginResponse,
     responses={
         400: {"description": "Missing or malformed Authorization header"},
-        401: {"description": "Invalid or missing token"},
+        401: {"description": "Invalid or expired token"},
     },
 )
 def login(
@@ -110,28 +134,27 @@ def login(
         raise HTTPException(status_code=400, detail="Missing bearer token")
 
     try:
-        # If no client ID is configured, signature/expiry are still validated.
-        payload = id_token.verify_oauth2_token(
-            token,
-            google_requests.Request(),
-            GOOGLE_CLIENT_ID or None,
-            clock_skew_in_seconds=GOOGLE_CLOCK_SKEW_SECONDS,
-        )
+        payload = _verify_token(token)
 
-        user = crud_user.get_user_by_google_sub(db, payload["sub"])
+        sub = payload.get("sub")
+        if not sub:
+            raise ValueError("Missing sub claim in token")
+
+        user = crud_user.get_user_by_keycloak_sub(db, sub)
 
         if not user:
             username = (
-                payload.get("name")
-                or (payload.get("given_name", "") + " " + payload.get("family_name", "")).strip()
-                or payload.get("email", "Unknown")
+                payload.get("preferred_username")
+                or payload.get("name")
+                or (payload.get("email") or "").split("@")[0]
+                or "user"
             )
-
+            email = payload.get("email") or ""
             user = crud_user.create_user(
                 db,
-                username=username,
-                google_sub=payload["sub"],
-                email=payload["email"],
+                username=username[:50],
+                keycloak_sub=sub,
+                email=email,
             )
 
         expires_at = _session_expiry()
@@ -145,12 +168,12 @@ def login(
         )
 
     except ValueError as exc:
-        logger.warning("Google token verification failed: %s", exc)
+        logger.warning("Keycloak token verification failed: %s", exc)
         raise HTTPException(status_code=401, detail="Invalid token") from exc
 
 
 @router.get(
-    "/google/refresh",
+    "/refresh",
     status_code=status.HTTP_200_OK,
     response_model=LoginResponse,
     responses={

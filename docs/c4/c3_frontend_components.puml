@@ -7,7 +7,7 @@ title C4 Model - Level 3: Frontend Components\nNext.js Frontend
 
 Person_Ext(user, "Nutzer", "Interagiert mit der Web-App\nim Browser.")
 Container_Ext(backend, "FastAPI Backend", "Python / FastAPI", "REST-API und WebSocket-Server.")
-System_Ext(google_oauth, "Google OAuth 2.0", "Google Identity Provider\nfür OAuth-Popup.")
+System_Ext(keycloak, "Keycloak", "OIDC Identity Provider.\nLogin & Registrierung via\nAuthorization Code + PKCE.")
 
 Container_Boundary(frontend, "Next.js Frontend") {
 
@@ -20,10 +20,10 @@ Container_Boundary(frontend, "Next.js Frontend") {
 
     Component(leaderboard_page, "LeaderboardPage", "Next.js Page\napp/leaderboard/page.tsx", "Globale Rangliste aller Spieler.\nPaginiert, öffentlich zugänglich.")
 
-    Component(battle_arena_page, "BattleArenaPage", "Next.js Page\napp/battle/[match_id]/page.tsx", "Live-Multiplayer-Match-Interface.\nKategoriewahl, Fragerunden,\nRundenauswertung, Endscreen.")
+    Component(battle_arena_page, "BattleArenaPage", "Next.js Page\napp/battle/[match_id]/page.tsx", "Live-Multiplayer-Match-Interface.\nKategorienwahl, Fragerunden,\nRundenauswertung, Endscreen.")
 
     ' ── Components ─────────────────────────────────────────────
-    Component(login_button, "LoginButton", "React Component\n@react-oauth/google", "Initiiert Google-OAuth-Flow.\nEmpfängt Google JWT und\nleitet an AuthClient weiter.")
+    Component(login_button, "LoginButton", "React Component\nkeycloak-js", "Leitet zu Keycloak-Login weiter.\nNach Redirect: Access Token\nwird an Backend übergeben.")
 
     Component(user_menu, "UserMenu", "React Component", "Zeigt Nutzerprofil und Elo.\nLogout-Funktion.")
 
@@ -31,11 +31,14 @@ Container_Boundary(frontend, "Next.js Frontend") {
 
     Component(battle_components, "BattleComponents", "React Components\n(CategoryPicker, QuestionCard,\nAnswerFeedback, ScoreBoard)", "UI-Elemente für den Match-Ablauf.\nKategorienwahl, Fragen,\nAntwort-Feedback, Punktestand.")
 
+    ' ── Provider ───────────────────────────────────────────────
+    Component(keycloak_provider, "KeycloakProvider", "React Context Provider\napp/providers/KeycloakProvider.tsx", "Initialisiert keycloak-js.\nStellt Keycloak-Instanz via\nContext bereit.")
+
     ' ── State ──────────────────────────────────────────────────
     Component(auth_store, "AuthStore", "Zustand Store\napp/stores/authStore.ts", "Globaler Auth-State.\nSpeichert User-Credentials,\nSession-Token und User-Profil.")
 
     ' ── API Clients ────────────────────────────────────────────
-    Component(auth_client, "AuthClient", "TypeScript Client\napp/lib/auth/authClient.ts", "Session-Validierung gegen Backend.\nToken-Management.\nLeitet Google JWT an Backend weiter.")
+    Component(auth_client, "AuthClient", "TypeScript Client\napp/lib/auth/authClient.ts", "Session-Validierung gegen Backend.\nÜberträgt Keycloak Access Token\nan POST /auth/login.")
 
     Component(quiz_api_client, "QuizApiClient", "Axios Client\napp/lib/api/quiz.ts", "GET /quiz/practice/questions\nPOST /quiz/practice/answer\nFür den Übungsmodus.")
 
@@ -58,13 +61,17 @@ Rel(ranked_page, queue_component, "Rendert Queue-UI")
 Rel(battle_arena_page, battle_components, "Rendert Match-Elemente")
 
 ' ── Components → Clients ───────────────────────────────────────
-Rel(login_button, google_oauth, "OAuth-Popup öffnen", "HTTPS")
-Rel(login_button, auth_client, "Google JWT übergeben")
+Rel(login_button, keycloak, "Authorization Code + PKCE\n(Redirect)", "HTTPS")
+Rel(login_button, auth_client, "Keycloak Access Token übergeben")
 Rel(queue_component, ws_client, "WS /battle/queue")
 Rel(battle_arena_page, ws_client, "WS /battle/ws/{match_id}")
 Rel(practice_page, quiz_api_client, "Fragen laden & Antwort senden")
 Rel(leaderboard_page, ranking_api_client, "Leaderboard laden")
 Rel(battle_arena_page, ranking_api_client, "Nutzer-Ranking laden")
+
+' ── Provider ───────────────────────────────────────────────────
+Rel(keycloak_provider, keycloak, "OIDC Init\n(checkLoginIframe: false)", "HTTPS")
+Rel(login_button, keycloak_provider, "useKeycloak()")
 
 ' ── Clients ↔ State ────────────────────────────────────────────
 Rel(auth_client, auth_store, "Auth-State updaten")
@@ -72,7 +79,7 @@ Rel(user_menu, auth_store, "Auth-State lesen")
 Rel(ranked_page, auth_store, "Session-Token lesen")
 
 ' ── Clients → Backend ──────────────────────────────────────────
-Rel(auth_client, backend, "POST /auth/google/login\nSession-Cookie empfangen", "HTTPS / JSON")
+Rel(auth_client, backend, "POST /auth/login\nGET /auth/refresh\nSession-Cookie empfangen", "HTTPS / JSON")
 Rel(quiz_api_client, backend, "GET /quiz/practice/questions\nPOST /quiz/practice/answer", "HTTPS / JSON")
 Rel(ranking_api_client, backend, "GET /ranking/leaderboard\nGET /ranking/users/{id}", "HTTPS / JSON")
 Rel(ws_client, backend, "WS /battle/queue\nWS /battle/ws/{match_id}", "WebSocket")

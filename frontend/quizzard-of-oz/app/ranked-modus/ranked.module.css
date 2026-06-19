@@ -1,0 +1,31 @@
+/* ranked.module.css — Ranked-Modus Login-Karte */
+/* cardReveal kommt aus shared.css */
+
+@keyframes shieldPulse {
+  0%,100% { text-shadow: 0 0 20px rgba(255,60,20,0.3), 0 0 50px rgba(255,60,20,0.1); }
+  50%     { text-shadow: 0 0 35px rgba(255,60,20,0.6), 0 0 80px rgba(255,60,20,0.2); }
+}
+
+.login-card {
+  background: rgba(var(--oz-card-bg-rgb),0.75);
+  border: 1px solid rgba(255,60,20,0.22);
+  border-radius: 1.5rem;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  animation: cardReveal 0.5s cubic-bezier(0.22,1,0.36,1) both;
+}
+
+.icon-pulse {
+  animation: shieldPulse 3s ease-in-out infinite;
+}
+
+/* ── Light Mode: deckende Karte mit sichtbarem Fire-Rahmen + Schatten ── */
+:global(html.light) .login-card {
+  background: rgba(255, 255, 255, 0.96);
+  border-color: rgba(198, 52, 22, 0.4);
+  box-shadow: 0 14px 34px -14px rgba(190, 50, 25, 0.32);
+}
+:global(html.light) .icon-pulse {
+  animation: none;
+  text-shadow: 0 2px 10px rgba(198, 52, 22, 0.25);
+}

@@ -3,30 +3,32 @@
 
 LAYOUT_WITH_LEGEND()
 
-title C4 Model - Dynamic Diagram: Google OAuth Login-Flow\nQuizzard of Oz
+title C4 Model - Dynamic Diagram: Keycloak Login-Flow\nQuizzard of Oz
 
 Person(user, "Nutzer", "Klickt auf Login-Button.")
 
-Container(frontend, "Next.js Frontend", "Next.js / React", "Rendert LoginButton\nvia @react-oauth/google.")
+Container(frontend, "Next.js Frontend", "Next.js / React", "Rendert LoginButton\nvia keycloak-js.")
 
-Container(backend, "FastAPI Backend", "Python / FastAPI", "Validiert JWT und\nerstellt Session.")
+Container(backend, "FastAPI Backend", "Python / FastAPI", "Validiert Access Token\nund erstellt Session.")
 
 ContainerDb(database, "PostgreSQL", "PostgreSQL 18.3", "Speichert User & Session.")
 
-System_Ext(google, "Google OAuth 2.0", "Google Identity Provider.")
+System_Ext(keycloak, "Keycloak", "OIDC Identity Provider.")
 
 Rel(user, frontend, "1", "Klickt Login-Button")
-Rel(frontend, google, "2", "OAuth-Popup oeffnen (HTTPS)")
-Rel(google, user, "3", "Google-Konto waehlen\n& Consent bestaetigen")
-Rel(google, frontend, "4", "Google JWT zurueckgeben")
-Rel(frontend, backend, "5", "POST /auth/google/login\ngoogle_token: [JWT]")
-Rel(backend, google, "6", "JWT verifizieren\n(Public Key Check, HTTPS)")
-Rel(google, backend, "7", "JWT-Claims: sub, email, name")
-Rel(backend, database, "8", "Nutzer anlegen/aktualisieren\n(users Tabelle)")
-Rel(backend, database, "9", "Session erstellen\n(sessions Tabelle, expires_at)")
-Rel(database, backend, "10", "Session-ID zurueckgeben")
-Rel(backend, frontend, "11", "200 OK + HttpOnly-Cookie\n(session_id, 36h TTL)")
-Rel(frontend, frontend, "12", "AuthStore updaten\n(user, isAuthenticated: true)")
-Rel(frontend, user, "13", "UserMenu anzeigen\nWeiterleitung zum Dashboard")
+Rel(frontend, keycloak, "2", "Authorization Code + PKCE\n(Redirect, HTTPS)")
+Rel(keycloak, user, "3", "Login-Formular\nausfüllen")
+Rel(keycloak, frontend, "4", "Authorization Code\n(Redirect zurück)")
+Rel(frontend, keycloak, "5", "Code gegen Token tauschen\n(PKCE Code Verifier, HTTPS)")
+Rel(keycloak, frontend, "6", "Access Token (JWT) zurückgeben")
+Rel(frontend, backend, "7", "POST /auth/login\nAuthorization: Bearer [JWT]")
+Rel(backend, keycloak, "8", "JWKS abrufen\n(Public Key, HTTPS)")
+Rel(keycloak, backend, "9", "JWKS-Schlüssel zurückgeben")
+Rel(backend, database, "10", "Nutzer anlegen/aktualisieren\n(users Tabelle)")
+Rel(backend, database, "11", "Session erstellen\n(sessions Tabelle, expires_at)")
+Rel(database, backend, "12", "Session-ID zurückgeben")
+Rel(backend, frontend, "13", "200 OK + HttpOnly-Cookie\n(session_id)")
+Rel(frontend, frontend, "14", "AuthStore updaten\n(user, isAuthenticated: true)")
+Rel(frontend, user, "15", "UserMenu anzeigen")
 
 @enduml

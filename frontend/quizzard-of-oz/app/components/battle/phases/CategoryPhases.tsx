@@ -1,5 +1,7 @@
 'use client';
 
+import { IconCrossedSwords } from '@/app/components/Icons';
+
 /**
  * PickCategoryPhase Component
  *
@@ -32,9 +34,8 @@ export function PickCategoryPhase({
 }: PickCategoryPhaseProps) {
   return (
     <div className="flex flex-col items-center gap-6 w-full max-w-md reveal">
-      {/* ── Header ── */}
       <div className="text-center">
-        <div style={{ color: 'rgba(255,60,20,0.7)', fontSize: '0.65rem', letterSpacing: '0.25em', marginBottom: '6px' }}>
+        <div style={{ color: 'var(--oz-battle-fire-label)', fontSize: '0.65rem', letterSpacing: '0.25em', marginBottom: '6px' }}>
           DU WÄHLST
         </div>
         <div
@@ -42,12 +43,12 @@ export function PickCategoryPhase({
             fontFamily: "'Bebas Neue', Impact, sans-serif",
             fontSize: '2rem',
             letterSpacing: '0.1em',
-            color: '#FFD0B0',
+            color: 'var(--oz-battle-round-num)',
           }}
         >
           Wähle eine Kategorie
         </div>
-        <div style={{ color: 'rgba(140,200,230,0.4)', fontSize: '0.75rem', marginTop: '4px' }}>
+        <div style={{ color: 'var(--oz-battle-muted)', fontSize: '0.75rem', marginTop: '4px' }}>
           Die Kategorie bestimmt deine 3 Fragen
         </div>
       </div>
@@ -70,12 +71,12 @@ export function PickCategoryPhase({
                 fontFamily: "'Bebas Neue', Impact, sans-serif",
                 fontSize: '1.4rem',
                 letterSpacing: '0.12em',
-                color: '#FFCDB0',
+                color: 'var(--oz-battle-warm-text)',
               }}
             >
               {cat}
             </div>
-            <div style={{ color: 'rgba(255,140,90,0.45)', fontSize: '0.68rem', letterSpacing: '0.1em', marginTop: '2px' }}>
+            <div style={{ color: 'var(--oz-battle-cat-sublabel)', fontSize: '0.68rem', letterSpacing: '0.1em', marginTop: '2px' }}>
               Kategorie auswählen
             </div>
           </button>
@@ -110,7 +111,7 @@ export function CategoryCountdown({ timeLeft, totalTime }: CategoryCountdownProp
           fontSize: '1.4rem',
           letterSpacing: '0.1em',
           marginBottom: '6px',
-          color: low ? 'rgba(255,60,20,0.9)' : 'rgba(0,212,255,0.7)',
+          color: low ? 'var(--oz-battle-runde-label)' : 'var(--oz-battle-timer-normal)',
         }}
       >
         {timeLeft}
@@ -121,8 +122,8 @@ export function CategoryCountdown({ timeLeft, totalTime }: CategoryCountdownProp
           style={{
             width: `${pct}%`,
             background: low
-              ? 'linear-gradient(90deg, rgba(255,60,20,0.9), rgba(255,100,40,0.9))'
-              : 'linear-gradient(90deg, rgba(0,212,255,0.8), rgba(0,180,220,0.8))',
+              ? 'linear-gradient(90deg, var(--oz-battle-runde-label), var(--oz-battle-fire-btn-color))'
+              : 'linear-gradient(90deg, var(--oz-battle-timer-normal), var(--oz-battle-cyan-btn-color))',
           }}
         />
       </div>
@@ -155,24 +156,24 @@ export function WaitingForCategoryPhase({
     <div className="flex flex-col items-center gap-5 w-full max-w-md reveal">
       <div
         style={{
-          fontSize: '2.8rem',
+          color: 'var(--oz-battle-warm-text)',
           filter: 'drop-shadow(0 0 14px rgba(255,200,0,0.3))',
           animation: 'spinSlow 3s linear infinite',
         }}
       >
-        ⚔
+        <IconCrossedSwords size={44} />
       </div>
       <div
         style={{
           fontFamily: "'Bebas Neue', Impact, sans-serif",
           fontSize: '1.6rem',
           letterSpacing: '0.1em',
-          color: 'rgba(160,215,240,0.8)',
+          color: 'var(--oz-battle-muted-title)',
         }}
       >
         {pickerName} wählt Kategorie
       </div>
-      <div style={{ color: 'rgba(140,200,230,0.35)', fontSize: '0.75rem', letterSpacing: '0.08em' }}>
+      <div style={{ color: 'var(--oz-battle-sublabel)', fontSize: '0.75rem', letterSpacing: '0.08em' }}>
         Warte auf Auswahl...
       </div>
 

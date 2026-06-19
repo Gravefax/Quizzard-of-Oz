@@ -48,11 +48,11 @@ export function QuestionPhase({
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <div
             style={{
-              background: 'rgba(255,60,20,0.1)',
-              border: '1px solid rgba(255,60,20,0.3)',
+              background: 'var(--oz-battle-cat-badge-bg)',
+              border: '1px solid var(--oz-battle-cat-badge-border)',
               borderRadius: '6px',
               padding: '2px 8px',
-              color: 'rgba(255,130,80,0.8)',
+              color: 'var(--oz-battle-cat-badge-color)',
               fontSize: '0.65rem',
               letterSpacing: '0.12em',
               fontWeight: 700,
@@ -60,7 +60,7 @@ export function QuestionPhase({
           >
             {question.category.toUpperCase()}
           </div>
-          <div style={{ color: 'rgba(140,200,230,0.38)', fontSize: '0.68rem', letterSpacing: '0.1em' }}>
+          <div style={{ color: 'var(--oz-battle-q-num)', fontSize: '0.68rem', letterSpacing: '0.1em' }}>
             {question.questionNumber} / {question.totalQuestions}
           </div>
         </div>
@@ -72,7 +72,7 @@ export function QuestionPhase({
               fontFamily: "'Bebas Neue', Impact, sans-serif",
               fontSize: '1.4rem',
               letterSpacing: '0.1em',
-              color: timeLeft <= 5 ? 'rgba(255,60,20,0.9)' : 'rgba(0,212,255,0.7)',
+              color: timeLeft <= 5 ? 'var(--oz-battle-runde-label)' : 'var(--oz-battle-timer-normal)',
             }}
           >
             {timeLeft}
@@ -101,7 +101,7 @@ export function QuestionPhase({
             fontSize: '1.05rem',
             fontWeight: 500,
             lineHeight: 1.55,
-            color: 'rgba(220,235,248,0.9)',
+            color: 'var(--oz-battle-question-text)',
           }}
         >
           {question.text}
@@ -154,7 +154,7 @@ export function QuestionPhase({
             alignItems: 'center',
             justifyContent: 'center',
             gap: '10px',
-            color: 'rgba(140,200,230,0.4)',
+            color: 'var(--oz-battle-muted)',
             fontSize: '0.75rem',
             letterSpacing: '0.1em',
           }}
@@ -165,8 +165,8 @@ export function QuestionPhase({
               width: '16px',
               height: '16px',
               borderRadius: '50%',
-              border: '2px solid rgba(0,212,255,0.2)',
-              borderTopColor: 'rgba(0,212,255,0.8)',
+              border: '2px solid var(--oz-battle-cyan-btn-bg)',
+              borderTopColor: 'var(--oz-battle-timer-normal)',
               animation: 'spinSlow 0.9s linear infinite',
             }}
           />
@@ -179,7 +179,7 @@ export function QuestionPhase({
         <div
           style={{
             textAlign: 'center',
-            color: 'rgba(140,200,230,0.4)',
+            color: 'var(--oz-battle-muted)',
             fontSize: '0.75rem',
             letterSpacing: '0.1em',
           }}

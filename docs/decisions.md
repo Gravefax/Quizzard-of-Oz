@@ -264,7 +264,7 @@ PostgreSQL after the battle is completed or forfeited.
 
 **Status**
 
-Accepted for the current project scope
+Accepted
 
 **Consequences**
 

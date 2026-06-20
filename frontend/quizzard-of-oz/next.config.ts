@@ -1,3 +1,7 @@
+// Side-effect import: loads env vars from the repository root before Next.js
+// reads NEXT_PUBLIC_* / server config. Must stay at the very top.
+import "./envConfig";
+
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {

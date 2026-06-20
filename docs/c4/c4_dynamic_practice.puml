@@ -1,0 +1,29 @@
+@startuml C4_Dynamic_Practice
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Dynamic.puml
+
+LAYOUT_WITH_LEGEND()
+
+title C4 Model - Dynamic Diagram: Übungsmodus-Flow\nQuizzard of Oz
+
+Person(user, "Gast / Nutzer", "Kein Login erforderlich.")
+
+Container(frontend, "Next.js Frontend", "Next.js / React", "PracticePage, QuizApiClient.")
+Container(backend, "FastAPI Backend", "Python / FastAPI", "QuizRouter → QuizService → TriviaService → TriviaClient.")
+ContainerDb(database, "PostgreSQL", "PostgreSQL 18.3", "question_cache Tabelle.")
+System_Ext(trivia_api, "The Trivia API", "Externer Quizfragen-Lieferant (REST).")
+
+Rel(user, frontend, "1", "Öffnet /trainings-modus (HTTPS)")
+Rel(frontend, backend, "2", "GET /quiz/practice/questions\n?amount=10&category=...")
+Rel(backend, database, "3", "Fragen aus question_cache abfragen\n(Kategorie, Schwierigkeit, LIMIT 10)")
+Rel(database, backend, "4a", "Cache-Treffer: Fragen zurückgeben")
+Rel(backend, trivia_api, "4b", "Cache leer: GET /questions?...\n(bis zu TRIVIA_MAX_RETRIES Versuche,\nTRIVIA_TIMEOUT_SECONDS Timeout)")
+Rel(trivia_api, backend, "5b", "Fragen-Batch (JSON) zurückgeben")
+Rel(backend, database, "6b", "Batch normalisiert in question_cache speichern\n(TRIVIA_REFILL_BATCH_SIZE Fragen)")
+Rel(backend, frontend, "7", "200 OK + 10 Fragen (JSON)")
+Rel(frontend, user, "8", "Erste Frage anzeigen")
+Rel(user, frontend, "9", "Antwort auswählen")
+Rel(frontend, backend, "10", "POST /quiz/practice/answer\n{question_id, answer}")
+Rel(backend, frontend, "11", "200 OK\n{correct: true/false,\ncorrect_answer: ...,\nscore: N}")
+Rel(frontend, user, "12", "Feedback + nächste Frage\n(Schritt 9–12 wiederholt bis Ende)")
+
+@enduml

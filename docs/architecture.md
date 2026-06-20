@@ -134,7 +134,7 @@ The context view makes identity delegation, external question supply, durable st
 
 ## Building Block View
 
-### Whitebox Overall System
+### Level 1 — Whitebox Overall System
 
 | Building Block | Responsibility | Main Technologies |
 | --- | --- | --- |
@@ -235,7 +235,7 @@ Active queue entries and active battle state are not stored in PostgreSQL. They 
 
 ### Runtime Overview Diagram
 
-![Ranked session flow](images/ranked_session_flow.svg)
+![Ranked session flow](images/Runtime_Ranked_Battle.svg)
 
 This existing flow diagram summarizes the intended ranked battle lifecycle. The detailed runtime descriptions below are authoritative for the currently implemented WebSocket event names and persistence behavior.
 

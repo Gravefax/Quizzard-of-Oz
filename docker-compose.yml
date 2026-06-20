@@ -44,7 +44,7 @@ services:
       context: ./backend
     container_name: quizbattle-backend
     restart: unless-stopped
-    env_file: ./backend/.env
+    env_file: ./.env
     environment:
       POSTGRES_HOST: postgres
       KEYCLOAK_URL: http://keycloak:8080

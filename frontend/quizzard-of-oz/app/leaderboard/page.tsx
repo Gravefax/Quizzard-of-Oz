@@ -128,18 +128,21 @@ export default function LeaderboardPage() {
         scanAnimation="scanDown 10s linear 0.5s infinite"
         orbs={[
           {
+            id: 'orb-gold-left',
             width: '650px', height: '650px',
             top: '0%', left: '-20%',
             background: 'radial-gradient(circle, rgba(255,200,0,0.055) 0%, transparent 65%)',
             animation: 'ambFloat0 15s ease-in-out infinite',
           },
           {
+            id: 'orb-cyan-right',
             width: '520px', height: '520px',
             top: '10%', right: '-14%',
             background: 'radial-gradient(circle, rgba(0,212,255,0.05) 0%, transparent 65%)',
             animation: 'ambFloat1 13s ease-in-out 1.5s infinite',
           },
           {
+            id: 'orb-gold-center',
             width: '500px', height: '500px',
             top: '50%', left: '50%',
             background: 'radial-gradient(circle, rgba(255,200,0,0.03) 0%, rgba(var(--oz-depth-bg-rgb),0.25) 55%, transparent 100%)',

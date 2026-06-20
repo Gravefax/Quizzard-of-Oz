@@ -118,18 +118,21 @@ export default function LandingPage() {
         scanAnimation="scanDown 9s linear 0.5s infinite"
         orbs={[
           {
+            id: 'orb-cyan-left',
             width: '700px', height: '700px',
             top: '10%', left: '-15%',
             background: 'radial-gradient(circle, rgba(0,212,255,0.065) 0%, transparent 65%)',
             animation: 'ambFloat0 14s ease-in-out infinite',
           },
           {
+            id: 'orb-red-right',
             width: '560px', height: '560px',
             top: '5%', right: '-10%',
             background: 'radial-gradient(circle, rgba(255,60,20,0.06) 0%, transparent 65%)',
             animation: 'ambFloat1 12s ease-in-out 1.5s infinite',
           },
           {
+            id: 'orb-cyan-center',
             width: '600px', height: '600px',
             top: '50%', left: '50%',
             background: 'radial-gradient(circle, rgba(0,212,255,0.03) 0%, rgba(var(--oz-depth-bg-rgb),0.28) 55%, transparent 100%)',

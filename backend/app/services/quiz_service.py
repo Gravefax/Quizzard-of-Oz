@@ -31,17 +31,24 @@ class QuizService:
     def check_answer(self, question_id: str, answer: str) -> tuple[bool, str] | None:
         return self._trivia_service.check_answer(question_id, answer)
 
+    def prepare_category_pool(self, *, questions_per_category: int) -> None:
+        self._trivia_service.prepare_category_pool(
+            questions_per_category=questions_per_category,
+        )
+
     def get_category_options(
         self,
         *,
         option_count: int,
         questions_per_category: int,
         exclude_ids: tuple[str, ...] = (),
+        avoid_categories: tuple[str, ...] = (),
     ) -> list[str]:
         return self._trivia_service.get_category_options(
             option_count=option_count,
             questions_per_category=questions_per_category,
             exclude_ids=exclude_ids,
+            avoid_categories=avoid_categories,
         )
 
 

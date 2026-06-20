@@ -194,6 +194,7 @@ class MatchState:
     current_answers: dict[str, str] = field(default_factory=dict)   # user_id (str) → answer letter (A/B/C/D)
     current_correct: dict[str, bool] = field(default_factory=dict)  # user_id (str) → answered correctly this question
     offered_categories: list[str]   = field(default_factory=list)   # Categories offered to the picker this round
+    seen_category_options: set[str] = field(default_factory=set)    # Prefer not-yet-offered categories across rounds
     used_question_ids: set[str]     = field(default_factory=set)    # Avoid repeated questions inside one match
     revealing:       bool           = False                          # True while question_result reveal is in progress
     question_timer_task: asyncio.Task | None = None                 # Per-question deadline task
@@ -466,6 +467,10 @@ class BattleManager:
             state.picker_idx,
         )
 
+        self._quiz.prepare_category_pool(
+            questions_per_category=QUESTIONS_PER_ROUND,
+        )
+
         for current, opponent in ((p1, p2), (p2, p1)):
             await current["ws"].send_json({
                 "type":              "match_ready",
@@ -493,6 +498,7 @@ class BattleManager:
             offered = self._quiz.get_category_options(
                 option_count=CATEGORIES_TO_OFFER,
                 questions_per_category=QUESTIONS_PER_ROUND,
+                avoid_categories=tuple(state.seen_category_options),
             )
         except (
             TriviaInsufficientQuestionsError,
@@ -517,6 +523,7 @@ class BattleManager:
             return
 
         state.offered_categories = offered
+        state.seen_category_options.update(offered)
         state.picking_deadline   = asyncio.get_event_loop().time() + CATEGORY_TIME_SECONDS
 
         logger.info("Battle round start")

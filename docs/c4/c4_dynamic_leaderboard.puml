@@ -1,0 +1,23 @@
+@startuml C4_Dynamic_Leaderboard
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Dynamic.puml
+
+LAYOUT_WITH_LEGEND()
+
+title C4 Model - Dynamic Diagram: Leaderboard Flow\nQuizzard of Oz
+
+Person(user, "Gast / Nutzer", "Kein Login erforderlich.")
+Container(frontend, "Next.js Frontend", "Next.js / React", "LandingPage (Top-3-Vorschau) und /leaderboard Seite.")
+Container(backend, "FastAPI Backend", "Python / FastAPI", "RankingRouter → RankingService.")
+ContainerDb(database, "PostgreSQL", "PostgreSQL", "rankings und users Tabellen.")
+
+Rel(user, frontend, "1", "Öffnet Startseite oder /leaderboard (HTTPS)")
+Rel(frontend, backend, "2a", "GET /ranking/leaderboard?page=N\n(Seitenbasierte Gesamtliste, page_size=50)")
+Rel(frontend, backend, "2b", "GET /ranking/leaderboard/search?username=<query>&page=N\n(Suche nach Benutzernamen)")
+Rel(backend, database, "3", "JOIN rankings ↔ users\nORDER BY elo_rating DESC, win_loss_ratio DESC,\nlast_win_at ASC, updated_at ASC, user_id ASC\nOFFSET (page-1)*50 LIMIT 50")
+Rel(database, backend, "4", "Paginierte Zeilen zurückgeben\n(rank, user, elo_rating, wins, losses,\ntotal_matches, last_win_at)")
+Rel(backend, backend, "5", "Gleiche Ränge für vollständig identische Einträge berechnen\n(dense rank: gleicher Rang bei selber Elo + Verhältnis + Zeitstempel)")
+Rel(backend, frontend, "6", "200 OK + JSON\n{page, page_size, total_players,\nentries: [{rank, username, elo, wins, losses, total_matches, last_win_at}]}")
+Rel(frontend, user, "7a", "Rangliste mit Paginierung anzeigen")
+Rel(frontend, user, "7b", "Top-3-Karten auf der Startseite anzeigen")
+
+@enduml

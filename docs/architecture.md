@@ -259,6 +259,10 @@ Refresh uses `GET /auth/refresh`, validates the existing cookie, extends expiry,
 
 ### Practice Quiz Flow
 
+![Practice Quiz Flow Diagram](images/C4_Dynamic_Practice.svg)
+
+Source: `docs/c4/c4_dynamic_practice.puml`
+
 1. `PracticeQuiz` calls `GET /quiz/practice/questions`.
 2. `QuizService` requests 10 questions from `TriviaQuestionService`.
 3. The trivia service tries to serve matching cached questions first.
@@ -269,6 +273,10 @@ Refresh uses `GET /auth/refresh`, validates the existing cookie, extends expiry,
 8. The backend compares the answer with the cached correct answer and returns correctness plus correct answer.
 
 ### Trivia Cache Refill Flow
+
+![Trivia Cache Refill Flow Diagram](images/C4_Dynamic_Trivia_Refill.svg)
+
+Source: `docs/c4/c4_dynamic_trivia_refill.puml`
 
 1. The REST trivia endpoint accepts `limit`, `categories`, and `difficulties`.
 2. Unsupported query parameters, repeated `limit`, invalid limits, unsupported difficulties, and `query` are rejected with 400.
@@ -371,6 +379,10 @@ Performance considerations:
 | Runtime view | The ranked battle runtime uses the C1 registered player, C2 frontend/backend/PostgreSQL/Keycloak/Trivia API, C3 battle/auth/trivia/ranking components, and C4 `BattleManager`/`MatchState` code-level elements. |
 
 ### Leaderboard Flow
+
+![Leaderboard Flow Diagram](images/C4_Dynamic_Leaderboard.svg)
+
+Source: `docs/c4/c4_dynamic_leaderboard.puml`
 
 1. The landing page and leaderboard page call `/ranking/leaderboard?page=N`.
 2. Search calls `/ranking/leaderboard/search?username=<query>&page=N`.

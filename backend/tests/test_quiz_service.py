@@ -50,6 +50,17 @@ def test_check_answer_delegates_to_trivia_service():
     trivia_service.check_answer.assert_called_once_with("question-id", "A")
 
 
+def test_prepare_category_pool_delegates_to_trivia_service():
+    trivia_service = MagicMock()
+
+    service = QuizService(trivia_service)
+    service.prepare_category_pool(questions_per_category=3)
+
+    trivia_service.prepare_category_pool.assert_called_once_with(
+        questions_per_category=3,
+    )
+
+
 def test_get_category_options_delegates_to_trivia_service():
     trivia_service = MagicMock()
     trivia_service.get_category_options.return_value = ["Science", "History"]
@@ -59,6 +70,7 @@ def test_get_category_options_delegates_to_trivia_service():
         option_count=2,
         questions_per_category=3,
         exclude_ids=("used-id",),
+        avoid_categories=("Science",),
     )
 
     assert result == ["Science", "History"]
@@ -66,4 +78,5 @@ def test_get_category_options_delegates_to_trivia_service():
         option_count=2,
         questions_per_category=3,
         exclude_ids=("used-id",),
+        avoid_categories=("Science",),
     )

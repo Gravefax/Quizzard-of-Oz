@@ -12,10 +12,26 @@ from app.crud.question_cache import QuestionCacheRepository
 from app.database import SessionLocal
 from app.dtos.trivia_types import CachedQuestionRecord, Question, QuestionBatch, QuestionFilters
 from app.models.question_cache import QuestionCache
-from app.services.trivia_client import TriviaApiClient, TriviaUpstreamPayloadError
+from app.services.trivia_client import (
+    TriviaApiClient,
+    TriviaClientError,
+    TriviaUpstreamPayloadError,
+)
 from app.settings import TriviaSettings, get_trivia_settings
 
 VALID_DIFFICULTIES = {"easy", "medium", "hard"}
+TRIVIA_PUBLIC_CATEGORY_FILTERS = (
+    "Science",
+    "History",
+    "Geography",
+    "Music",
+    "Sport and Leisure",
+    "Film and TV",
+    "Arts and Literature",
+    "Food and Drink",
+    "General Knowledge",
+    "Society and Culture",
+)
 _secure_rng = random.SystemRandom()
 
 
@@ -136,22 +152,70 @@ class TriviaQuestionService:
             return None
         return (answer == question.correct_answer, question.correct_answer)
 
+    def prepare_category_pool(
+        self,
+        *,
+        questions_per_category: int,
+        db: Session | None = None,
+    ) -> None:
+        with self._session_scope(db) as session:
+            ready_categories = self._get_ready_category_keys(
+                session,
+                questions_per_category=questions_per_category,
+            )
+
+            for category_filter in TRIVIA_PUBLIC_CATEGORY_FILTERS:
+                if self._category_key(category_filter) in ready_categories:
+                    continue
+
+                try:
+                    raw_questions = self._client.fetch_questions(
+                        QuestionFilters(
+                            limit=questions_per_category,
+                            categories=(category_filter,),
+                        ),
+                        limit_override=questions_per_category,
+                    )
+                except TriviaClientError as exc:
+                    self._logger.warning(
+                        "Trivia category seed skipped category=%s error_type=%s",
+                        category_filter,
+                        type(exc).__name__,
+                    )
+                    continue
+
+                normalized_questions = self._normalize_questions(raw_questions)
+                self._repository.upsert_questions(session, normalized_questions)
+
+                ready_categories = self._get_ready_category_keys(
+                    session,
+                    questions_per_category=questions_per_category,
+                )
+
     def get_category_options(
         self,
         *,
         option_count: int,
         questions_per_category: int,
         exclude_ids: tuple[str, ...] = (),
+        avoid_categories: tuple[str, ...] = (),
         db: Session | None = None,
     ) -> list[str]:
         with self._session_scope(db) as session:
             categories = self._repository.get_categories_with_minimum_questions(
                 session,
                 minimum_questions=questions_per_category,
-                exclude_ids=exclude_ids,
             )
-            if categories:
-                return self._sample_categories(categories, option_count)
+            if categories and self._has_enough_fresh_categories(
+                categories,
+                option_count,
+                avoid_categories=avoid_categories,
+            ):
+                return self._sample_categories(
+                    categories,
+                    option_count,
+                    avoid_categories=avoid_categories,
+                )
 
             generic_limit = max(
                 option_count * questions_per_category,
@@ -170,17 +234,45 @@ class TriviaQuestionService:
                 categories = self._repository.get_categories_with_minimum_questions(
                     session,
                     minimum_questions=questions_per_category,
-                    exclude_ids=exclude_ids,
                 )
-                if categories:
+                if categories and self._has_enough_fresh_categories(
+                    categories,
+                    option_count,
+                    avoid_categories=avoid_categories,
+                ):
                     self._logger.info(
                         "Trivia categories prepared attempt=%s available_categories=%s",
                         attempt,
                         len(categories),
                     )
-                    return self._sample_categories(categories, option_count)
+                    return self._sample_categories(
+                        categories,
+                        option_count,
+                        avoid_categories=avoid_categories,
+                    )
+
+            if categories:
+                return self._sample_categories(
+                    categories,
+                    option_count,
+                    avoid_categories=avoid_categories,
+            )
 
             raise TriviaInsufficientQuestionsError("No categories with enough cached questions are available")
+
+    def _get_ready_category_keys(
+        self,
+        session: Session,
+        *,
+        questions_per_category: int,
+    ) -> set[str]:
+        return {
+            self._category_key(category)
+            for category in self._repository.get_categories_with_minimum_questions(
+                session,
+                minimum_questions=questions_per_category,
+            )
+        }
 
     def _normalize_questions(self, raw_questions: list[dict[str, Any]]) -> list[CachedQuestionRecord]:
         normalized_questions: list[CachedQuestionRecord] = []
@@ -267,6 +359,10 @@ class TriviaQuestionService:
         return value.strip()
 
     @staticmethod
+    def _category_key(value: str) -> str:
+        return value.casefold().replace("&", "and")
+
+    @staticmethod
     def _to_question(question: QuestionCache) -> Question:
         return Question(
             id=str(question.id),
@@ -277,10 +373,83 @@ class TriviaQuestionService:
             difficulty=question.difficulty,
         )
 
-    def _sample_categories(self, categories: list[str], option_count: int) -> list[str]:
-        if len(categories) <= option_count:
-            return list(categories)
-        return self._rng.sample(categories, option_count)
+    def _sample_categories(
+        self,
+        categories: list[str],
+        option_count: int,
+        *,
+        avoid_categories: tuple[str, ...] = (),
+    ) -> list[str]:
+        unique_categories = self._unique_categories(categories)
+        fresh_categories = self._fresh_categories(
+            unique_categories,
+            avoid_categories=avoid_categories,
+        )
+
+        if len(fresh_categories) >= option_count:
+            if len(fresh_categories) == option_count:
+                return fresh_categories
+            return self._rng.sample(fresh_categories, option_count)
+
+        avoided_categories = {item.casefold() for item in avoid_categories}
+        repeat_categories = [
+            category
+            for category in unique_categories
+            if category.casefold() in avoided_categories
+        ]
+        options = list(fresh_categories)
+        remaining_count = option_count - len(options)
+
+        if len(repeat_categories) <= remaining_count:
+            options.extend(repeat_categories)
+            return options
+
+        options.extend(self._rng.sample(repeat_categories, remaining_count))
+        return options
+
+    def _has_enough_fresh_categories(
+        self,
+        categories: list[str],
+        option_count: int,
+        *,
+        avoid_categories: tuple[str, ...],
+    ) -> bool:
+        return (
+            len(
+                self._fresh_categories(
+                    self._unique_categories(categories),
+                    avoid_categories=avoid_categories,
+                )
+            )
+            >= option_count
+        )
+
+    @staticmethod
+    def _fresh_categories(
+        categories: list[str],
+        *,
+        avoid_categories: tuple[str, ...],
+    ) -> list[str]:
+        avoided_categories = {category.casefold() for category in avoid_categories}
+        return [
+            category
+            for category in categories
+            if category.casefold() not in avoided_categories
+        ]
+
+    @staticmethod
+    def _unique_categories(categories: list[str]) -> list[str]:
+        unique_categories: list[str] = []
+        seen_categories: set[str] = set()
+
+        for category in categories:
+            normalized_category = category.casefold()
+            if normalized_category in seen_categories:
+                continue
+            seen_categories.add(normalized_category)
+            unique_categories.append(category)
+
+        return unique_categories
 
     @contextmanager
     def _session_scope(self, db: Session | None) -> Iterator[Session]:

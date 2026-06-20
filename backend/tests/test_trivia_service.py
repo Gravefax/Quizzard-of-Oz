@@ -3,7 +3,8 @@ from uuid import uuid4
 
 import pytest
 
-from app.services.trivia_client import TriviaUpstreamPayloadError
+from app.services import trivia_service as trivia_service_module
+from app.services.trivia_client import TriviaUpstreamPayloadError, TriviaUpstreamResponseError
 from app.services.trivia_service import TriviaInsufficientQuestionsError, TriviaQuestionService
 from app.services.trivia_types import QuestionFilters
 from app.settings import load_trivia_settings
@@ -21,7 +22,10 @@ class FakeTriviaClient:
 
     def fetch_questions(self, filters, *, limit_override=None):
         self.calls.append({"filters": filters, "limit_override": limit_override})
-        return self.responses.pop(0)
+        response = self.responses.pop(0)
+        if isinstance(response, Exception):
+            raise response
+        return response
 
 
 class FakeQuestionCacheRepository:
@@ -128,6 +132,20 @@ def _raw_question(*, external_id="external-1", category="Science", difficulty="e
     }
 
 
+def _cached_questions_for_category(category: str, prefix: str, count: int = 3):
+    return [
+        _cached_question(external_id=f"{prefix}-{index}", category=category)
+        for index in range(count)
+    ]
+
+
+def _raw_questions_for_category(category: str, prefix: str, count: int = 3):
+    return [
+        _raw_question(external_id=f"{prefix}-{index}", category=category)
+        for index in range(count)
+    ]
+
+
 def test_get_questions_returns_cache_hit_without_upstream_call():
     repository = FakeQuestionCacheRepository([_cached_question()])
     client = FakeTriviaClient([])
@@ -197,12 +215,85 @@ def test_check_answer_uses_cached_question_by_internal_id():
     assert service.check_answer("missing", "4") is None
 
 
-def test_get_category_options_excludes_used_question_ids():
-    science_questions = [_cached_question(external_id=f"s-{index}") for index in range(3)]
-    history_questions = [
-        _cached_question(external_id=f"h-{index}", category="History")
-        for index in range(3)
+def test_prepare_category_pool_fetches_questions_for_each_missing_public_category(monkeypatch):
+    monkeypatch.setattr(
+        trivia_service_module,
+        "TRIVIA_PUBLIC_CATEGORY_FILTERS",
+        ("Science", "History"),
+    )
+    repository = FakeQuestionCacheRepository()
+    client = FakeTriviaClient(
+        [
+            _raw_questions_for_category("Science", "s"),
+            _raw_questions_for_category("History", "h"),
+        ]
+    )
+    service = _service(repository, client)
+
+    service.prepare_category_pool(questions_per_category=3)
+
+    assert [call["filters"].categories for call in client.calls] == [
+        ("Science",),
+        ("History",),
     ]
+    assert [call["limit_override"] for call in client.calls] == [3, 3]
+    assert {
+        question.category
+        for question in repository.questions
+    } == {"Science", "History"}
+
+
+def test_prepare_category_pool_skips_categories_that_are_already_ready(monkeypatch):
+    monkeypatch.setattr(
+        trivia_service_module,
+        "TRIVIA_PUBLIC_CATEGORY_FILTERS",
+        ("Science", "History"),
+    )
+    repository = FakeQuestionCacheRepository(
+        _cached_questions_for_category("Science", "s")
+    )
+    client = FakeTriviaClient([_raw_questions_for_category("History", "h")])
+    service = _service(repository, client)
+
+    service.prepare_category_pool(questions_per_category=3)
+
+    assert [call["filters"].categories for call in client.calls] == [("History",)]
+    assert {
+        question.category
+        for question in repository.questions
+    } == {"Science", "History"}
+
+
+def test_prepare_category_pool_continues_when_one_category_seed_fails(monkeypatch):
+    monkeypatch.setattr(
+        trivia_service_module,
+        "TRIVIA_PUBLIC_CATEGORY_FILTERS",
+        ("Science", "History"),
+    )
+    repository = FakeQuestionCacheRepository()
+    client = FakeTriviaClient(
+        [
+            TriviaUpstreamResponseError(400, "unsupported category"),
+            _raw_questions_for_category("History", "h"),
+        ]
+    )
+    service = _service(repository, client)
+
+    service.prepare_category_pool(questions_per_category=3)
+
+    assert [call["filters"].categories for call in client.calls] == [
+        ("Science",),
+        ("History",),
+    ]
+    assert {
+        question.category
+        for question in repository.questions
+    } == {"History"}
+
+
+def test_get_category_options_ignores_used_question_ids_for_category_pool():
+    science_questions = _cached_questions_for_category("Science", "s")
+    history_questions = _cached_questions_for_category("History", "h")
     repository = FakeQuestionCacheRepository(science_questions + history_questions)
     client = FakeTriviaClient([])
     service = _service(repository, client)
@@ -213,4 +304,155 @@ def test_get_category_options_excludes_used_question_ids():
         exclude_ids=(str(science_questions[0].id),),
     )
 
-    assert categories == ["History"]
+    assert categories == ["Science", "History"]
+
+
+def test_get_category_options_stays_at_three_unique_categories_after_repeated_selections():
+    category_questions = {
+        "Science": _cached_questions_for_category("Science", "s"),
+        "History": _cached_questions_for_category("History", "h"),
+        "Sports": _cached_questions_for_category("Sports", "sp"),
+    }
+    repository = FakeQuestionCacheRepository(
+        [
+            question
+            for questions in category_questions.values()
+            for question in questions
+        ]
+    )
+    client = FakeTriviaClient([])
+    service = _service(repository, client)
+
+    used_ids: tuple[str, ...] = ()
+
+    for selected_category in ("Science", "History", "Sports"):
+        categories = service.get_category_options(
+            option_count=3,
+            questions_per_category=3,
+            exclude_ids=used_ids,
+        )
+
+        assert len(categories) == 3
+        assert len({category.casefold() for category in categories}) == 3
+        assert set(categories) == {"Science", "History", "Sports"}
+
+        used_ids = used_ids + tuple(
+            str(question.id) for question in category_questions[selected_category]
+        )
+
+
+def test_get_category_options_returns_available_unique_categories_when_fewer_than_requested():
+    science_questions = _cached_questions_for_category("Science", "s")
+    history_questions = _cached_questions_for_category("History", "h")
+    repository = FakeQuestionCacheRepository(science_questions + history_questions)
+    client = FakeTriviaClient([[], [], []])
+    service = _service(repository, client)
+
+    categories = service.get_category_options(
+        option_count=3,
+        questions_per_category=3,
+        exclude_ids=tuple(str(question.id) for question in science_questions),
+    )
+
+    assert categories == ["Science", "History"]
+
+
+def test_get_category_options_prefers_categories_that_were_not_recently_offered():
+    repository = FakeQuestionCacheRepository(
+        [
+            *_cached_questions_for_category("Science", "s"),
+            *_cached_questions_for_category("History", "h"),
+            *_cached_questions_for_category("Sports", "sp"),
+            *_cached_questions_for_category("Art", "a"),
+            *_cached_questions_for_category("Movies", "m"),
+            *_cached_questions_for_category("Music", "mu"),
+        ]
+    )
+    client = FakeTriviaClient([])
+    service = _service(repository, client)
+
+    first_offer = service.get_category_options(
+        option_count=3,
+        questions_per_category=3,
+    )
+    second_offer = service.get_category_options(
+        option_count=3,
+        questions_per_category=3,
+        avoid_categories=tuple(first_offer),
+    )
+
+    assert len(first_offer) == 3
+    assert len(second_offer) == 3
+    assert len({category.casefold() for category in second_offer}) == 3
+    assert set(first_offer).isdisjoint(second_offer)
+
+
+def test_get_category_options_refills_to_find_fresh_categories():
+    repository = FakeQuestionCacheRepository(
+        [
+            *_cached_questions_for_category("Science", "s"),
+            *_cached_questions_for_category("History", "h"),
+            *_cached_questions_for_category("Sports", "sp"),
+        ]
+    )
+    client = FakeTriviaClient(
+        [
+            [
+                *_raw_questions_for_category("Art", "a"),
+                *_raw_questions_for_category("Movies", "m"),
+                *_raw_questions_for_category("Music", "mu"),
+            ]
+        ]
+    )
+    service = _service(repository, client)
+
+    categories = service.get_category_options(
+        option_count=3,
+        questions_per_category=3,
+        avoid_categories=("Science", "History", "Sports"),
+    )
+
+    assert categories == ["Art", "Movies", "Music"]
+    assert len(client.calls) == 1
+
+
+def test_get_category_options_falls_back_to_repeats_when_no_fresh_categories_exist():
+    repository = FakeQuestionCacheRepository(
+        [
+            *_cached_questions_for_category("Science", "s"),
+            *_cached_questions_for_category("History", "h"),
+            *_cached_questions_for_category("Sports", "sp"),
+        ]
+    )
+    client = FakeTriviaClient([[], [], []])
+    service = _service(repository, client)
+
+    categories = service.get_category_options(
+        option_count=3,
+        questions_per_category=3,
+        avoid_categories=("Science", "History", "Sports"),
+    )
+
+    assert len(categories) == 3
+    assert len({category.casefold() for category in categories}) == 3
+    assert set(categories) == {"Science", "History", "Sports"}
+
+
+def test_get_category_options_deduplicates_category_names():
+    repository = FakeQuestionCacheRepository(
+        [
+            *_cached_questions_for_category("Science", "s"),
+            *_cached_questions_for_category("science", "sl"),
+            *_cached_questions_for_category("History", "h"),
+            *_cached_questions_for_category("Sports", "sp"),
+        ]
+    )
+    client = FakeTriviaClient([])
+    service = _service(repository, client)
+
+    categories = service.get_category_options(
+        option_count=3,
+        questions_per_category=3,
+    )
+
+    assert categories == ["Science", "History", "Sports"]

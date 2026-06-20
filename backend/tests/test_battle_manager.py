@@ -45,16 +45,28 @@ class FakeQuizService:
         self.answer_result = answer_result
         self.category_error = category_error
         self.question_error = question_error
+        self.prepare_calls = []
         self.category_calls = []
         self.question_calls = []
         self.answer_calls = []
 
-    def get_category_options(self, *, option_count, questions_per_category, exclude_ids=()):
+    def prepare_category_pool(self, *, questions_per_category):
+        self.prepare_calls.append({"questions_per_category": questions_per_category})
+
+    def get_category_options(
+        self,
+        *,
+        option_count,
+        questions_per_category,
+        exclude_ids=(),
+        avoid_categories=(),
+    ):
         self.category_calls.append(
             {
                 "option_count": option_count,
                 "questions_per_category": questions_per_category,
                 "exclude_ids": exclude_ids,
+                "avoid_categories": avoid_categories,
             }
         )
         if self.category_error:
@@ -200,6 +212,29 @@ async def test_handle_message_ignores_invalid_json():
 
 
 @pytest.mark.asyncio
+async def test_start_game_prepares_category_pool_before_first_round():
+    quiz_service = FakeQuizService(category_options=["Science", "History", "Sports"])
+    manager = BattleManager(quiz_service)
+    ws1 = _make_websocket()
+    ws2 = _make_websocket()
+    user1 = _make_user(username="One")
+    user2 = _make_user(username="Two")
+    state = MatchState(
+        players=[{"ws": ws1, "user": user1}, {"ws": ws2, "user": user2}],
+    )
+
+    with patch.object(manager, "_start_round", new_callable=AsyncMock) as mock_start_round:
+        await manager._start_game(state, "match-1")
+
+    assert quiz_service.prepare_calls == [
+        {"questions_per_category": battle_manager.QUESTIONS_PER_ROUND}
+    ]
+    mock_start_round.assert_called_once_with(state, "match-1")
+    assert ws1.send_json.await_args_list[0].args[0]["type"] == "match_ready"
+    assert ws2.send_json.await_args_list[0].args[0]["type"] == "match_ready"
+
+
+@pytest.mark.asyncio
 async def test_start_round_uses_category_options_and_resets_state():
     quiz_service = FakeQuizService(category_options=["Science", "History", "Sports"])
     manager = BattleManager(quiz_service)
@@ -221,12 +256,49 @@ async def test_start_round_uses_category_options_and_resets_state():
     assert state.phase == "picking"
     assert state.question_idx == 0
     assert state.round_scores == {str(user1.id): 0, str(user2.id): 0}
-    assert quiz_service.category_calls[0]["exclude_ids"] == ("used-id",)
+    assert quiz_service.category_calls[0]["exclude_ids"] == ()
+    assert quiz_service.category_calls[0]["avoid_categories"] == ()
     assert state.offered_categories == ["Science", "History", "Sports"]
+    assert state.seen_category_options == {"Science", "History", "Sports"}
     assert ws1.send_json.await_args_list[0].args[0]["type"] == "pick_category"
     assert ws1.send_json.await_args_list[0].args[0]["deadline_seconds"] == battle_manager.CATEGORY_TIME_SECONDS
     assert ws2.send_json.await_args_list[0].args[0]["type"] == "waiting_for_category"
     assert ws2.send_json.await_args_list[0].args[0]["deadline_seconds"] == battle_manager.CATEGORY_TIME_SECONDS
+
+    manager._cancel_task(state.category_timer_task)
+
+
+@pytest.mark.asyncio
+async def test_start_round_prefers_categories_not_already_offered_in_match():
+    quiz_service = FakeQuizService(category_options=["Art", "Movies", "Music"])
+    manager = BattleManager(quiz_service)
+    ws1 = _make_websocket()
+    ws2 = _make_websocket()
+    user1 = _make_user()
+    user2 = _make_user()
+    state = MatchState(
+        players=[{"ws": ws1, "user": user1}, {"ws": ws2, "user": user2}],
+        current_round=2,
+        picker_idx=0,
+        seen_category_options={"Science", "History", "Sports"},
+    )
+
+    await manager._start_round(state, "match-1")
+
+    assert set(quiz_service.category_calls[0]["avoid_categories"]) == {
+        "Science",
+        "History",
+        "Sports",
+    }
+    assert state.offered_categories == ["Art", "Movies", "Music"]
+    assert state.seen_category_options == {
+        "Science",
+        "History",
+        "Sports",
+        "Art",
+        "Movies",
+        "Music",
+    }
 
     manager._cancel_task(state.category_timer_task)
 

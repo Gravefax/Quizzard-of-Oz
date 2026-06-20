@@ -4,13 +4,15 @@ from app import settings as settings_module
 from app.settings import AppSettings, get_app_settings, load_app_settings
 
 
-def test_app_settings_use_defaults_when_no_env_is_provided():
+def test_app_settings_use_defaults_when_no_env_is_provided(monkeypatch):
+    monkeypatch.delenv("CORS_ORIGINS", raising=False)
     app_settings = AppSettings(_env_file=None)
 
     assert app_settings.cors_origins == ["http://localhost:3000", "https://localhost:3443"]
 
 
-def test_load_app_settings_parses_json_cors_origins(tmp_path: Path):
+def test_load_app_settings_parses_json_cors_origins(monkeypatch, tmp_path: Path):
+    monkeypatch.delenv("CORS_ORIGINS", raising=False)
     env_file = tmp_path / ".env"
     env_file.write_text('CORS_ORIGINS=["https://frontend.example.com","https://admin.example.com"]\n', encoding="utf-8")
 
@@ -26,6 +28,7 @@ def test_app_settings_parses_comma_separated_cors_origins():
 
 
 def test_get_app_settings_uses_cached_instance(monkeypatch, tmp_path: Path):
+    monkeypatch.delenv("CORS_ORIGINS", raising=False)
     env_file = tmp_path / ".env"
     env_file.write_text('CORS_ORIGINS=["https://cached.example.com"]\n', encoding="utf-8")
 

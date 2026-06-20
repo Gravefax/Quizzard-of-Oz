@@ -3,6 +3,7 @@
 import { type CSSProperties, type ReactNode } from 'react';
 
 export interface PageBackgroundOrb {
+  id: string;
   width: string;
   height: string;
   top?: string;
@@ -15,11 +16,11 @@ export interface PageBackgroundOrb {
 }
 
 interface Props {
-  gridColor?: string;
-  scanColor?: string;
-  scanAnimation?: string;
-  orbs?: PageBackgroundOrb[];
-  children?: ReactNode;
+  readonly gridColor?: string;
+  readonly scanColor?: string;
+  readonly scanAnimation?: string;
+  readonly orbs?: readonly PageBackgroundOrb[];
+  readonly children?: ReactNode;
 }
 
 export default function PageBackground({
@@ -49,9 +50,9 @@ export default function PageBackground({
           animation: scanAnimation,
         }}
       />
-      {orbs.map((orb, i) => (
+      {orbs.map((orb) => (
         <div
-          key={i}
+          key={orb.id}
           className={orb.className ? `absolute ${orb.className}` : 'absolute'}
           style={{
             width: orb.width,

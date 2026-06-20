@@ -83,18 +83,21 @@ export default function PracticeQuiz() {
         scanAnimation="scanDown 11s linear 0.8s infinite"
         orbs={[
           {
+            id: 'orb-gold-left',
             width: '620px', height: '620px',
             top: '5%', left: '-18%',
             background: 'radial-gradient(circle, rgba(255,200,0,0.05) 0%, transparent 65%)',
             animation: 'ambFloat0 14s ease-in-out infinite',
           },
           {
+            id: 'orb-cyan-right',
             width: '500px', height: '500px',
             top: '8%', right: '-12%',
             background: 'radial-gradient(circle, rgba(0,212,255,0.05) 0%, transparent 65%)',
             animation: 'ambFloat1 12s ease-in-out 1.5s infinite',
           },
           {
+            id: 'orb-gold-center',
             width: '500px', height: '500px',
             top: '50%', left: '50%',
             background: 'radial-gradient(circle, rgba(255,200,0,0.03) 0%, rgba(var(--oz-depth-bg-rgb),0.25) 55%, transparent 100%)',

@@ -493,7 +493,6 @@ class BattleManager:
             offered = self._quiz.get_category_options(
                 option_count=CATEGORIES_TO_OFFER,
                 questions_per_category=QUESTIONS_PER_ROUND,
-                exclude_ids=tuple(state.used_question_ids),
             )
         except (
             TriviaInsufficientQuestionsError,

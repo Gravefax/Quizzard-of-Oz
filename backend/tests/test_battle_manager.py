@@ -221,7 +221,7 @@ async def test_start_round_uses_category_options_and_resets_state():
     assert state.phase == "picking"
     assert state.question_idx == 0
     assert state.round_scores == {str(user1.id): 0, str(user2.id): 0}
-    assert quiz_service.category_calls[0]["exclude_ids"] == ("used-id",)
+    assert quiz_service.category_calls[0]["exclude_ids"] == ()
     assert state.offered_categories == ["Science", "History", "Sports"]
     assert ws1.send_json.await_args_list[0].args[0]["type"] == "pick_category"
     assert ws1.send_json.await_args_list[0].args[0]["deadline_seconds"] == battle_manager.CATEGORY_TIME_SECONDS

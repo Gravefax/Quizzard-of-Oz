@@ -148,7 +148,6 @@ class TriviaQuestionService:
             categories = self._repository.get_categories_with_minimum_questions(
                 session,
                 minimum_questions=questions_per_category,
-                exclude_ids=exclude_ids,
             )
             if categories:
                 return self._sample_categories(categories, option_count)
@@ -170,7 +169,6 @@ class TriviaQuestionService:
                 categories = self._repository.get_categories_with_minimum_questions(
                     session,
                     minimum_questions=questions_per_category,
-                    exclude_ids=exclude_ids,
                 )
                 if categories:
                     self._logger.info(
@@ -278,9 +276,19 @@ class TriviaQuestionService:
         )
 
     def _sample_categories(self, categories: list[str], option_count: int) -> list[str]:
-        if len(categories) <= option_count:
-            return list(categories)
-        return self._rng.sample(categories, option_count)
+        unique_categories: list[str] = []
+        seen_categories: set[str] = set()
+
+        for category in categories:
+            normalized_category = category.casefold()
+            if normalized_category in seen_categories:
+                continue
+            seen_categories.add(normalized_category)
+            unique_categories.append(category)
+
+        if len(unique_categories) <= option_count:
+            return unique_categories
+        return self._rng.sample(unique_categories, option_count)
 
     @contextmanager
     def _session_scope(self, db: Session | None) -> Iterator[Session]:

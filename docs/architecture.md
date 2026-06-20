@@ -26,7 +26,7 @@ The project was developed in the Software Quality and Security module at Technis
 | --- | --- | --- |
 | 1 | Responsive gameplay | During an active battle, both players receive question, answer acknowledgement, reveal, round result, and game-over events without waiting for a live trivia request on every question. |
 | 2 | Security | Ranked queue and battle sockets reject clients without a valid backend session cookie. Backend login accepts only Keycloak tokens that can be verified through the realm JWKS. |
-| 3 | Maintainability | A developer can locate a feature by layer: pages/components in the frontend, routers in `app/routers`, business rules in `app/services`, persistence in `app/crud` and `app/models`. |
+| 3 | Maintainability | A developer traces a bug from the API endpoint through the service layer to the database without crossing into unrelated modules, because routing, business logic, and persistence are kept in separate layers. |
 | 4 | Reliability | If the external trivia provider is unavailable or returns invalid data, the backend maps the failure to explicit 502/503 responses or aborts the battle with a controlled WebSocket close. |
 | 5 | Testability | Backend pytest tests cover auth, ranking, trivia, WebSocket auth, matchmaking, and battle logic. Frontend Vitest, architecture, security, and Playwright tests cover UI flows and boundaries. |
 
@@ -52,7 +52,6 @@ The project was developed in the Software Quality and Security module at Technis
 | Battle state is held in backend process memory. | Active matches, queue entries, timers, WebSocket connections, round scores, and selected categories are lost on backend restart and cannot be shared across multiple backend replicas without further work. |
 | PostgreSQL schema is created through `Base.metadata.create_all(...)` at startup. | No migration tool is visible. Schema changes require extra discipline and are a technical debt item for production use. |
 | Trivia questions come from an external provider. | The backend must handle upstream timeouts, retryable status codes, invalid payloads, and cache refill limits. |
-| Frontend WebSocket URLs are derived from `NEXT_PUBLIC_API_BASE`. | The client rewrites `http` to `ws` and `https` to `wss`; the visible `NEXT_PUBLIC_WS_BASE` documentation is not used by `app/lib/utils/wsUrl.ts`. |
 
 ### Organizational Constraints
 
@@ -119,7 +118,7 @@ Main elements: guest player, registered player, development team, reviewers, ope
 
 Source: `docs/c4/c1_context.puml`
 
-The context view makes identity delegation, external question supply, durable storage, and CI/documentation infrastructure explicit. Quizzard of Oz contains the Next.js frontend and FastAPI backend; PostgreSQL and Keycloak are shown as separate runtime services.
+The context view makes identity delegation, external question supply, persistent storage, and CI/documentation infrastructure explicit. Quizzard of Oz contains the Next.js frontend and FastAPI backend; PostgreSQL and Keycloak are shown as separate runtime services.
 
 ## Solution Strategy
 
@@ -427,9 +426,6 @@ The backend image runs as a non-root `appuser`. The frontend image uses a multi-
 | `plantuml.yml` | Regenerates PlantUML SVG diagrams for `docs/c4/*.puml`. |
 | Read the Docs | Builds Sphinx documentation from `docs/conf.py` using Python 3.13 and `docs/requirements.txt`. |
 
-### Production Deployment Open Questions
-
-No production hosting target, ingress, TLS termination, secrets manager, backup strategy, log aggregation, or scaling policy is visible in the repository. These must be defined before production use.
 
 ## Cross-cutting Concepts
 

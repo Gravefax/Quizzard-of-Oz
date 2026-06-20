@@ -3,10 +3,10 @@ from uuid import uuid4
 
 import pytest
 
+from app.dtos.trivia_types import QuestionFilters
 from app.services import trivia_service as trivia_service_module
 from app.services.trivia_client import TriviaUpstreamPayloadError, TriviaUpstreamResponseError
 from app.services.trivia_service import TriviaInsufficientQuestionsError, TriviaQuestionService
-from app.services.trivia_types import QuestionFilters
 from app.settings import load_trivia_settings
 
 

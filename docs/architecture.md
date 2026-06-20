@@ -177,9 +177,10 @@ Source: `docs/c4/c3_frontend_components.puml`
 | --- | --- | --- |
 | Application entry | `backend/main.py` | Creates the FastAPI app, configures CORS, creates DB tables, includes routers, exposes `/` and `/health`, closes trivia client resources on shutdown. |
 | Settings | `app/settings.py`, `app/database.py` | Loads CORS and Trivia settings with Pydantic, loads DB environment variables, creates SQLAlchemy engine/session factory. |
-| Auth router | `app/routers/auth.py` | Verifies Keycloak bearer tokens, creates users, creates/extends/deletes backend sessions, sets and clears session cookies. |
+| Auth router | `app/routers/auth.py` | Verifies Keycloak bearer tokens, creates users, creates/extends/deletes backend sessions, sets and clears session cookies. Reaches persistence only through `user_service`/`session_service`, never directly through CRUD. |
 | WebSocket auth | `app/services/ws_auth.py` | Validates session cookie, session expiry, and user existence before accepting queue or battle sockets. |
-| User router/CRUD | `app/routers/user.py`, `app/crud/user.py` | Creates and reads users. Current create path uses username as `keycloak_sub`, so it is mainly useful for tests or internal setup. |
+| User/session services | `app/services/user_service.py`, `app/services/session_service.py` | Thin service wrappers over user and session CRUD so routers honour the enforced `routers > services > crud` layering (issue #94). |
+| User router | `app/routers/user.py` | Creates and reads users through `user_service`. Current create path uses username as `keycloak_sub`, so it is mainly useful for tests or internal setup. |
 | Quiz router/service | `app/routers/quiz.py`, `app/services/quiz_service.py` | Serves practice questions and checks practice answers through the trivia service. |
 | Trivia router/service/client | `app/routers/trivia.py`, `app/services/trivia_service.py`, `app/services/trivia_client.py` | Parses filters, fetches/cache-refills questions, validates payloads, exposes cached internal question IDs to clients. The client guards upstream calls with timeout, retry/backoff, and a `pybreaker` circuit breaker (ADR 11). |
 | Battle router | `app/routers/battle.py` | Exposes queue and battle WebSocket endpoints and delegates to matchmaking/battle services. |
@@ -198,7 +199,7 @@ Selected container: FastAPI backend.
 
 Main elements: `main.py`, settings/database, auth/user/quiz/trivia/ranking/battle routers, WebSocket auth, quiz/trivia/matchmaking/battle/ranking services, CRUD repositories, SQLAlchemy models, Pydantic schemas, PostgreSQL, Keycloak, and The Trivia API.
 
-The backend component view highlights the intended layering: routers own inbound protocol handling, services own business rules, CRUD repositories encapsulate database access, models define persistent tables, and external adapters isolate Keycloak and Trivia API communication.
+The backend component view highlights the intended layering: routers own inbound protocol handling, services own business rules, CRUD repositories encapsulate database access, models define persistent tables, and external adapters isolate Keycloak and Trivia API communication. This layering (`routers > services > crud > models`) is enforced by import-linter contracts in `backend/.importlinter`: routers must reach persistence only through services, and CRUD stays a leaf that imports neither routers nor services (issue #94). See the test concept for the contract details.
 
 ### Code/Class View: Battle Runtime
 
@@ -406,7 +407,7 @@ The backend image runs as a non-root `appuser`. The frontend image uses a multi-
 | Workflow | Responsibility |
 | --- | --- |
 | `ci.yml` frontend build | Installs pnpm dependencies on Node 22 and runs `pnpm build`. |
-| `ci.yml` backend tests | Installs Python 3.12 dependencies and runs pytest with branch coverage and XML output. |
+| `ci.yml` backend tests | Installs Python 3.12 dependencies, runs `lint-imports` architecture contracts, and runs pytest with branch coverage and XML output. |
 | `ci.yml` frontend tests | Runs linting, Vitest coverage, and architecture tests. |
 | `ci.yml` E2E tests | Starts PostgreSQL service and Keycloak container, then runs Playwright with frontend and backend web servers. |
 | `ci.yml` SonarCloud | Downloads coverage artifacts and runs SonarCloud analysis. |
@@ -464,7 +465,7 @@ Frontend architecture tests enforce:
 
 ### Testing Strategy
 
-Backend tests cover routers, CRUD, services, settings, authentication, WebSocket auth, matchmaking, ranking, battle state, and trivia integration. Frontend tests cover unit, integration, security, architecture, and E2E scenarios. Playwright E2E runs sequentially because shared backend state, fixed test accounts, and WebSocket queues can create cross-test interference.
+Backend tests cover routers, CRUD, services, settings, authentication, WebSocket auth, matchmaking, ranking, battle state, and trivia integration. Backend architecture tests enforce the `routers > services > crud > models` layering with import-linter, driven from `tests/test_architecture.py` and run as a `lint-imports` step in CI. Frontend tests cover unit, integration, security, architecture, and E2E scenarios. Playwright E2E runs sequentially because shared backend state, fixed test accounts, and WebSocket queues can create cross-test interference.
 
 ## Architecture Decisions
 
@@ -482,6 +483,7 @@ Detailed ADRs are documented in [Architecture Decisions](decisions.md). The most
 | ADR 8 | Use Keycloak instead of Google OAuth. | Local/testable login, self-hosted realm import, and backend JWKS verification are part of the architecture. |
 | ADR 9 | Use backend-managed HttpOnly sessions. | Application authorization relies on PostgreSQL-backed sessions and browser-managed cookies. |
 | ADR 10 | Keep active matchmaking and battle state process-local. | Current runtime state is simple and fast, but backend restarts and horizontal scaling require mitigation. |
+| ADR 11 | Wrap external Trivia API calls in a circuit breaker. | Sustained upstream outages fail fast (503 / aborted battle setup) instead of paying the per-request timeout and retry budget. |
 
 ## Quality Requirements
 
@@ -496,11 +498,13 @@ Detailed ADRs are documented in [Architecture Decisions](decisions.md). The most
 | Reliability | The Trivia API returns malformed payload items. | Invalid items are skipped; all-invalid payloads become a controlled upstream payload error. |
 | Maintainability | A developer changes battle UI behavior. | Battle phase UI is split into `components/battle/phases`, while server rules stay in `BattleManager`. |
 | Testability | A frontend component accidentally imports an API route. | Dependency-cruiser architecture test fails. |
+| Testability | A backend router imports `app.crud` directly instead of going through a service. | import-linter `routers-no-direct-crud` contract fails in `lint-imports` and `tests/test_architecture.py`. |
 | Operability | Docker Compose starts services locally. | PostgreSQL, Keycloak, and backend health checks order startup before frontend availability. |
 
 ### Acceptance Checks
 
 - Backend tests: `python -m pytest tests -q` from `backend/`.
+- Backend architecture contracts: `lint-imports` from `backend/`.
 - Frontend lint: `pnpm lint` from `frontend/quizzard-of-oz`.
 - Frontend coverage: `pnpm test:coverage` from `frontend/quizzard-of-oz`.
 - Frontend architecture tests: `pnpm test:arch` from `frontend/quizzard-of-oz`.

@@ -10,10 +10,9 @@ import jwt as pyjwt
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
 
-from app.crud import session as crud_session
-from app.crud import user as crud_user
 from app.database import get_db
 from app.schemas.login_response import LoginResponse
+from app.services import session_service, user_service
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 logger = logging.getLogger(__name__)
@@ -104,20 +103,20 @@ def _get_valid_session(request: Request, db: Session):
     except ValueError as exc:
         raise HTTPException(status_code=401, detail="Invalid session") from exc
 
-    session = crud_session.get_session(db, session_id)
+    session = session_service.get_session(db, session_id)
     if not session:
         raise HTTPException(status_code=401, detail="Session not found")
 
     expires_at = getattr(session, "expires_at", None)
     if not isinstance(expires_at, datetime):
-        crud_session.delete_session(db, session_id)
+        session_service.delete_session(db, session_id)
         raise HTTPException(status_code=401, detail="Invalid session")
 
     if expires_at.tzinfo is None:
         expires_at = expires_at.replace(tzinfo=timezone.utc)
 
     if expires_at < datetime.now(timezone.utc):
-        crud_session.delete_session(db, session_id)
+        session_service.delete_session(db, session_id)
         raise HTTPException(status_code=403, detail="Session expired")
 
     return session
@@ -151,7 +150,7 @@ def login(
         if not sub:
             raise ValueError("Missing sub claim in token")
 
-        user = crud_user.get_user_by_keycloak_sub(db, sub)
+        user = user_service.get_user_by_keycloak_sub(db, sub)
 
         if not user:
             username = (
@@ -161,7 +160,7 @@ def login(
                 or "user"
             )
             email = payload.get("email") or ""
-            user = crud_user.create_user(
+            user = user_service.create_user(
                 db,
                 username=username[:50],
                 keycloak_sub=sub,
@@ -169,7 +168,7 @@ def login(
             )
 
         expires_at = _session_expiry()
-        session = crud_session.create_session(db, user_id=user.id, expires_at=expires_at)
+        session = session_service.create_session(db, user_id=user.id, expires_at=expires_at)
 
         set_session_cookie(response, session.id)
         return LoginResponse(
@@ -199,13 +198,13 @@ def refresh(
 ):
     session = _get_valid_session(request, db)
 
-    user = crud_user.get_user(db, session.user_id)
+    user = user_service.get_user(db, session.user_id)
     if not user:
-        crud_session.delete_session(db, session.id)
+        session_service.delete_session(db, session.id)
         raise HTTPException(status_code=401, detail="User not found")
 
     new_expires_at = _session_expiry()
-    crud_session.extend_session(db, session, expires_at=new_expires_at)
+    session_service.extend_session(db, session, expires_at=new_expires_at)
     set_session_cookie(response, session.id)
 
     return LoginResponse(
@@ -220,7 +219,7 @@ def logout(request: Request, response: Response, db: Annotated[Session, Depends(
     raw_session = request.cookies.get(SESSION_COOKIE_NAME)
     if raw_session:
         try:
-            crud_session.delete_session(db, UUID(raw_session))
+            session_service.delete_session(db, UUID(raw_session))
         except ValueError:
             pass
 

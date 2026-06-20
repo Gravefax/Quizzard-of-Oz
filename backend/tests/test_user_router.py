@@ -35,8 +35,8 @@ def test_create_user_success(override_db):
     user_id = str(uuid4())
     
     # Mock CRUD functions
-    with patch("app.routers.user.crud_user.get_user_by_username") as mock_get_existing:
-        with patch("app.routers.user.crud_user.create_user") as mock_create:
+    with patch("app.routers.user.user_service.get_user_by_username") as mock_get_existing:
+        with patch("app.routers.user.user_service.create_user") as mock_create:
             mock_get_existing.return_value = None
             new_user = MagicMock()
             new_user.id = user_id
@@ -62,7 +62,7 @@ def test_create_user_duplicate_username(override_db):
     
     app.dependency_overrides[get_db] = lambda: override_db
     
-    with patch("app.routers.user.crud_user.get_user_by_username") as mock_get_existing:
+    with patch("app.routers.user.user_service.get_user_by_username") as mock_get_existing:
         existing = MagicMock()
         existing.username = "taken"
         mock_get_existing.return_value = existing  # User exists
@@ -83,7 +83,7 @@ def test_get_user_success(override_db):
     user_id = str(uuid4())
     app.dependency_overrides[get_db] = lambda: override_db
     
-    with patch("app.routers.user.crud_user.get_user") as mock_get:
+    with patch("app.routers.user.user_service.get_user") as mock_get:
         user = MagicMock()
         user.id = user_id
         user.username = "testuser"
@@ -104,7 +104,7 @@ def test_get_user_not_found(override_db):
     user_id = str(uuid4())
     app.dependency_overrides[get_db] = lambda: override_db
     
-    with patch("app.routers.user.crud_user.get_user") as mock_get:
+    with patch("app.routers.user.user_service.get_user") as mock_get:
         mock_get.return_value = None
         
         response = client.get(f"/users/{user_id}")

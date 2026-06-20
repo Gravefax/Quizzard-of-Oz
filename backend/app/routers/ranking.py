@@ -4,13 +4,13 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from app.crud import user as crud_user
 from app.database import get_db
 from app.schemas.ranking import (
     LeaderboardEntryResponse,
     LeaderboardResponse,
     RankingUserResponse,
 )
+from app.services import user_service
 from app.services.ranking_service import (
     LEADERBOARD_PAGE_SIZE,
     get_leaderboard_page,
@@ -50,7 +50,7 @@ def _build_leaderboard_response(db: Session, page: int, username_query: str | No
     responses={404: {"description": "User not found"}},
 )
 def get_user_ranking_by_id(user_id: UUID, db: Annotated[Session, Depends(get_db)]):
-    user = crud_user.get_user(db, user_id)
+    user = user_service.get_user(db, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return get_user_ranking(db, user_id=user_id)

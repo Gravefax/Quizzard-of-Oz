@@ -6,8 +6,8 @@ from uuid import UUID
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.dtos.trivia_types import CachedQuestionRecord, QuestionFilters
 from app.models.question_cache import QuestionCache
-from app.services.trivia_types import CachedQuestionRecord, QuestionFilters
 
 
 class QuestionCacheRepository:

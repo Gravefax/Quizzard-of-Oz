@@ -17,7 +17,7 @@ def test_get_user_ranking_not_found():
     db = MagicMock()
     app.dependency_overrides[get_db] = lambda: db
 
-    with patch("app.routers.ranking.crud_user.get_user", return_value=None):
+    with patch("app.routers.ranking.user_service.get_user", return_value=None):
         response = client.get(f"/ranking/users/{uuid4()}")
 
     assert response.status_code == 404
@@ -38,7 +38,7 @@ def test_get_user_ranking_success():
     ranking.last_win_at = None
     ranking.updated_at = datetime.now(timezone.utc)
 
-    with patch("app.routers.ranking.crud_user.get_user", return_value=MagicMock()):
+    with patch("app.routers.ranking.user_service.get_user", return_value=MagicMock()):
         with patch("app.routers.ranking.get_user_ranking", return_value=ranking):
             response = client.get(f"/ranking/users/{user_id}")
 

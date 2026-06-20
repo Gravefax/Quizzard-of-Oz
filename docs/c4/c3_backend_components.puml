@@ -28,12 +28,14 @@ Container_Boundary(backend, "FastAPI backend") {
     Component(matchmaking_service, "Matchmaking service", "app/services/matchmaking_service.py", "Maintains process-local queue, reads Elo, matches closest eligible pair, and returns match IDs.")
     Component(battle_manager, "Battle manager", "app/services/battle_manager.py", "Owns process-local active match state, phases, timers, questions, answers, scoring, forfeits, and game over.")
     Component(ranking_service, "Ranking service", "app/services/ranking_service.py", "Applies Elo with K_FACTOR=32, records match results, and computes leaderboard pages with shared ranks.")
+    Component(user_service, "User service", "app/services/user_service.py", "Service wrapper over user CRUD so routers reach user persistence only through the services layer (issue #94).")
+    Component(session_service, "Session service", "app/services/session_service.py", "Service wrapper over session CRUD for backend session lifecycle access from routers (issue #94).")
 
     Component(user_session_crud, "User and session CRUD", "app/crud/user.py, app/crud/session.py", "Creates/loads users and creates, extends, reads, deletes backend sessions.")
     Component(ranking_crud, "Ranking CRUD", "app/crud/ranking.py", "Reads, creates, updates rankings and leaderboard pages.")
     Component(question_cache_repo, "Question cache repository", "app/crud/question_cache.py", "Reads random cached questions, upserts normalized questions, and lists categories with enough questions.")
     Component(models, "SQLAlchemy models", "app/models/*", "User, Session, Ranking, QuestionCache, and MatchResult tables.")
-    Component(schemas, "Pydantic schemas", "app/schemas/* and router DTOs", "Request and response contracts for HTTP APIs.")
+    Component(schemas, "Schemas and shared DTOs", "app/schemas/*, app/dtos/*", "Request/response contracts for HTTP APIs plus shared trivia DTOs (app/dtos/trivia_types) used across routers, services, and CRUD without coupling CRUD to a services module (issue #94).")
 }
 
 Rel(frontend, auth_router, "Login, refresh, logout", "HTTP JSON")
@@ -51,13 +53,15 @@ Rel(app_entry, battle_router, "Includes router")
 Rel(app_entry, settings_db, "Uses configuration and database session setup")
 
 Rel(auth_router, keycloak, "Verifies bearer token via JWKS", "HTTPS")
-Rel(auth_router, user_session_crud, "Finds/creates user and creates/extends/deletes session")
+Rel(auth_router, user_service, "Finds/creates application user")
+Rel(auth_router, session_service, "Creates, extends, reads, deletes session")
 Rel(auth_router, schemas, "Returns login/session response DTOs")
 
-Rel(user_router, user_session_crud, "Creates/reads users")
+Rel(user_router, user_service, "Creates/reads users")
 Rel(quiz_router, quiz_service, "Loads questions and checks answers")
 Rel(trivia_router, trivia_service, "Reads/refills cached question batches")
 Rel(ranking_router, ranking_service, "Reads ranking and leaderboard pages")
+Rel(ranking_router, user_service, "Validates that the ranked user exists")
 
 Rel(battle_router, ws_auth, "Authenticates WebSocket handshakes")
 Rel(battle_router, matchmaking_service, "Delegates queue socket")
@@ -76,6 +80,8 @@ Rel(trivia_client, trivia_api, "GET /v2/questions", "HTTPS JSON")
 
 Rel(ranking_service, ranking_crud, "Reads/updates rankings and leaderboard")
 Rel(ranking_service, ranking_crud, "Creates MatchResult records")
+Rel(user_service, user_session_crud, "Reads/creates users")
+Rel(session_service, user_session_crud, "Creates, extends, reads, deletes sessions")
 Rel(user_session_crud, models, "Uses User and Session models")
 Rel(ranking_crud, models, "Uses Ranking and User models")
 Rel(question_cache_repo, models, "Uses QuestionCache model")

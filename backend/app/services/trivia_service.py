@@ -10,13 +10,13 @@ from sqlalchemy.orm import Session
 
 from app.crud.question_cache import QuestionCacheRepository
 from app.database import SessionLocal
+from app.dtos.trivia_types import CachedQuestionRecord, Question, QuestionBatch, QuestionFilters
 from app.models.question_cache import QuestionCache
 from app.services.trivia_client import (
     TriviaApiClient,
     TriviaClientError,
     TriviaUpstreamPayloadError,
 )
-from app.services.trivia_types import CachedQuestionRecord, Question, QuestionBatch, QuestionFilters
 from app.settings import TriviaSettings, get_trivia_settings
 
 VALID_DIFFICULTIES = {"easy", "medium", "hard"}

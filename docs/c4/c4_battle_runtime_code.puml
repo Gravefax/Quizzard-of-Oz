@@ -92,7 +92,7 @@ package "Battle runtime" {
     +check_answer(question_id, answer)
   }
 
-  class "Question\napp/services/trivia_types.py" as Question <<value object>> {
+  class "Question\napp/dtos/trivia_types.py" as Question <<value object>> {
     id: str
     text: str
     answers: list[str]

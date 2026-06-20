@@ -58,7 +58,7 @@ The project was developed in the Software Quality and Security module at Technis
 | Constraint | Architectural Impact |
 | --- | --- |
 | The project is built by a small course team. | The system remains a modular monolith plus frontend rather than many independently deployed services. |
-| No dedicated operations budget is visible. | The stack relies on open-source technologies and simple container orchestration. |
+| The project has no dedicated operations budget. | The stack relies on open-source technologies and simple container orchestration. |
 | CI and quality gates are part of the project workflow. | Changes should keep pytest, Vitest, Playwright, architecture tests, SonarCloud, and Docker builds working. |
 | Documentation is published via Read the Docs. | Markdown must remain compatible with Sphinx/MyST and the existing Furo documentation setup. |
 
@@ -139,7 +139,7 @@ The context view makes identity delegation, external question supply, persistent
 | --- | --- | --- |
 | Next.js frontend | Player UI, route handling, Keycloak client initialization, auth state, theme state, REST clients, WebSocket clients, battle rendering. | Next.js, React, TypeScript, Zustand, keycloak-js, Axios, Tailwind CSS. |
 | FastAPI backend | REST API, WebSocket server, auth/session handling, matchmaking, battle state machine, ranking, trivia integration, persistence access. | FastAPI, Uvicorn, SQLAlchemy, Pydantic, PyJWT, httpx, websockets. |
-| PostgreSQL database | Durable data for users, sessions, rankings, question cache, and match result history. | PostgreSQL 18 in Docker Compose, PostgreSQL 16 in CI E2E service. |
+| PostgreSQL database | Persistent data for users, sessions, rankings, question cache, and match result history. | PostgreSQL 18 in Docker Compose, PostgreSQL 16 in CI E2E service. |
 | Keycloak | Identity provider and realm configuration for login/registration. | Keycloak 26.2.5, imported `quizzard` realm. |
 | Trivia provider | External question source. | The Trivia API `/v2/questions`. |
 
@@ -216,7 +216,7 @@ Important implementation notes visible in the code-level view:
 - `MatchState` is the central runtime state object and protects state mutations with an `asyncio.Lock`.
 - The current code does not define a separate `PlayerState` class; connected players are stored as dictionaries in `MatchState.players`.
 - The repository does not currently contain a dedicated `MatchResultRepository`; `RankingService.apply_match_result` persists `MatchResult` through SQLAlchemy while updating rankings.
-- Durable state is limited to users, sessions, rankings, cached questions, and match results in PostgreSQL.
+- Persistent state is limited to users, sessions, rankings, cached questions, and match results in PostgreSQL.
 
 ### Persistent Data Model
 
@@ -236,7 +236,7 @@ Active queue entries and active battle state are not stored in PostgreSQL. They 
 
 ![Ranked session flow](images/Runtime_Ranked_Battle.svg)
 
-This existing flow diagram summarizes the intended ranked battle lifecycle. The detailed runtime descriptions below are authoritative for the currently implemented WebSocket event names and persistence behavior.
+This flow diagram summarizes the ranked battle lifecycle. The detailed runtime descriptions below are authoritative for the currently implemented WebSocket event names and persistence behavior.
 
 ### Login and Session Flow
 
@@ -316,7 +316,7 @@ Step-by-step flow:
 
 1. Player 1 opens WebSocket `/battle/queue`; the backend validates the session cookie before accepting the socket.
 2. `MatchmakingService` reads the player's ranking, queues the socket with Elo, queue time, and sequence number, and sends `queued` if no eligible opponent exists.
-3. Player 2 opens `/battle/queue`; the backend validates that session cookie and reads the player's ranking.
+3. Player 2 opens `/battle/queue`; the backend validates the session cookie and reads the player's ranking.
 4. Matching prefers the closest Elo pair. The initial allowed Elo delta is 75 and grows by 50 every 5 seconds.
 5. Both players receive `matched` with the same match UUID.
 6. Both clients navigate to `/battle/{match_id}` and open `/battle/ws/{match_id}`.
@@ -332,7 +332,7 @@ Step-by-step flow:
 16. The backend hides the correct answer until both players answer or the timer expires.
 17. Both players receive `question_result` with correctness, correct answer, their submitted answer, and reveal duration.
 18. After three questions, both players receive `round_result`.
-19. The first player to 3 round wins wins the best-of-five battle.
+19. The first player to win 3 rounds wins the best-of-five battle.
 20. Both players receive `game_over`.
 21. `RankingService.apply_match_result` updates Elo, wins, losses, totals, and inserts a `match_results` row.
 22. `BattleManager` removes the in-memory `MatchState`.
@@ -359,23 +359,14 @@ Consistency and state considerations:
 
 - Active battle state is protected by per-match `asyncio.Lock` instances.
 - Matchmaking queue state is protected by its own service lock.
-- Durable ranking and match result updates happen after normal game over or forfeit.
-- Completed match results and ranking updates are persisted to PostgreSQL; active matches are not durable across backend restarts.
+- Ranking and match result updates are persisted after normal game over or forfeit.
+- Completed match results and ranking updates are written to PostgreSQL; active matches are lost on backend restart.
 
 Performance considerations:
 
 - WebSockets avoid polling for battle queue and runtime communication.
 - Cached questions avoid live upstream calls for every battle question.
 - Batch refill, category sampling, and random cache selection reduce latency and external API pressure.
-
-### Diagram Traceability
-
-| Trace | Mapping |
-| --- | --- |
-| C1 to C2 | The Quizzard of Oz system from C1 is refined into the Next.js frontend and FastAPI backend containers. Keycloak, PostgreSQL, The Trivia API, GitHub Actions, SonarCloud, GHCR, and Read the Docs remain outside the application boundary. |
-| C2 to C3 | The FastAPI backend container is refined into routers, services, CRUD repositories, models, schemas, and external adapters. The frontend container is refined separately into pages, providers, stores, clients, and battle components. |
-| C3 to C4 | The backend battle components are refined into `BattleRouter`, `WsAuthService`, `MatchmakingService`, `BattleManager`, `MatchState`, trivia/ranking services, CRUD modules, and persistent models. |
-| Runtime view | The ranked battle runtime uses the C1 registered player, C2 frontend/backend/PostgreSQL/Keycloak/Trivia API, C3 battle/auth/trivia/ranking components, and C4 `BattleManager`/`MatchState` code-level elements. |
 
 ### Leaderboard Flow
 
@@ -388,6 +379,15 @@ Source: `docs/c4/c4_dynamic_leaderboard.puml`
 3. The backend joins rankings to users, orders by Elo, win/loss ratio, last win time, update time, and user ID.
 4. Fully tied leaderboard entries share the same rank.
 5. The response contains `page`, `page_size`, `total_players`, and entries with rank, user, Elo, wins, losses, total matches, and last win time.
+
+### Diagram Traceability
+
+| Trace | Mapping |
+| --- | --- |
+| C1 to C2 | The Quizzard of Oz system from C1 is refined into the Next.js frontend and FastAPI backend containers. Keycloak, PostgreSQL, The Trivia API, GitHub Actions, SonarCloud, GHCR, and Read the Docs remain outside the application boundary. |
+| C2 to C3 | The FastAPI backend container is refined into routers, services, CRUD repositories, models, schemas, and external adapters. The frontend container is refined separately into pages, providers, stores, clients, and battle components. |
+| C3 to C4 | The backend battle components are refined into `BattleRouter`, `WsAuthService`, `MatchmakingService`, `BattleManager`, `MatchState`, trivia/ranking services, CRUD modules, and persistent models. |
+| Runtime view | The ranked battle runtime uses the C1 registered player, C2 frontend/backend/PostgreSQL/Keycloak/Trivia API, C3 battle/auth/trivia/ranking components, and C4 `BattleManager`/`MatchState` code-level elements. |
 
 ## Deployment View
 
@@ -425,7 +425,6 @@ The backend image runs as a non-root `appuser`. The frontend image uses a multi-
 | `docker.yml` | Builds and pushes backend/frontend images to GHCR for changes on `main` and `dev`. |
 | `plantuml.yml` | Regenerates PlantUML SVG diagrams for `docs/c4/*.puml`. |
 | Read the Docs | Builds Sphinx documentation from `docs/conf.py` using Python 3.13 and `docs/requirements.txt`. |
-
 
 ## Cross-cutting Concepts
 
@@ -468,7 +467,7 @@ Backend logging is configured in `main.py` with timestamped log formatting for u
 Frontend architecture tests enforce:
 
 - no circular dependencies in `app/`
-- no imports from `app/components` directly into `app/api`
+- no imports from `app/api` routes directly into `app/components`
 - no production source imports from test files
 
 ### Testing Strategy
@@ -487,7 +486,7 @@ Detailed ADRs are documented in [Architecture Decisions](decisions.md). The most
 | ADR 4 | Use a relational database, specifically PostgreSQL. | Users, sessions, rankings, cache, and match results are relational tables. |
 | ADR 5 | Use SQLAlchemy ORM with Pydantic schemas. | Data access is encapsulated in models/CRUD while HTTP contracts use typed schemas. |
 | ADR 6 | Use WebSockets instead of polling for game communication. | Battle queue and match runtime use bidirectional WebSocket channels. |
-| ADR 7 | Initial Google login. | Historical decision that was overruled because it made E2E automation and custom registration harder. |
+| ADR 7 | Initial Google login. | Historical decision that was superseded because it made E2E automation and custom registration harder. |
 | ADR 8 | Use Keycloak instead of Google OAuth. | Local/testable login, self-hosted realm import, and backend JWKS verification are part of the architecture. |
 | ADR 9 | Use backend-managed HttpOnly sessions. | Application authorization relies on PostgreSQL-backed sessions and browser-managed cookies. |
 | ADR 10 | Keep active matchmaking and battle state process-local. | Current runtime state is simple and fast, but backend restarts and horizontal scaling require mitigation. |

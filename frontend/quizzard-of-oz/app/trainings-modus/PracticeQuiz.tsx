@@ -6,7 +6,7 @@ import { fetchPracticeQuestions, checkPracticeAnswer } from '../lib/api/quiz';
 import { AnswerResult, Question } from '../lib/interfaces/Questions';
 import practiceStyles from './practice.module.css';
 import { IconTarget, IconTrophy, IconStar, IconAlertTriangle } from '@/app/components/Icons';
-import PageBackground from '@/app/components/PageBackground';
+import PageBackground, { DEFAULT_PAGE_ORBS } from '@/app/components/PageBackground';
 
 type QuizState = 'idle' | 'loading' | 'playing' | 'answered' | 'finished' | 'error';
 
@@ -81,29 +81,7 @@ export default function PracticeQuiz() {
       {/* ── Background layer ── */}
       <PageBackground
         scanAnimation="scanDown 11s linear 0.8s infinite"
-        orbs={[
-          {
-            id: 'orb-gold-left',
-            width: '620px', height: '620px',
-            top: '5%', left: '-18%',
-            background: 'radial-gradient(circle, rgba(255,200,0,0.05) 0%, transparent 65%)',
-            animation: 'ambFloat0 14s ease-in-out infinite',
-          },
-          {
-            id: 'orb-cyan-right',
-            width: '500px', height: '500px',
-            top: '8%', right: '-12%',
-            background: 'radial-gradient(circle, rgba(0,212,255,0.05) 0%, transparent 65%)',
-            animation: 'ambFloat1 12s ease-in-out 1.5s infinite',
-          },
-          {
-            id: 'orb-gold-center',
-            width: '500px', height: '500px',
-            top: '50%', left: '50%',
-            background: 'radial-gradient(circle, rgba(255,200,0,0.03) 0%, rgba(var(--oz-depth-bg-rgb),0.25) 55%, transparent 100%)',
-            animation: 'orbPulse 7s ease-in-out infinite',
-          },
-        ]}
+        orbs={DEFAULT_PAGE_ORBS}
       />
 
       {/* ── Persistent back button ── */}

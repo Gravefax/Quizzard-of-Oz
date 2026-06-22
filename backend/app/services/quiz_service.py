@@ -41,13 +41,11 @@ class QuizService:
         *,
         option_count: int,
         questions_per_category: int,
-        exclude_ids: tuple[str, ...] = (),
         avoid_categories: tuple[str, ...] = (),
     ) -> list[str]:
         return self._trivia_service.get_category_options(
             option_count=option_count,
             questions_per_category=questions_per_category,
-            exclude_ids=exclude_ids,
             avoid_categories=avoid_categories,
         )
 

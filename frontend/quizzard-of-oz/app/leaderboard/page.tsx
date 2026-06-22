@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { fetchLeaderboard, searchLeaderboardByUsername } from '@/app/lib/api/ranking';
 import type { LeaderboardEntry } from '@/app/models/Leaderboard';
 import lbStyles from './leaderboard.module.css';
-import PageBackground from '@/app/components/PageBackground';
+import PageBackground, { DEFAULT_PAGE_ORBS } from '@/app/components/PageBackground';
 
 const RANK_MEDAL: Record<number, string> = { 1: '🥇', 2: '🥈', 3: '🥉' };
 
@@ -124,32 +124,7 @@ export default function LeaderboardPage() {
     <div className="flex-1 flex flex-col relative overflow-hidden">
 
       {/* ── Background layer ── */}
-      <PageBackground
-        scanAnimation="scanDown 10s linear 0.5s infinite"
-        orbs={[
-          {
-            id: 'orb-gold-left',
-            width: '650px', height: '650px',
-            top: '0%', left: '-20%',
-            background: 'radial-gradient(circle, rgba(255,200,0,0.055) 0%, transparent 65%)',
-            animation: 'ambFloat0 15s ease-in-out infinite',
-          },
-          {
-            id: 'orb-cyan-right',
-            width: '520px', height: '520px',
-            top: '10%', right: '-14%',
-            background: 'radial-gradient(circle, rgba(0,212,255,0.05) 0%, transparent 65%)',
-            animation: 'ambFloat1 13s ease-in-out 1.5s infinite',
-          },
-          {
-            id: 'orb-gold-center',
-            width: '500px', height: '500px',
-            top: '50%', left: '50%',
-            background: 'radial-gradient(circle, rgba(255,200,0,0.03) 0%, rgba(var(--oz-depth-bg-rgb),0.25) 55%, transparent 100%)',
-            animation: 'orbPulse 8s ease-in-out infinite',
-          },
-        ]}
-      />
+      <PageBackground orbs={DEFAULT_PAGE_ORBS} />
 
       {/* ── Content ── */}
       <div className="relative z-10 flex-1 px-4 py-8 md:px-8">

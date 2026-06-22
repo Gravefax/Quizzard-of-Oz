@@ -69,7 +69,6 @@ def test_get_category_options_delegates_to_trivia_service():
     result = service.get_category_options(
         option_count=2,
         questions_per_category=3,
-        exclude_ids=("used-id",),
         avoid_categories=("Science",),
     )
 
@@ -77,6 +76,5 @@ def test_get_category_options_delegates_to_trivia_service():
     trivia_service.get_category_options.assert_called_once_with(
         option_count=2,
         questions_per_category=3,
-        exclude_ids=("used-id",),
         avoid_categories=("Science",),
     )

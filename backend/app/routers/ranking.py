@@ -1,10 +1,11 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.rate_limit import limiter
 from app.schemas.ranking import (
     LeaderboardEntryResponse,
     LeaderboardResponse,
@@ -47,25 +48,30 @@ def _build_leaderboard_response(db: Session, page: int, username_query: str | No
 @router.get(
     "/users/{user_id}",
     response_model=RankingUserResponse,
-    responses={404: {"description": "User not found"}},
+    responses={404: {"description": "User not found"}, 429: {"description": "Too many requests"}},
 )
-def get_user_ranking_by_id(user_id: UUID, db: Annotated[Session, Depends(get_db)]):
+@limiter.limit("60/minute")
+def get_user_ranking_by_id(request: Request, user_id: UUID, db: Annotated[Session, Depends(get_db)]):
     user = user_service.get_user(db, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return get_user_ranking(db, user_id=user_id)
 
 
-@router.get("/leaderboard", response_model=LeaderboardResponse)
+@router.get("/leaderboard", response_model=LeaderboardResponse, responses={429: {"description": "Too many requests"}})
+@limiter.limit("60/minute")
 def get_leaderboard(
+    request: Request,
     db: Annotated[Session, Depends(get_db)],
     page: Annotated[int, Query(ge=1)] = 1,
 ):
     return _build_leaderboard_response(db, page)
 
 
-@router.get("/leaderboard/search", response_model=LeaderboardResponse)
+@router.get("/leaderboard/search", response_model=LeaderboardResponse, responses={429: {"description": "Too many requests"}})
+@limiter.limit("30/minute")
 def search_leaderboard(
+    request: Request,
     db: Annotated[Session, Depends(get_db)],
     username: Annotated[str, Query(min_length=1)],
     page: Annotated[int, Query(ge=1)] = 1,

@@ -237,6 +237,7 @@ jobs:
           NEXT_PUBLIC_WS_BASE: ws://localhost:8000
           KEYCLOAK_URL: http://localhost:8080
           KEYCLOAK_REALM: quizzard
+          RATE_LIMIT_ENABLED: "false"
 
   sonarcloud:
     name: SonarCloud Analysis

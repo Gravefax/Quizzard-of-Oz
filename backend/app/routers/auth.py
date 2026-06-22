@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.rate_limit import limiter
 from app.schemas.login_response import LoginResponse
 from app.services import session_service, user_service
 
@@ -129,9 +130,12 @@ def _get_valid_session(request: Request, db: Session):
     responses={
         400: {"description": "Missing or malformed Authorization header"},
         401: {"description": "Invalid or expired token"},
+        429: {"description": "Too many login attempts"},
     },
 )
+@limiter.limit("5/minute")
 def login(
+    request: Request,
     db: Annotated[Session, Depends(get_db)],
     response: Response,
     authorization: Annotated[str | None, Header()] = None,
@@ -189,8 +193,10 @@ def login(
     responses={
         401: {"description": "Invalid or missing session"},
         403: {"description": "Session has expired"},
+        429: {"description": "Too many requests"},
     },
 )
+@limiter.limit("30/minute")
 def refresh(
     request: Request,
     response: Response,

@@ -5,6 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.dtos.trivia_types import QuestionFilters
+from app.rate_limit import limiter
 from app.schemas.trivia import (
     TriviaQuestionResponse,
     TriviaQuestionsMetaResponse,
@@ -82,11 +83,14 @@ def parse_trivia_question_filters(request: Request) -> QuestionFilters:
     response_model=TriviaQuestionsResponse,
     responses={
         400: {"description": "Invalid query parameters"},
+        429: {"description": "Too many requests"},
         502: {"description": "Unexpected upstream response"},
         503: {"description": "Upstream unavailable"},
     },
 )
+@limiter.limit("60/minute")
 def get_trivia_questions(
+    request: Request,
     filters: Annotated[QuestionFilters, Depends(parse_trivia_question_filters)],
     service: Annotated[TriviaQuestionService, Depends(get_trivia_question_service_dependency)],
 ):

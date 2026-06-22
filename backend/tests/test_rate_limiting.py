@@ -111,8 +111,6 @@ def test_quiz_practice_allows_requests_within_limit():
 
 
 def test_leaderboard_allows_requests_within_limit():
-    from app.services.ranking_service import get_leaderboard_page
-
     with patch("app.routers.ranking.get_leaderboard_page") as mock_lb:
         mock_lb.return_value = ([], 0)
         for _ in range(3):

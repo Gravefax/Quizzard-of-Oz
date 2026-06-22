@@ -5,6 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.dtos.trivia_types import QuestionFilters
+from app.rate_limit import limiter
 from app.schemas.trivia import (
     TriviaQuestionResponse,
     TriviaQuestionsMetaResponse,
@@ -15,7 +16,6 @@ from app.services.trivia_client import (
     TriviaUpstreamResponseError,
     TriviaUpstreamUnavailableError,
 )
-from app.rate_limit import limiter
 from app.services.trivia_service import (
     TriviaInsufficientQuestionsError,
     TriviaQuestionService,

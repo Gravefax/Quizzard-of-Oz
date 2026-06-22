@@ -512,17 +512,22 @@ Detailed ADRs are documented in [Architecture Decisions](decisions.md). The most
 
 ### Quality Scenarios
 
-| Quality | Scenario | Current Mechanism |
-| --- | --- | --- |
-| Performance | A battle round should not wait on a live upstream trivia call for every question. | Cached questions, category options from cache, batch refill, random cache selection. |
-| Security | A user without a valid session tries to join the queue. | WebSocket auth closes with 4001 for missing/invalid/not-found sessions and 4003 for expired sessions. |
-| Security | A forged Keycloak token is sent to `/auth/login`. | PyJWT/JWKS verification raises an error and the endpoint returns 401. |
-| Reliability | One player closes the browser during an active battle. | Backend records a forfeit win for the remaining player and cleans up match state. |
-| Reliability | The Trivia API returns malformed payload items. | Invalid items are skipped; all-invalid payloads become a controlled upstream payload error. |
-| Maintainability | A developer changes battle UI behavior. | Battle phase UI is split into `components/battle/phases`, while server rules stay in `BattleManager`. |
-| Testability | A frontend component accidentally imports an API route. | Dependency-cruiser architecture test fails. |
-| Testability | A backend router imports `app.crud` directly instead of going through a service. | import-linter `routers-no-direct-crud` contract fails in `lint-imports` and `tests/test_architecture.py`. |
-| Operability | Docker Compose starts services locally. | PostgreSQL, Keycloak, and backend health checks order startup before frontend availability. |
+Quality scenarios follow the **Stimulus → System → Response → Metric** pattern to make quality goals verifiable.
+
+| Quality | Stimulus | Response | Metric |
+| --- | --- | --- | --- |
+| Performance | A player submits an answer during an active battle. | The backend processes the answer, waits for the opponent or timer, and sends `question_result` to both players. | Both players receive the result without a live trivia API call; cache hit latency target ≤ 200 ms. |
+| Performance | A battle round starts and questions are needed. | The backend serves questions from the local question cache. | Questions are served from `question_cache` without waiting for The Trivia API in the normal path; upstream is only called on cache miss. |
+| Security | A WebSocket client connects to `/battle/queue` without a session cookie. | `WsAuthService` rejects the handshake before accepting the socket. | WebSocket close code 4001 returned in 100 % of cases; no queue entry is created. |
+| Security | An expired session cookie is sent to `/battle/ws/{match_id}`. | `WsAuthService` detects the expiry and closes the connection. | WebSocket close code 4003 returned; no match state is modified. |
+| Security | A forged or tampered Keycloak token is sent to `POST /auth/login`. | The backend verifies the token signature through the Keycloak JWKS endpoint. | HTTP 401 returned in 100 % of invalid-token cases; no user or session row is created. |
+| Reliability | One player closes the browser during an active battle. | The backend detects the disconnect, records a forfeit win for the remaining player, updates rankings, and removes `MatchState` from memory. | Forfeit is persisted in `match_results.ended_as = "forfeit"`; Elo ratings updated; no match state leak. |
+| Reliability | The Trivia API is unreachable for an extended period (circuit breaker open). | The backend fails fast without paying the full timeout and retry budget on each request. | HTTP 503 returned within ≤ 1 s (no timeout wait); active battle setup closes sockets with code 1011. |
+| Reliability | The Trivia API returns malformed payload items. | Invalid items are skipped individually; if all items are invalid the backend raises a controlled payload error. | No unhandled exception reaches the caller; HTTP 502 is returned for all-invalid payloads. |
+| Maintainability | A developer adds a new backend router that directly imports `app.crud`. | The import-linter `routers-no-direct-crud` contract detects the layering violation. | CI `lint-imports` step fails; the violation is reported before any code is merged. |
+| Maintainability | A developer changes battle UI rendering logic. | Battle phase components in `components/battle/phases` are modified independently of `BattleManager` server logic. | No change to `BattleManager` is required; architecture tests pass. |
+| Testability | A frontend component accidentally imports from an API route. | The dependency-cruiser architecture test detects the forbidden import direction. | `pnpm test:arch` fails; the violation is reported before merge. |
+| Operability | `docker compose up -d` is run on a fresh checkout. | All four services start in dependency order: PostgreSQL → Keycloak → backend → frontend. | All services reach `healthy` / `running` state within 90 s; frontend is reachable at `http://localhost:3000`. |
 
 ### Acceptance Checks
 
@@ -536,17 +541,24 @@ Detailed ADRs are documented in [Architecture Decisions](decisions.md). The most
 
 ## Risks and Technical Debts
 
-| Risk or Debt | Impact | Possible Mitigation |
-| --- | --- | --- |
-| In-memory queue and battle state | Backend restart drops active matches; multiple backend replicas cannot share matches. | Persist match state or introduce shared state/pub-sub before horizontal scaling. |
-| No migration tooling | Schema changes rely on `Base.metadata.create_all` and manual coordination. | Introduce Alembic migrations and document schema rollout. |
-| Production deployment unspecified | TLS, secrets, backups, log aggregation, and scaling are open. | Add deployment architecture, environment profiles, and operational runbook. |
-| Trivia API dependency | Cache misses can fail if upstream is unavailable, invalid, or rate-limited. | Pre-warm cache, monitor upstream errors, define fallback behavior. |
-| Documentation drift | Planning docs and generated C4 diagrams contain some planned or older details. | Treat `docs/architecture.md` as current source of truth and regenerate/update diagrams after architecture changes. |
-| Cookie/CORS configuration sensitivity | Wrong domain, SameSite, Secure, or CORS settings can break login or weaken security. | Add environment-specific examples and deployment checks. |
-| Limited observability | Logs exist, but no metrics/tracing stack is visible. | Add structured metrics for queue length, active matches, upstream failures, and WebSocket close codes. |
-| User-created route ambiguity | `/users/` can create users with `keycloak_sub=username`, which does not match normal Keycloak login semantics. | Restrict, remove, or document the endpoint if it is only for tests/admin setup. |
-| Frontend WebSocket env mismatch | README mentions `NEXT_PUBLIC_WS_BASE`, but `wsUrl.ts` derives from `NEXT_PUBLIC_API_BASE`. | Align README/config or implement explicit `NEXT_PUBLIC_WS_BASE` support. |
+### Risks
+
+| Priority | Risk | Impact | Mitigation |
+| --- | --- | --- | --- |
+| HIGH | Trivia API dependency | Cache misses fail if upstream is unavailable, invalid, or rate-limited. Circuit breaker (ADR 11) reduces timeout waste, but cannot serve questions that are not yet cached. | Pre-warm cache on startup, monitor `TRIVIA_BREAKER_FAIL_MAX` events, define fallback question set. |
+| HIGH | In-memory queue and battle state | Backend restart drops all active matches and queued players without warning. Multiple backend replicas cannot share state. | Persist active match state to PostgreSQL or introduce a pub-sub layer (e.g. Redis) before horizontal scaling. |
+| MEDIUM | Cookie/CORS configuration sensitivity | Wrong domain, SameSite, Secure, or CORS settings break login silently or weaken cookie security in production. | Add environment-specific configuration examples, document required production values, add deployment validation step. |
+| MEDIUM | Production deployment unspecified | TLS termination, secret management, automated backups, log aggregation, and scaling strategy are undefined. | Add a production deployment runbook with Docker Compose overrides or Kubernetes manifests. |
+| MEDIUM | Limited observability | Structured logs exist, but no metrics or distributed tracing are in place. Queue depth, active match count, and circuit breaker state are invisible at runtime. | Add structured metrics (Prometheus-compatible) for queue length, active matches, upstream failures, and WebSocket close codes. |
+| LOW | No database migration tooling | Schema changes rely on `Base.metadata.create_all` which is not safe for incremental production updates. | Introduce Alembic for versioned migrations and document the rollout procedure. |
+
+### Technical Debt
+
+| Priority | Item | Impact | Resolution |
+| --- | --- | --- | --- |
+| MEDIUM | User-created route ambiguity | `POST /users/` accepts `keycloak_sub=username`, bypassing Keycloak identity and breaking normal login semantics. Used in tests but not properly guarded. | Restrict the endpoint to admin/test contexts or remove it if only test fixtures need it. |
+| MEDIUM | Frontend WebSocket env mismatch | `.env.example` documents `NEXT_PUBLIC_WS_BASE`, but `wsUrl.ts` derives the WebSocket URL from `NEXT_PUBLIC_API_BASE`. The variable is unused. | Align the variable name in `wsUrl.ts` with `.env.example` or remove the undocumented variable. |
+| LOW | Documentation drift | C4 diagram sources and prose in `architecture.md` may fall out of sync after architecture changes. | Treat `docs/architecture.md` as the authoritative source and regenerate SVGs via the `plantuml.yml` workflow after every structural change. |
 
 ## Glossary
 

@@ -15,34 +15,28 @@
   </div>
 </section>
 
-<section class="cards">
-  <a class="card" href="installation.html">
+<section class="section-cards" aria-label="Documentation sections">
+  <a class="section-card" href="installation.html">
     <span class="card-label">Installation</span>
     <h2>Get the app running</h2>
     <p>Clone the repository, copy the environment file, and start all four services with a single Docker Compose command.</p>
   </a>
-  <a class="card" href="usage.html">
+  <a class="section-card" href="usage.html">
     <span class="card-label">Usage</span>
     <h2>App features and flows</h2>
     <p>Register, enter ranked matchmaking, play practice quizzes, and read the leaderboard — explained step by step.</p>
   </a>
-</section>
-
-<section class="cards">
-  <a class="card" href="architecture.html">
+  <a class="section-card" href="architecture.html">
     <span class="card-label">Architecture</span>
     <h2>arc42-style system overview</h2>
     <p>Understand the core building blocks, constraints, runtime expectations, and deployment shape.</p>
   </a>
-  <a class="card" href="decisions.html">
+  <a class="section-card" href="decisions.html">
     <span class="card-label">ADRs</span>
     <h2>Key technology decisions</h2>
     <p>Track the current decisions behind the frontend, backend, and package management stack.</p>
   </a>
-</section>
-
-<section class="cards">
-  <a class="card" href="test-concept.html">
+  <a class="section-card" href="test-concept.html">
     <span class="card-label">Testing</span>
     <h2>Documented test concept</h2>
     <p>Review the test levels, tools, CI quality gates, coverage reports, and known test gaps.</p>

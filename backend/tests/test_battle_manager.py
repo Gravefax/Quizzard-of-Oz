@@ -58,14 +58,12 @@ class FakeQuizService:
         *,
         option_count,
         questions_per_category,
-        exclude_ids=(),
         avoid_categories=(),
     ):
         self.category_calls.append(
             {
                 "option_count": option_count,
                 "questions_per_category": questions_per_category,
-                "exclude_ids": exclude_ids,
                 "avoid_categories": avoid_categories,
             }
         )
@@ -256,7 +254,6 @@ async def test_start_round_uses_category_options_and_resets_state():
     assert state.phase == "picking"
     assert state.question_idx == 0
     assert state.round_scores == {str(user1.id): 0, str(user2.id): 0}
-    assert quiz_service.category_calls[0]["exclude_ids"] == ()
     assert quiz_service.category_calls[0]["avoid_categories"] == ()
     assert state.offered_categories == ["Science", "History", "Sports"]
     assert state.seen_category_options == {"Science", "History", "Sports"}

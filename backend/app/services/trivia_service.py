@@ -197,7 +197,6 @@ class TriviaQuestionService:
         *,
         option_count: int,
         questions_per_category: int,
-        exclude_ids: tuple[str, ...] = (),
         avoid_categories: tuple[str, ...] = (),
         db: Session | None = None,
     ) -> list[str]:

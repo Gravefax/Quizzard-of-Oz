@@ -291,7 +291,7 @@ def test_prepare_category_pool_continues_when_one_category_seed_fails(monkeypatc
     } == {"History"}
 
 
-def test_get_category_options_ignores_used_question_ids_for_category_pool():
+def test_get_category_options_returns_all_available_categories():
     science_questions = _cached_questions_for_category("Science", "s")
     history_questions = _cached_questions_for_category("History", "h")
     repository = FakeQuestionCacheRepository(science_questions + history_questions)
@@ -301,7 +301,6 @@ def test_get_category_options_ignores_used_question_ids_for_category_pool():
     categories = service.get_category_options(
         option_count=2,
         questions_per_category=3,
-        exclude_ids=(str(science_questions[0].id),),
     )
 
     assert categories == ["Science", "History"]
@@ -323,22 +322,15 @@ def test_get_category_options_stays_at_three_unique_categories_after_repeated_se
     client = FakeTriviaClient([])
     service = _service(repository, client)
 
-    used_ids: tuple[str, ...] = ()
-
-    for selected_category in ("Science", "History", "Sports"):
+    for _ in ("Science", "History", "Sports"):
         categories = service.get_category_options(
             option_count=3,
             questions_per_category=3,
-            exclude_ids=used_ids,
         )
 
         assert len(categories) == 3
         assert len({category.casefold() for category in categories}) == 3
         assert set(categories) == {"Science", "History", "Sports"}
-
-        used_ids = used_ids + tuple(
-            str(question.id) for question in category_questions[selected_category]
-        )
 
 
 def test_get_category_options_returns_available_unique_categories_when_fewer_than_requested():
@@ -351,7 +343,6 @@ def test_get_category_options_returns_available_unique_categories_when_fewer_tha
     categories = service.get_category_options(
         option_count=3,
         questions_per_category=3,
-        exclude_ids=tuple(str(question.id) for question in science_questions),
     )
 
     assert categories == ["Science", "History"]

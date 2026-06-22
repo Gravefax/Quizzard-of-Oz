@@ -50,7 +50,7 @@ Voraussetzung: [Docker](https://www.docker.com/) und Docker Compose
 
 ```bash
 git clone https://github.com/Gravefax/SQS-Team-11
-cd SQS-Team-11
+cd Quizzard-of-Oz
 cp .env.example .env
 docker compose up -d
 ```

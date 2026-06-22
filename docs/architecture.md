@@ -438,6 +438,22 @@ Important session properties are environment-controlled: cookie name, SameSite m
 
 Ranked queue and battle WebSockets require an authenticated backend session. The ranked page also checks frontend auth state and shows a login card when missing. Public features include the landing page, practice mode, and leaderboard. Backend ranking endpoints are currently public.
 
+### Rate Limiting
+
+Inbound HTTP requests are throttled per IP address using [SlowAPI](https://github.com/laurentS/slowapi) backed by in-memory storage. Limits are enforced at the router level via the `@limiter.limit()` decorator and a shared `Limiter` instance from `app/rate_limit.py`. When a limit is exceeded, the backend returns HTTP 429 with a `Retry-After` header indicating when the client may retry.
+
+| Endpoint | Limit |
+| --- | --- |
+| `POST /auth/login` | 5 / minute |
+| `GET /auth/refresh` | 30 / minute |
+| `GET /quiz/practice/questions` | 30 / minute |
+| `GET /api/trivia/questions` | 60 / minute |
+| `GET /ranking/leaderboard` | 60 / minute |
+| `GET /ranking/leaderboard/search` | 30 / minute |
+| `GET /ranking/users/{user_id}` | 60 / minute |
+
+The login endpoint carries the strictest limit to reduce the attack surface for brute-force and credential-stuffing attempts. Rate limit counters are reset per minute and are not persisted across backend restarts.
+
 ### Real-Time Communication
 
 The battle protocol is server-authoritative. The client sends only category picks, answers, and surrender. The backend owns phase transitions, timers, scoring, round wins, game-over conditions, forfeit handling, and ranking updates.

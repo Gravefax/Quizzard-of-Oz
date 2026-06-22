@@ -3,9 +3,11 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi.errors import RateLimitExceeded
 
 from app import models as _models  # noqa: F401
 from app.database import Base, engine
+from app.rate_limit import limiter, rate_limit_exceeded_handler
 from app.routers import auth, battle, quiz, ranking, trivia, user
 from app.services.trivia_service import close_trivia_resources
 from app.settings import get_app_settings
@@ -33,7 +35,10 @@ async def lifespan(application: FastAPI):
     close_trivia_resources()
 
 
-app = FastAPI(title="SQS Team 11 API", lifespan=lifespan)
+app = FastAPI(title="SQS Team 11 API", version="1.0.0", lifespan=lifespan)
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,

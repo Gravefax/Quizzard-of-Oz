@@ -50,6 +50,7 @@ typing-inspection==0.4.2
 typing_extensions==4.15.0
 urllib3==2.6.3
 pybreaker==1.4.1
+slowapi==0.1.9
 psycopg2-binary==2.9.11
 SQLAlchemy==2.0.48
 uvicorn==0.42.0

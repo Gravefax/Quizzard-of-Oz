@@ -1,8 +1,9 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 
+from app.rate_limit import limiter
 from app.services.quiz_service import QuizService, get_quiz_service
 from app.services.trivia_client import (
     TriviaUpstreamPayloadError,
@@ -39,11 +40,14 @@ def get_quiz_service_dependency() -> QuizService:
     "/practice/questions",
     response_model=list[QuestionResponse],
     responses={
+        429: {"description": "Too many requests"},
         502: {"description": "Trivia upstream returned an invalid response"},
         503: {"description": "Trivia questions are temporarily unavailable"},
     },
 )
+@limiter.limit("30/minute")
 def get_practice_questions(
+    request: Request,
     service: Annotated[QuizService, Depends(get_quiz_service_dependency)],
 ):
     try:

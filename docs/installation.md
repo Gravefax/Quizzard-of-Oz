@@ -16,7 +16,7 @@ No local Node.js or Python installation is required — all services run inside 
 
 ```bash
 git clone https://github.com/Gravefax/SQS-Team-11
-cd SQS-Team-11
+cd Quizzard-of-Oz
 ```
 
 **2. Create the environment file**

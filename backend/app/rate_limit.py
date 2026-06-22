@@ -1,10 +1,13 @@
+import os
+
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
-limiter = Limiter(key_func=get_remote_address)
+_enabled = os.getenv("RATE_LIMIT_ENABLED", "true").lower() != "false"
+limiter = Limiter(key_func=get_remote_address, enabled=_enabled)
 
 
 def rate_limit_exceeded_handler(request: Request, exc: Exception) -> JSONResponse:

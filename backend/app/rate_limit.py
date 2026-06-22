@@ -10,7 +10,7 @@ _enabled = os.getenv("RATE_LIMIT_ENABLED", "true").lower() != "false"
 limiter = Limiter(key_func=get_remote_address, enabled=_enabled)
 
 
-def rate_limit_exceeded_handler(request: Request, exc: Exception) -> JSONResponse:
+def rate_limit_exceeded_handler(_request: Request, exc: Exception) -> JSONResponse:
     assert isinstance(exc, RateLimitExceeded)
     retry_after = getattr(exc, "retry_after", 60)
     return JSONResponse(

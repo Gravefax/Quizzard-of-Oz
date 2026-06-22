@@ -1,0 +1,931 @@
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, MagicMock, patch
+from uuid import uuid4
+
+import pytest
+
+from app.dtos.trivia_types import Question
+from app.services import battle_manager
+from app.services.battle_manager import (
+    _CLOSE_INTERNAL,
+    _PREPARE_QUESTIONS_ERROR,
+    BattleManager,
+    MatchState,
+)
+from app.services.trivia_service import TriviaInsufficientQuestionsError
+
+
+def _make_user(*, user_id=None, username="TestPlayer", email="test@example.com"):
+    return SimpleNamespace(
+        id=user_id or uuid4(),
+        username=username,
+        email=email,
+    )
+
+
+def _make_websocket():
+    ws = AsyncMock()
+    ws.client = SimpleNamespace(host="127.0.0.1", port=54321)
+    ws.url.path = "/battle/ws/test-match"
+    return ws
+
+
+class FakeQuizService:
+    def __init__(
+        self,
+        *,
+        category_options=None,
+        questions=None,
+        answer_result=(True, "A"),
+        category_error=None,
+        question_error=None,
+    ):
+        self.category_options = category_options or []
+        self.questions = questions or []
+        self.answer_result = answer_result
+        self.category_error = category_error
+        self.question_error = question_error
+        self.prepare_calls = []
+        self.category_calls = []
+        self.question_calls = []
+        self.answer_calls = []
+
+    def prepare_category_pool(self, *, questions_per_category):
+        self.prepare_calls.append({"questions_per_category": questions_per_category})
+
+    def get_category_options(
+        self,
+        *,
+        option_count,
+        questions_per_category,
+        avoid_categories=(),
+    ):
+        self.category_calls.append(
+            {
+                "option_count": option_count,
+                "questions_per_category": questions_per_category,
+                "avoid_categories": avoid_categories,
+            }
+        )
+        if self.category_error:
+            raise self.category_error
+        return list(self.category_options)
+
+    def get_questions(self, n=None, *, categories=None, difficulties=None, exclude_ids=()):
+        self.question_calls.append(
+            {
+                "n": n,
+                "categories": categories,
+                "difficulties": difficulties,
+                "exclude_ids": exclude_ids,
+            }
+        )
+        if self.question_error:
+            raise self.question_error
+        return list(self.questions)
+
+    def check_answer(self, question_id, answer):
+        self.answer_calls.append({"question_id": question_id, "answer": answer})
+        return self.answer_result
+
+
+def _make_question(question_id: str, category: str = "Science") -> Question:
+    return Question(
+        id=question_id,
+        text=f"{question_id}?",
+        answers=["A", "B", "C", "D"],
+        correct_answer="A",
+        category=category,
+        difficulty="easy",
+    )
+
+
+@pytest.mark.asyncio
+async def test_connect_first_player_waits_for_opponent():
+    manager = BattleManager(FakeQuizService())
+    ws = _make_websocket()
+    user = _make_user()
+
+    result = await manager.connect(ws, "match-1", user)
+
+    assert result is True
+    ws.send_json.assert_called_once_with({"type": "waiting_for_opponent"})
+    assert "match-1" in manager._matches
+
+
+@pytest.mark.asyncio
+async def test_connect_rejects_when_match_is_full():
+    manager = BattleManager(FakeQuizService())
+    user1 = _make_user(username="One")
+    user2 = _make_user(username="Two")
+    user3 = _make_user(username="Three")
+    state = MatchState(
+        players=[
+            {"ws": _make_websocket(), "user": user1},
+            {"ws": _make_websocket(), "user": user2},
+        ]
+    )
+    manager._matches["match-1"] = state
+    ws3 = _make_websocket()
+
+    result = await manager.connect(ws3, "match-1", user3)
+
+    assert result is False
+    ws3.close.assert_called_once_with(code=4004, reason="Match is full")
+
+
+@pytest.mark.asyncio
+async def test_connect_rejects_duplicate_user():
+    manager = BattleManager(FakeQuizService())
+    user = _make_user()
+    existing_ws = _make_websocket()
+    manager._matches["match-1"] = MatchState(players=[{"ws": existing_ws, "user": user}])
+    duplicate_ws = _make_websocket()
+
+    result = await manager.connect(duplicate_ws, "match-1", user)
+
+    assert result is False
+    duplicate_ws.close.assert_called_once_with(code=4005, reason="Already connected")
+
+
+@pytest.mark.asyncio
+async def test_connect_cleans_up_when_waiting_message_fails():
+    manager = BattleManager(FakeQuizService())
+    ws = _make_websocket()
+    ws.send_json.side_effect = RuntimeError("socket closed")
+    user = _make_user()
+
+    result = await manager.connect(ws, "match-1", user)
+
+    assert result is False
+    assert "match-1" not in manager._matches
+
+
+@pytest.mark.asyncio
+async def test_handle_message_routes_pick_category_with_match_id():
+    manager = BattleManager(FakeQuizService())
+    user = _make_user()
+    state = MatchState()
+    manager._matches["match-1"] = state
+
+    with patch.object(manager, "_handle_category_pick", new_callable=AsyncMock) as mock_handler:
+        await manager.handle_message("match-1", user, '{"type": "pick_category", "category": "Science"}')
+
+    mock_handler.assert_called_once_with(
+        "match-1",
+        state,
+        user,
+        {"type": "pick_category", "category": "Science"},
+    )
+
+
+@pytest.mark.asyncio
+async def test_handle_message_routes_answer_with_match_id():
+    manager = BattleManager(FakeQuizService())
+    user = _make_user()
+    state = MatchState()
+    manager._matches["match-1"] = state
+
+    with patch.object(manager, "_handle_answer", new_callable=AsyncMock) as mock_handler:
+        await manager.handle_message("match-1", user, '{"type": "answer", "question_id": "q1", "answer": "A"}')
+
+    mock_handler.assert_called_once_with(
+        "match-1",
+        state,
+        user,
+        {"type": "answer", "question_id": "q1", "answer": "A"},
+    )
+
+
+@pytest.mark.asyncio
+async def test_handle_message_ignores_invalid_json():
+    manager = BattleManager(FakeQuizService())
+    user = _make_user()
+    manager._matches["match-1"] = MatchState()
+
+    with patch.object(manager, "_handle_answer", new_callable=AsyncMock) as mock_answer:
+        await manager.handle_message("match-1", user, "{not-json")
+
+    mock_answer.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_start_game_prepares_category_pool_before_first_round():
+    quiz_service = FakeQuizService(category_options=["Science", "History", "Sports"])
+    manager = BattleManager(quiz_service)
+    ws1 = _make_websocket()
+    ws2 = _make_websocket()
+    user1 = _make_user(username="One")
+    user2 = _make_user(username="Two")
+    state = MatchState(
+        players=[{"ws": ws1, "user": user1}, {"ws": ws2, "user": user2}],
+    )
+
+    with patch.object(manager, "_start_round", new_callable=AsyncMock) as mock_start_round:
+        await manager._start_game(state, "match-1")
+
+    assert quiz_service.prepare_calls == [
+        {"questions_per_category": battle_manager.QUESTIONS_PER_ROUND}
+    ]
+    mock_start_round.assert_called_once_with(state, "match-1")
+    assert ws1.send_json.await_args_list[0].args[0]["type"] == "match_ready"
+    assert ws2.send_json.await_args_list[0].args[0]["type"] == "match_ready"
+
+
+@pytest.mark.asyncio
+async def test_start_round_uses_category_options_and_resets_state():
+    quiz_service = FakeQuizService(category_options=["Science", "History", "Sports"])
+    manager = BattleManager(quiz_service)
+    ws1 = _make_websocket()
+    ws2 = _make_websocket()
+    user1 = _make_user()
+    user2 = _make_user()
+    state = MatchState(
+        players=[{"ws": ws1, "user": user1}, {"ws": ws2, "user": user2}],
+        current_round=1,
+        picker_idx=0,
+        round_scores={"old": 1},
+        question_idx=99,
+        used_question_ids={"used-id"},
+    )
+
+    await manager._start_round(state, "match-1")
+
+    assert state.phase == "picking"
+    assert state.question_idx == 0
+    assert state.round_scores == {str(user1.id): 0, str(user2.id): 0}
+    assert quiz_service.category_calls[0]["avoid_categories"] == ()
+    assert state.offered_categories == ["Science", "History", "Sports"]
+    assert state.seen_category_options == {"Science", "History", "Sports"}
+    assert ws1.send_json.await_args_list[0].args[0]["type"] == "pick_category"
+    assert ws1.send_json.await_args_list[0].args[0]["deadline_seconds"] == battle_manager.CATEGORY_TIME_SECONDS
+    assert ws2.send_json.await_args_list[0].args[0]["type"] == "waiting_for_category"
+    assert ws2.send_json.await_args_list[0].args[0]["deadline_seconds"] == battle_manager.CATEGORY_TIME_SECONDS
+
+    manager._cancel_task(state.category_timer_task)
+
+
+@pytest.mark.asyncio
+async def test_start_round_prefers_categories_not_already_offered_in_match():
+    quiz_service = FakeQuizService(category_options=["Art", "Movies", "Music"])
+    manager = BattleManager(quiz_service)
+    ws1 = _make_websocket()
+    ws2 = _make_websocket()
+    user1 = _make_user()
+    user2 = _make_user()
+    state = MatchState(
+        players=[{"ws": ws1, "user": user1}, {"ws": ws2, "user": user2}],
+        current_round=2,
+        picker_idx=0,
+        seen_category_options={"Science", "History", "Sports"},
+    )
+
+    await manager._start_round(state, "match-1")
+
+    assert set(quiz_service.category_calls[0]["avoid_categories"]) == {
+        "Science",
+        "History",
+        "Sports",
+    }
+    assert state.offered_categories == ["Art", "Movies", "Music"]
+    assert state.seen_category_options == {
+        "Science",
+        "History",
+        "Sports",
+        "Art",
+        "Movies",
+        "Music",
+    }
+
+    manager._cancel_task(state.category_timer_task)
+
+
+@pytest.mark.asyncio
+async def test_start_round_aborts_match_when_no_categories_are_available():
+    manager = BattleManager(FakeQuizService(category_options=[]))
+    ws1 = _make_websocket()
+    ws2 = _make_websocket()
+    user1 = _make_user()
+    user2 = _make_user()
+    state = MatchState(players=[{"ws": ws1, "user": user1}, {"ws": ws2, "user": user2}], current_round=1)
+    manager._matches["match-1"] = state
+
+    await manager._start_round(state, "match-1")
+
+    assert "match-1" not in manager._matches
+    ws1.close.assert_called_once_with(code=_CLOSE_INTERNAL, reason=_PREPARE_QUESTIONS_ERROR)
+    ws2.close.assert_called_once_with(code=_CLOSE_INTERNAL, reason=_PREPARE_QUESTIONS_ERROR)
+
+
+@pytest.mark.asyncio
+async def test_start_round_aborts_match_when_category_loading_fails():
+    quiz_service = FakeQuizService(
+        category_error=TriviaInsufficientQuestionsError("not enough categories")
+    )
+    manager = BattleManager(quiz_service)
+    ws1 = _make_websocket()
+    ws2 = _make_websocket()
+    user1 = _make_user()
+    user2 = _make_user()
+    state = MatchState(players=[{"ws": ws1, "user": user1}, {"ws": ws2, "user": user2}], current_round=1)
+    manager._matches["match-1"] = state
+
+    await manager._start_round(state, "match-1")
+
+    assert "match-1" not in manager._matches
+    ws1.close.assert_called_once_with(code=_CLOSE_INTERNAL, reason=_PREPARE_QUESTIONS_ERROR)
+    ws2.close.assert_called_once_with(code=_CLOSE_INTERNAL, reason=_PREPARE_QUESTIONS_ERROR)
+
+
+@pytest.mark.asyncio
+async def test_handle_category_pick_loads_questions_and_tracks_used_ids(monkeypatch):
+    monkeypatch.setattr(battle_manager, "CATEGORY_REVEAL_SECONDS", 0)
+    questions = [_make_question("q1"), _make_question("q2"), _make_question("q3")]
+    quiz_service = FakeQuizService(questions=questions)
+    manager = BattleManager(quiz_service)
+    ws1 = _make_websocket()
+    ws2 = _make_websocket()
+    user1 = _make_user()
+    user2 = _make_user()
+    state = MatchState(
+        players=[{"ws": ws1, "user": user1}, {"ws": ws2, "user": user2}],
+        current_round=1,
+        phase="picking",
+        picker_idx=0,
+        offered_categories=["Science"],
+        used_question_ids={"used-id"},
+    )
+    manager._matches["match-1"] = state
+
+    with patch.object(manager, "_send_current_question", new_callable=AsyncMock) as mock_send_question:
+        await manager._handle_category_pick(
+            "match-1",
+            state,
+            user1,
+            {"category": "Science"},
+        )
+
+    assert state.phase == "questions"
+    assert state.round_questions == questions
+    assert quiz_service.question_calls[0]["categories"] == ["Science"]
+    assert quiz_service.question_calls[0]["exclude_ids"] == ("used-id",)
+    assert {"q1", "q2", "q3", "used-id"} == state.used_question_ids
+    mock_send_question.assert_called_once_with(state, "match-1")
+
+
+@pytest.mark.asyncio
+async def test_handle_category_pick_aborts_match_with_shared_prepare_error():
+    quiz_service = FakeQuizService(
+        question_error=TriviaInsufficientQuestionsError("not enough questions")
+    )
+    manager = BattleManager(quiz_service)
+    ws1 = _make_websocket()
+    ws2 = _make_websocket()
+    user1 = _make_user()
+    user2 = _make_user()
+    state = MatchState(
+        players=[{"ws": ws1, "user": user1}, {"ws": ws2, "user": user2}],
+        current_round=1,
+        phase="picking",
+        picker_idx=0,
+        offered_categories=["Science"],
+    )
+    manager._matches["match-1"] = state
+
+    await manager._handle_category_pick("match-1", state, user1, {"category": "Science"})
+
+    assert "match-1" not in manager._matches
+    ws1.close.assert_called_once_with(code=_CLOSE_INTERNAL, reason=_PREPARE_QUESTIONS_ERROR)
+    ws2.close.assert_called_once_with(code=_CLOSE_INTERNAL, reason=_PREPARE_QUESTIONS_ERROR)
+
+
+@pytest.mark.asyncio
+async def test_handle_category_pick_ignores_unoffered_category():
+    quiz_service = FakeQuizService(questions=[_make_question("q1")])
+    manager = BattleManager(quiz_service)
+    ws1 = _make_websocket()
+    ws2 = _make_websocket()
+    user1 = _make_user()
+    user2 = _make_user()
+    state = MatchState(
+        players=[{"ws": ws1, "user": user1}, {"ws": ws2, "user": user2}],
+        phase="picking",
+        picker_idx=0,
+        offered_categories=["History"],
+    )
+
+    await manager._handle_category_pick("match-1", state, user1, {"category": "Science"})
+
+    assert state.phase == "picking"
+    assert quiz_service.question_calls == []
+
+
+@pytest.mark.asyncio
+async def test_handle_category_pick_ignores_non_picker():
+    quiz_service = FakeQuizService(questions=[_make_question("q1")])
+    manager = BattleManager(quiz_service)
+    ws1 = _make_websocket()
+    ws2 = _make_websocket()
+    picker = _make_user(username="Picker")
+    other = _make_user(username="Other")
+    state = MatchState(
+        players=[{"ws": ws1, "user": picker}, {"ws": ws2, "user": other}],
+        phase="picking",
+        picker_idx=0,
+        offered_categories=["Science"],
+    )
+
+    await manager._handle_category_pick("match-1", state, other, {"category": "Science"})
+
+    assert state.phase == "picking"
+    assert quiz_service.question_calls == []
+
+
+@pytest.mark.asyncio
+async def test_handle_answer_increments_score_and_acks_without_solution():
+    quiz_service = FakeQuizService(answer_result=(True, "A"))
+    manager = BattleManager(quiz_service)
+    ws1 = _make_websocket()
+    ws2 = _make_websocket()
+    user1 = _make_user()
+    user2 = _make_user()
+    question = _make_question("q1")
+    state = MatchState(
+        players=[{"ws": ws1, "user": user1}, {"ws": ws2, "user": user2}],
+        phase="questions",
+        round_questions=[question],
+        round_scores={str(user1.id): 0, str(user2.id): 0},
+    )
+
+    await manager._handle_answer(
+        "match-1",
+        state,
+        user1,
+        {"question_id": "q1", "answer": "A"},
+    )
+
+    assert state.round_scores[str(user1.id)] == 1
+    assert state.current_correct[str(user1.id)] is True
+    assert quiz_service.answer_calls == [{"question_id": "q1", "answer": "A"}]
+    # First answerer only gets an ack; the solution stays hidden until both answered.
+    ws1.send_json.assert_called_once_with(
+        {
+            "type": "answer_received",
+            "your_answer": "A",
+        }
+    )
+
+
+@pytest.mark.asyncio
+async def test_handle_answer_reveals_solution_to_both_when_all_answered():
+    quiz_service = FakeQuizService(answer_result=(False, "A"))
+    manager = BattleManager(quiz_service)
+    ws1 = _make_websocket()
+    ws2 = _make_websocket()
+    user1 = _make_user()
+    user2 = _make_user()
+    questions = [_make_question("q1"), _make_question("q2")]
+    state = MatchState(
+        players=[{"ws": ws1, "user": user1}, {"ws": ws2, "user": user2}],
+        phase="questions",
+        round_questions=questions,
+        current_answers={str(user2.id): "B"},
+        current_correct={str(user2.id): False},
+        round_scores={str(user1.id): 0, str(user2.id): 0},
+    )
+    manager._matches["match-1"] = state
+
+    await manager._handle_answer(
+        "match-1",
+        state,
+        user1,
+        {"question_id": "q1", "answer": "C"},
+    )
+
+    assert state.question_idx == 1
+
+    reveal_1 = [
+        c.args[0] for c in ws1.send_json.call_args_list if c.args[0]["type"] == "question_result"
+    ]
+    reveal_2 = [
+        c.args[0] for c in ws2.send_json.call_args_list if c.args[0]["type"] == "question_result"
+    ]
+    assert reveal_1 == [
+        {
+            "type": "question_result",
+            "correct": False,
+            "correct_answer": "A",
+            "your_answer": "C",
+            "your_score_this_round": 0,
+            "reveal_seconds": battle_manager.REVEAL_SECONDS,
+        }
+    ]
+    assert reveal_2 == [
+        {
+            "type": "question_result",
+            "correct": False,
+            "correct_answer": "A",
+            "your_answer": "B",
+            "your_score_this_round": 0,
+            "reveal_seconds": battle_manager.REVEAL_SECONDS,
+        }
+    ]
+
+    manager._cancel_task(state.advance_task)
+
+
+@pytest.mark.asyncio
+async def test_advance_after_reveal_sends_next_question_when_round_continues(monkeypatch):
+    monkeypatch.setattr(battle_manager, "REVEAL_SECONDS", 0)
+    quiz_service = FakeQuizService(answer_result=(False, "A"))
+    manager = BattleManager(quiz_service)
+    ws1 = _make_websocket()
+    ws2 = _make_websocket()
+    user1 = _make_user()
+    user2 = _make_user()
+    questions = [_make_question("q1"), _make_question("q2")]
+    state = MatchState(
+        players=[{"ws": ws1, "user": user1}, {"ws": ws2, "user": user2}],
+        phase="questions",
+        round_questions=questions,
+        current_answers={str(user2.id): "B"},
+        current_correct={str(user2.id): False},
+        round_scores={str(user1.id): 0, str(user2.id): 0},
+    )
+    manager._matches["match-1"] = state
+
+    with patch.object(manager, "_send_current_question", new_callable=AsyncMock) as mock_send_question:
+        await manager._handle_answer(
+            "match-1",
+            state,
+            user1,
+            {"question_id": "q1", "answer": "C"},
+        )
+        await state.advance_task
+
+    assert state.question_idx == 1
+    mock_send_question.assert_called_once_with(state, "match-1")
+
+
+@pytest.mark.asyncio
+async def test_question_timeout_marks_missing_answers_wrong_and_reveals(monkeypatch):
+    monkeypatch.setattr(battle_manager, "QUESTION_TIME_SECONDS", 0)
+    quiz_service = FakeQuizService(answer_result=(True, "A"))
+    manager = BattleManager(quiz_service)
+    ws1 = _make_websocket()
+    ws2 = _make_websocket()
+    user1 = _make_user()
+    user2 = _make_user()
+    question = _make_question("q1")
+    state = MatchState(
+        players=[{"ws": ws1, "user": user1}, {"ws": ws2, "user": user2}],
+        phase="questions",
+        round_questions=[question],
+        current_answers={str(user1.id): "A"},
+        current_correct={str(user1.id): True},
+        round_scores={str(user1.id): 1, str(user2.id): 0},
+    )
+    manager._matches["match-1"] = state
+
+    await manager._question_timeout("match-1", state, 0)
+
+    assert state.current_answers[str(user2.id)] == ""
+    assert state.current_correct[str(user2.id)] is False
+
+    reveal_2 = [
+        c.args[0] for c in ws2.send_json.call_args_list if c.args[0]["type"] == "question_result"
+    ]
+    assert reveal_2 == [
+        {
+            "type": "question_result",
+            "correct": False,
+            "correct_answer": "A",
+            "your_answer": "",
+            "your_score_this_round": 0,
+            "reveal_seconds": battle_manager.REVEAL_SECONDS,
+        }
+    ]
+
+    manager._cancel_task(state.advance_task)
+
+
+@pytest.mark.asyncio
+async def test_question_timeout_is_noop_after_reveal_started():
+    manager = BattleManager(FakeQuizService())
+    ws1 = _make_websocket()
+    user1 = _make_user()
+    state = MatchState(
+        players=[{"ws": ws1, "user": user1}],
+        phase="questions",
+        round_questions=[_make_question("q1")],
+        revealing=True,
+    )
+
+    with patch("app.services.battle_manager.asyncio.sleep", new_callable=AsyncMock):
+        await manager._question_timeout("match-1", state, 0)
+
+    ws1.send_json.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_category_timeout_auto_picks_offered_category(monkeypatch):
+    monkeypatch.setattr(battle_manager, "CATEGORY_TIME_SECONDS", 0)
+    monkeypatch.setattr(battle_manager, "CATEGORY_REVEAL_SECONDS", 0)
+    questions = [_make_question("q1"), _make_question("q2"), _make_question("q3")]
+    quiz_service = FakeQuizService(questions=questions)
+    manager = BattleManager(quiz_service)
+    ws1 = _make_websocket()
+    ws2 = _make_websocket()
+    user1 = _make_user()
+    user2 = _make_user()
+    state = MatchState(
+        players=[{"ws": ws1, "user": user1}, {"ws": ws2, "user": user2}],
+        current_round=1,
+        phase="picking",
+        picker_idx=0,
+        offered_categories=["Science"],
+    )
+    manager._matches["match-1"] = state
+
+    with patch.object(manager, "_send_current_question", new_callable=AsyncMock) as mock_send_question:
+        await manager._category_timeout("match-1", state, 1)
+
+    # The deadline forces a valid category from the offered options, so the
+    # round leaves the "picking" phase even though no one clicked.
+    assert state.phase == "questions"
+    chosen = [
+        c.args[0] for c in ws2.send_json.call_args_list if c.args[0]["type"] == "category_chosen"
+    ]
+    assert chosen and chosen[0]["category"] == "Science"
+    mock_send_question.assert_called_once_with(state, "match-1")
+
+
+@pytest.mark.asyncio
+async def test_category_timeout_is_noop_after_pick():
+    manager = BattleManager(FakeQuizService())
+    ws1 = _make_websocket()
+    user1 = _make_user()
+    state = MatchState(
+        players=[{"ws": ws1, "user": user1}],
+        phase="questions",  # picker already chose before the deadline fired
+        offered_categories=["Science"],
+        current_round=1,
+    )
+
+    with patch("app.services.battle_manager.asyncio.sleep", new_callable=AsyncMock):
+        await manager._category_timeout("match-1", state, 1)
+
+    ws1.send_json.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_handle_answer_ignores_duplicate_answer():
+    quiz_service = FakeQuizService(answer_result=(True, "A"))
+    manager = BattleManager(quiz_service)
+    ws1 = _make_websocket()
+    user1 = _make_user()
+    state = MatchState(
+        players=[{"ws": ws1, "user": user1}],
+        phase="questions",
+        round_questions=[_make_question("q1")],
+        current_answers={str(user1.id): "A"},
+    )
+
+    await manager._handle_answer("match-1", state, user1, {"question_id": "q1", "answer": "B"})
+
+    assert quiz_service.answer_calls == []
+    ws1.send_json.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_handle_answer_ends_round_after_both_players_answer(monkeypatch):
+    monkeypatch.setattr(battle_manager, "REVEAL_SECONDS", 0)
+    quiz_service = FakeQuizService(answer_result=(False, "A"))
+    manager = BattleManager(quiz_service)
+    ws1 = _make_websocket()
+    ws2 = _make_websocket()
+    user1 = _make_user()
+    user2 = _make_user()
+    question = _make_question("q1")
+    state = MatchState(
+        players=[{"ws": ws1, "user": user1}, {"ws": ws2, "user": user2}],
+        phase="questions",
+        round_questions=[question],
+        current_answers={str(user2.id): "B"},
+        current_correct={str(user2.id): False},
+        round_scores={str(user1.id): 0, str(user2.id): 0},
+    )
+    manager._matches["match-1"] = state
+
+    with patch.object(manager, "_end_round", new_callable=AsyncMock) as mock_end_round:
+        await manager._handle_answer(
+            "match-1",
+            state,
+            user1,
+            {"question_id": "q1", "answer": "C"},
+        )
+        await state.advance_task
+
+    mock_end_round.assert_called_once_with("match-1", state)
+
+
+@pytest.mark.asyncio
+async def test_disconnect_notifies_remaining_player_and_cleans_up_empty_match():
+    manager = BattleManager(FakeQuizService())
+    ws1 = _make_websocket()
+    ws2 = _make_websocket()
+    user1 = _make_user(username="One")
+    user2 = _make_user(username="Two")
+    manager._matches["match-1"] = MatchState(
+        players=[{"ws": ws1, "user": user1}, {"ws": ws2, "user": user2}]
+    )
+
+    await manager.disconnect(ws1, "match-1", user1)
+
+    ws2.send_json.assert_called_once_with({"type": "opponent_disconnected", "username": "One"})
+    assert len(manager._matches["match-1"].players) == 1
+
+    await manager.disconnect(ws2, "match-1", user2)
+
+    assert "match-1" not in manager._matches
+
+
+@pytest.mark.asyncio
+async def test_disconnect_during_active_match_forfeits_to_remaining_player():
+    manager = BattleManager(FakeQuizService())
+    ws1 = _make_websocket()
+    ws2 = _make_websocket()
+    leaver = _make_user(username="Leaver")
+    stayer = _make_user(username="Stayer")
+    state = MatchState(
+        players=[{"ws": ws1, "user": leaver}, {"ws": ws2, "user": stayer}],
+        round_wins={str(leaver.id): 1, str(stayer.id): 2},
+        phase="questions",
+        current_round=3,
+    )
+    manager._matches["match-1"] = state
+
+    db = MagicMock()
+    with patch("app.services.battle_manager.SessionLocal", return_value=db):
+        with patch("app.services.battle_manager.apply_match_result") as mock_apply:
+            await manager.disconnect(ws1, "match-1", leaver)
+
+    # Remaining player wins by forfeit and is told so.
+    ws2.send_json.assert_called_once_with({
+        "type":          "opponent_forfeit",
+        "winner":        "Stayer",
+        "you_won":       True,
+        "your_wins":     2,
+        "opponent_wins": 1,
+        "message":       "Gegner hat das Spiel verlassen – du gewinnst!",
+    })
+    # The leaver gets no forfeit message and is not notified.
+    ws1.send_json.assert_not_called()
+    # Elo / win-loss record updated: stayer wins, leaver loses, history says forfeit.
+    mock_apply.assert_called_once_with(
+        db,
+        winner_id=stayer.id,
+        loser_id=leaver.id,
+        ended_as=battle_manager.ENDED_AS_FORFEIT,
+    )
+    # Session fully cleaned up.
+    assert "match-1" not in manager._matches
+
+
+@pytest.mark.asyncio
+async def test_disconnect_before_match_starts_does_not_forfeit():
+    manager = BattleManager(FakeQuizService())
+    ws1 = _make_websocket()
+    user1 = _make_user(username="One")
+    state = MatchState(players=[{"ws": ws1, "user": user1}], phase="waiting")
+    manager._matches["match-1"] = state
+
+    with patch("app.services.battle_manager.apply_match_result") as mock_apply:
+        await manager.disconnect(ws1, "match-1", user1)
+
+    mock_apply.assert_not_called()
+    assert "match-1" not in manager._matches
+
+
+@pytest.mark.asyncio
+async def test_end_game_triggers_ranking_update():
+    manager = BattleManager(FakeQuizService())
+    ws1 = _make_websocket()
+    ws2 = _make_websocket()
+    winner = _make_user(username="Winner")
+    loser = _make_user(username="Loser")
+    state = MatchState(
+        players=[{"ws": ws1, "user": winner}, {"ws": ws2, "user": loser}],
+        round_wins={str(winner.id): 3, str(loser.id): 1},
+    )
+    manager._matches["match-1"] = state
+
+    db = MagicMock()
+
+    with patch("app.services.battle_manager.SessionLocal", return_value=db):
+        with patch("app.services.battle_manager.apply_match_result") as mock_apply:
+            await manager._end_game("match-1", state)
+
+    mock_apply.assert_called_once_with(db, winner_id=winner.id, loser_id=loser.id)
+    assert "match-1" not in manager._matches
+
+
+
+@pytest.mark.asyncio
+async def test_surrender_forfeits_match_and_applies_elo():
+    manager = BattleManager(FakeQuizService())
+    ws1 = _make_websocket()
+    ws2 = _make_websocket()
+    surrenderer = _make_user(username="Quitter")
+    opponent = _make_user(username="Stayer")
+    state = MatchState(
+        players=[{"ws": ws1, "user": surrenderer}, {"ws": ws2, "user": opponent}],
+        phase="questions",
+        round_wins={str(surrenderer.id): 1, str(opponent.id): 2},
+    )
+    manager._matches["match-1"] = state
+
+    db = MagicMock()
+    with patch("app.services.battle_manager.SessionLocal", return_value=db):
+        with patch("app.services.battle_manager.apply_match_result") as mock_apply:
+            await manager.handle_message("match-1", surrenderer, '{"type": "surrender"}')
+
+    # Surrenderer loses with Elo penalty, opponent gets the full win.
+    mock_apply.assert_called_once_with(
+        db,
+        winner_id=opponent.id,
+        loser_id=surrenderer.id,
+        ended_as=battle_manager.ENDED_AS_FORFEIT,
+    )
+
+    surrender_msg = ws1.send_json.call_args.args[0]
+    assert surrender_msg["type"] == "game_over"
+    assert surrender_msg["you_won"] is False
+    assert surrender_msg["forfeit"] is True
+    assert surrender_msg["winner"] == "Stayer"
+
+    opponent_msg = ws2.send_json.call_args.args[0]
+    assert opponent_msg["type"] == "opponent_forfeit"
+    assert opponent_msg["you_won"] is True
+    assert opponent_msg["winner"] == "Stayer"
+
+    assert state.phase == "finished"
+    assert "match-1" not in manager._matches
+
+
+@pytest.mark.asyncio
+async def test_surrender_ignored_during_matchmaking():
+    manager = BattleManager(FakeQuizService())
+    ws1 = _make_websocket()
+    user1 = _make_user()
+    state = MatchState(players=[{"ws": ws1, "user": user1}], phase="waiting")
+    manager._matches["match-1"] = state
+
+    with patch("app.services.battle_manager.apply_match_result") as mock_apply:
+        await manager.handle_message("match-1", user1, '{"type": "surrender"}')
+
+    mock_apply.assert_not_called()
+    ws1.send_json.assert_not_called()
+    assert state.phase == "waiting"
+    assert "match-1" in manager._matches
+
+
+@pytest.mark.asyncio
+async def test_surrender_ignored_after_match_finished():
+    manager = BattleManager(FakeQuizService())
+    ws1 = _make_websocket()
+    ws2 = _make_websocket()
+    user1 = _make_user()
+    user2 = _make_user()
+    state = MatchState(
+        players=[{"ws": ws1, "user": user1}, {"ws": ws2, "user": user2}],
+        phase="finished",
+    )
+    manager._matches["match-1"] = state
+
+    with patch("app.services.battle_manager.apply_match_result") as mock_apply:
+        await manager.handle_message("match-1", user1, '{"type": "surrender"}')
+
+    mock_apply.assert_not_called()
+    ws1.send_json.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_surrender_ignored_for_user_not_in_match():
+    manager = BattleManager(FakeQuizService())
+    ws1 = _make_websocket()
+    ws2 = _make_websocket()
+    user1 = _make_user()
+    user2 = _make_user()
+    outsider = _make_user(username="Outsider")
+    state = MatchState(
+        players=[{"ws": ws1, "user": user1}, {"ws": ws2, "user": user2}],
+        phase="questions",
+    )
+    manager._matches["match-1"] = state
+
+    with patch("app.services.battle_manager.apply_match_result") as mock_apply:
+        await manager.handle_message("match-1", outsider, '{"type": "surrender"}')
+
+    mock_apply.assert_not_called()
+    assert state.phase == "questions"

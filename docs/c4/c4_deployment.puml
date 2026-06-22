@@ -1,0 +1,38 @@
+@startuml C4_Deployment
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Deployment.puml
+
+LAYOUT_WITH_LEGEND()
+
+title C4 Model - Deployment View\nQuizzard of Oz (docker-compose.prod.yml)
+
+Deployment_Node(client, "Client", "Browser (Chrome / Firefox / Safari)") {
+    Container(spa, "Quizzard of Oz", "JavaScript / React", "Im Browser ausgeführte Next.js-Anwendung.")
+}
+
+Deployment_Node(host, "Server", "Linux  |  Docker Compose") {
+
+    Deployment_Node(fe_node, "frontend", "Node 20 Alpine\nghcr.io/gravefax/quizzard-of-oz-frontend\nPort 11003 → 3000") {
+        Container(frontend, "Next.js App", "Next.js 16 / React 19", "Stellt HTML, CSS und JavaScript bereit.\nSSR-Calls gehen intern an backend:8000.")
+    }
+
+    Deployment_Node(be_node, "backend", "Python 3.12 Slim\nghcr.io/gravefax/quizzard-of-oz-backend\nPort 11002 → 8000") {
+        Container(backend, "FastAPI App", "FastAPI / Uvicorn", "REST-API und WebSocket-Server.\nErstellt DB-Schema beim Start via SQLAlchemy.")
+    }
+
+    Deployment_Node(pg_node, "postgres", "postgres:18.3-trixie\nPort 11000 → 5432\nVolume: postgres_data") {
+        ContainerDb(db, "PostgreSQL", "PostgreSQL 18.3", "Tabellen: users, sessions,\nrankings, question_cache.")
+    }
+
+    Deployment_Node(kc_node, "keycloak", "quay.io/keycloak/keycloak:26.2.5\nPort 11001 → 8080\nRealm: quizzard") {
+        Container(keycloak, "Keycloak", "OIDC Identity Provider", "Realm wird via --import-realm\nauto-importiert beim Start.\nProduction-Modus (start).")
+    }
+}
+
+Rel(spa, frontend, "HTTPS — lädt Seiten & Assets")
+Rel(spa, backend, "HTTPS / WSS — REST-Calls + WebSocket-Verbindungen")
+Rel(spa, keycloak, "HTTPS — OIDC/PKCE Login-Flow")
+Rel(frontend, backend, "HTTP :8000 — SSR API-Calls")
+Rel(backend, db, "TCP :5432 — SQLAlchemy / psycopg2")
+Rel(backend, keycloak, "HTTP :8080 — JWKS-Validierung\n(Access Token verifizieren)")
+
+@enduml

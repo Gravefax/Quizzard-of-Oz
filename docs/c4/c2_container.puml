@@ -1,0 +1,43 @@
+@startuml C2_Container
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_WITH_LEGEND()
+
+title C2 - Container View\nQuizzard of Oz
+
+Person(guest, "Guest player", "Uses public pages without login.")
+Person(registered, "Registered player", "Authenticated player for ranked battles.")
+
+System_Ext(keycloak, "Keycloak", "Keycloak 26.2.5", "Self-hosted identity provider with imported quizzard realm.")
+ContainerDb_Ext(postgres, "PostgreSQL", "PostgreSQL", "Durable storage for users, sessions, rankings, cached questions, and match results.")
+System_Ext(trivia_api, "The Trivia API", "External HTTPS API", "External question provider at /v2/questions.")
+System_Ext(github_actions, "GitHub Actions", "CI/CD", "Builds, tests, E2E, SonarCloud, Docker, and PlantUML workflows.")
+System_Ext(sonarcloud, "SonarCloud", "Quality platform", "Coverage and static-analysis reporting.")
+System_Ext(ghcr, "GHCR", "Container registry", "Stores backend and frontend Docker images.")
+System_Ext(readthedocs, "Read the Docs", "Documentation hosting", "Builds and publishes Sphinx/MyST documentation.")
+
+System_Boundary(quizzard, "Quizzard of Oz") {
+    Container(frontend, "Next.js frontend", "Next.js 16, React 19, TypeScript, Tailwind CSS v4, Zustand, keycloak-js", "Browser-facing web application for landing page, practice mode, ranked queue, battle arena, leaderboard, and authentication state.")
+    Container(backend, "FastAPI backend", "Python 3.12, FastAPI, Uvicorn, SQLAlchemy 2, PyJWT, httpx, WebSockets", "REST API and WebSocket server for authentication sessions, practice quiz, trivia cache, matchmaking, battle runtime, ranking, and persistence access.")
+}
+
+Rel(guest, frontend, "Uses public pages, practice mode, and leaderboard", "HTTP/HTTPS")
+Rel(registered, frontend, "Uses login, ranked queue, and battle arena", "HTTP/HTTPS")
+
+Rel(frontend, backend, "REST JSON: login, refresh, logout, practice questions, answer checks, trivia, rankings, leaderboard search", "HTTP/HTTPS")
+Rel(frontend, backend, "Queue matchmaking", "WebSocket /battle/queue")
+Rel(frontend, backend, "Live battle runtime", "WebSocket /battle/ws/{match_id}")
+Rel(frontend, keycloak, "Login and registration via keycloak-js", "OIDC Authorization Code + PKCE")
+
+Rel(backend, keycloak, "Retrieves JWKS and verifies Keycloak access tokens", "HTTPS")
+Rel(backend, postgres, "Reads and writes users, sessions, rankings, question_cache, match_results", "SQLAlchemy / PostgreSQL protocol")
+Rel(backend, trivia_api, "Fetches question batches with timeout, retry, and backoff", "HTTPS JSON via httpx")
+
+Rel(github_actions, frontend, "Builds, lints, tests, and runs Playwright against", "CI")
+Rel(github_actions, backend, "Runs pytest and builds image for", "CI")
+Rel(github_actions, sonarcloud, "Uploads backend XML and frontend lcov coverage", "CI artifact / scan")
+Rel(github_actions, ghcr, "Publishes backend and frontend images", "OCI")
+Rel(readthedocs, frontend, "Documents user-facing flows and frontend architecture", "Sphinx build input")
+Rel(readthedocs, backend, "Documents backend architecture and runtime flows", "Sphinx build input")
+
+@enduml

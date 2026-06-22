@@ -1,0 +1,32 @@
+@startuml C4_Dynamic_Trivia_Refill
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Dynamic.puml
+
+LAYOUT_WITH_LEGEND()
+
+title C4 Model - Dynamic Diagram: Trivia Cache Refill Flow\nQuizzard of Oz
+
+Container(caller, "Caller", "QuizService / BattleManager", "Requests questions with filters (limit, categories, difficulties).")
+Container(trivia_service, "TriviaQuestionService", "Python / FastAPI", "Orchestrates cache lookup and upstream refill.")
+ContainerDb(database, "PostgreSQL", "PostgreSQL", "question_cache table with normalized questions.")
+Container(trivia_client, "TriviaApiClient", "httpx / pybreaker", "Fetches questions from The Trivia API with retry, backoff, and circuit breaker.")
+System_Ext(trivia_api, "The Trivia API", "External REST API", "Supplies multiple-choice quiz questions at /v2/questions.")
+
+Rel(caller, trivia_service, "1", "get_questions(filters, exclude_ids)")
+Rel(trivia_service, database, "2", "get_random_questions(filters, limit, exclude_ids)\nfrom question_cache")
+Rel(database, trivia_service, "3a", "Cache hit: sufficient questions returned\n→ return QuestionBatch immediately")
+
+Rel(trivia_service, trivia_client, "3b", "Cache miss: fetch_questions(filters,\nlimit_override=max(limit, TRIVIA_REFILL_BATCH_SIZE))\n[up to TRIVIA_REFILL_ATTEMPTS iterations]")
+Rel(trivia_client, trivia_api, "4", "GET /v2/questions?limit=N&categories=...&difficulties=...\n(TRIVIA_TIMEOUT_SECONDS, up to TRIVIA_MAX_RETRIES retries,\nexponential backoff; circuit breaker wraps the call)")
+Rel(trivia_api, trivia_client, "5a", "200 OK — JSON question batch")
+Rel(trivia_client, trivia_service, "5b", "Returns raw question list\n(circuit open → TriviaClientError immediately)")
+
+Rel(trivia_service, trivia_service, "6", "Normalize each item:\nvalidate id, category, correctAnswer, question.text,\ndifficulty ∈ {easy,medium,hard}, 3 incorrectAnswers,\nno duplicate answers → skip invalid items")
+Rel(trivia_service, database, "7", "upsert_questions(normalized_records)\nINSERT … ON CONFLICT DO UPDATE into question_cache")
+Rel(trivia_service, database, "8", "get_random_questions(filters, limit, exclude_ids)\n(re-query after refill)")
+Rel(database, trivia_service, "9a", "Sufficient questions now available\n→ return QuestionBatch (cache_hit=False)")
+
+Rel(trivia_service, caller, "10a", "QuestionBatch with requested questions")
+Rel(trivia_service, caller, "10b", "TriviaUpstreamPayloadError (→ HTTP 502)\nif all upstream items were invalid")
+Rel(trivia_service, caller, "10c", "TriviaInsufficientQuestionsError (→ HTTP 503)\nif cache still below limit after all refill attempts,\nor circuit breaker open and cache empty")
+
+@enduml

@@ -1,0 +1,44 @@
+; Architecture rules for the FastAPI backend (issue #94).
+; Enforced via import-linter (https://import-linter.readthedocs.io).
+; Run locally:  cd backend && lint-imports
+; The rules are documented in docs/.../testkonzept (see "Architekturtests Backend").
+
+[importlinter]
+root_package = app
+
+; Rule 1: routers must not reach the persistence layer directly.
+; Routers may only touch the database through the services layer.
+; allow_indirect_imports = true => only DIRECT router -> crud imports are
+; forbidden; the legitimate router -> service -> crud chain stays allowed.
+[importlinter:contract:routers-no-direct-crud]
+name = Routers must reach CRUD only through services
+type = forbidden
+source_modules =
+    app.routers
+forbidden_modules =
+    app.crud
+allow_indirect_imports = true
+
+; Rule 2: the CRUD layer is a leaf of the dependency graph and must not
+; import upward into routers or services.
+[importlinter:contract:crud-isolated]
+name = CRUD must not import routers or services
+type = forbidden
+source_modules =
+    app.crud
+forbidden_modules =
+    app.routers
+    app.services
+allow_indirect_imports = true
+
+; Rule 3: strict layering routers > services > crud > models. A layers
+; contract forbids every reverse (lower -> higher) import, which also
+; guarantees there are no cyclic dependencies between these layers.
+[importlinter:contract:layers]
+name = Backend layering (routers > services > crud > models)
+type = layers
+layers =
+    app.routers
+    app.services
+    app.crud
+    app.models

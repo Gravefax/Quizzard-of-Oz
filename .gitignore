@@ -1,0 +1,17 @@
+docs/_build/
+docs/build/
+.claude
+CLAUDE.md
+AGENTS.md
+.tmp
+.venv
+.env
+.idea
+.docdeps/
+.venvdocs
+.coverage
+coverage.xml
+
+test-results/
+.vscode/settings.json
+synology

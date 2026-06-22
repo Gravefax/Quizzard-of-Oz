@@ -1,0 +1,60 @@
+@startuml C3_Frontend_Components
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+title C3 - Component View\nNext.js Frontend
+
+Person_Ext(guest, "Guest player", "Uses public practice and leaderboard pages.")
+Person_Ext(registered, "Registered player", "Uses authenticated ranked battle mode.")
+Container_Ext(backend, "FastAPI backend", "Python / FastAPI", "REST API and WebSocket server.")
+System_Ext(keycloak, "Keycloak", "OIDC identity provider", "Login and registration through Authorization Code + PKCE.")
+
+Container_Boundary(frontend, "Next.js frontend") {
+    Component(app_layout, "App layout and navbar", "app/layout.tsx, app/Navbar.tsx", "Wraps providers, renders navigation, validates public Keycloak configuration.")
+    Component(landing_page, "Landing page", "app/page.tsx, components/LandingPage.tsx", "Product entry with ranked battle CTA, practice CTA, and top leaderboard preview.")
+    Component(practice_page, "Practice mode", "app/trainings-modus/PracticeQuiz.tsx", "Ten-question solo quiz without login.")
+    Component(ranked_page, "Ranked mode", "app/ranked-modus/page.tsx", "Authenticated entry point for ranked queue.")
+    Component(battle_page, "Battle arena", "app/battle/[match_id]/page.tsx, components/battle/*", "Live battle UI for categories, questions, answer feedback, scores, and end screen.")
+    Component(leaderboard_page, "Leaderboard pages", "app/leaderboard/*", "Public leaderboard and search views.")
+
+    Component(keycloak_provider, "Keycloak provider", "app/providers/KeycloakProvider.tsx", "Initializes keycloak-js and exposes Keycloak state to React components.")
+    Component(theme_provider, "Theme provider", "app/providers/ThemeProvider.tsx", "Applies frontend theme state.")
+    Component(auth_store, "Auth store", "app/stores/authStore.ts", "Stores display credentials and authentication state. Backend session remains an HttpOnly browser cookie.")
+    Component(auth_client, "Auth client", "app/lib/auth/authClient.ts", "Exchanges Keycloak access token for backend session and refreshes/logs out sessions.")
+    Component(quiz_client, "Quiz API client", "app/lib/api/quiz.ts", "Calls practice question and answer-check endpoints.")
+    Component(ranking_client, "Ranking API client", "app/lib/api/ranking.ts", "Calls leaderboard, search, and ranking endpoints.")
+    Component(ws_url, "WebSocket URL helper", "app/lib/utils/wsUrl.ts", "Derives ws/wss URLs from NEXT_PUBLIC_API_BASE.")
+    Component(queue_component, "Queue component", "app/components/Queue.tsx", "Opens /battle/queue, handles queued/matched events, navigates to battle route.")
+    Component(battle_components, "Battle components", "app/components/battle/*", "Renders server-authoritative battle phases and sends pick_category, answer, and surrender events.")
+}
+
+Rel(guest, landing_page, "Opens", "HTTPS")
+Rel(guest, practice_page, "Practices", "HTTPS")
+Rel(guest, leaderboard_page, "Reads leaderboard", "HTTPS")
+Rel(registered, ranked_page, "Enters ranked queue", "HTTPS")
+Rel(registered, battle_page, "Plays active battle", "HTTPS / WebSocket")
+
+Rel(app_layout, keycloak_provider, "Wraps")
+Rel(app_layout, theme_provider, "Wraps")
+Rel(app_layout, auth_store, "Reads auth state")
+Rel(landing_page, ranking_client, "Loads top leaderboard preview")
+Rel(practice_page, quiz_client, "Loads questions and checks answers")
+Rel(ranked_page, auth_store, "Requires authenticated state")
+Rel(ranked_page, queue_component, "Renders")
+Rel(queue_component, ws_url, "Builds queue URL")
+Rel(queue_component, backend, "WS /battle/queue", "WebSocket")
+Rel(queue_component, battle_page, "Navigates on matched event")
+Rel(battle_page, battle_components, "Renders phases")
+Rel(battle_page, ws_url, "Builds match URL")
+Rel(battle_components, backend, "WS /battle/ws/{match_id}", "WebSocket")
+Rel(leaderboard_page, ranking_client, "Loads leaderboard/search data")
+
+Rel(keycloak_provider, keycloak, "Initializes OIDC client", "HTTPS")
+Rel(auth_client, keycloak, "Uses access token from keycloak-js")
+Rel(auth_client, backend, "POST /auth/login, GET /auth/refresh, POST /auth/logout", "HTTP JSON with credentials")
+Rel(auth_client, auth_store, "Stores display user state")
+Rel(quiz_client, backend, "GET /quiz/practice/questions, POST /quiz/practice/answer", "HTTP JSON")
+Rel(ranking_client, backend, "GET /ranking/leaderboard and search", "HTTP JSON")
+
+@enduml

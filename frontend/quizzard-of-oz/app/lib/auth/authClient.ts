@@ -1,0 +1,69 @@
+import LoginResponse from "@/app/models/LoginResponse";
+
+export const keycloakUrl = process.env.NEXT_PUBLIC_KEYCLOAK_URL!;
+export const keycloakRealm = process.env.NEXT_PUBLIC_KEYCLOAK_REALM!;
+export const keycloakClientId = process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID!;
+
+const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE!;
+
+export async function loginWithKeycloak(token: string): Promise<LoginResponse> {
+  const res = await fetch(`${apiBaseUrl}/auth/login`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: "include",
+  });
+
+  if (res.status === 400) {
+    throw new Error("MISSING_TOKEN");
+  }
+
+  if (res.status === 401) {
+    let detail = "UNAUTHORIZED";
+    try {
+      const body = (await res.json()) as { detail?: string };
+      if (body?.detail) {
+        detail = body.detail;
+      }
+    } catch {
+      // Keep default detail when response has no JSON payload.
+    }
+
+    throw new Error(`UNAUTHORIZED:${detail}`);
+  }
+
+  if (!res.ok) {
+    throw new Error(`LOGIN_FAILED_${res.status}`);
+  }
+
+  return (await res.json()) as LoginResponse;
+}
+
+export async function refreshAccessToken(): Promise<LoginResponse> {
+  const res = await fetch(`${apiBaseUrl}/auth/refresh`, {
+    method: "GET",
+    credentials: "include",
+  });
+
+  if (res.status === 401) {
+    throw new Error("UNAUTHORIZED");
+  }
+
+  if (res.status === 403) {
+    throw new Error("TOKEN_EXPIRED");
+  }
+
+  if (!res.ok) {
+    throw new Error(`REFRESH_FAILED_${res.status}`);
+  }
+
+  return (await res.json()) as LoginResponse;
+}
+
+export async function logout(): Promise<void> {
+  await fetch(`${apiBaseUrl}/auth/logout`, {
+    method: "POST",
+    credentials: "include",
+  });
+}

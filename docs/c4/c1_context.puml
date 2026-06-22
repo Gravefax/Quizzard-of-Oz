@@ -1,0 +1,40 @@
+@startuml C1_Context
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+LAYOUT_WITH_LEGEND()
+
+title C1 - System Context\nQuizzard of Oz
+
+Person(guest, "Guest player", "Uses public pages, practice mode, and leaderboard without a backend session.")
+Person(registered, "Registered player", "Logs in through Keycloak, receives a backend session, and plays ranked battles.")
+Person(dev_team, "Development team", "Maintains frontend, backend, tests, CI, diagrams, and documentation.")
+Person(reviewer, "Reviewer / instructor", "Reviews architecture, tests, quality, security, and decisions.")
+Person(operator, "Operator / maintainer", "Runs the container stack and diagnoses failures.")
+
+System(quizzard, "Quizzard of Oz", "Web-based quiz application. System boundary contains the Next.js frontend and FastAPI backend.")
+
+System_Ext(keycloak, "Keycloak", "Identity provider for login and registration. Provides OIDC Authorization Code + PKCE and JWKS.")
+System_Ext(postgres, "PostgreSQL", "Separate runtime database for users, sessions, rankings, question cache, and match results.")
+System_Ext(trivia_api, "The Trivia API", "External multiple-choice question provider at /v2/questions.")
+System_Ext(github_actions, "GitHub Actions", "Build, test, E2E, SonarCloud, Docker, and PlantUML workflows.")
+System_Ext(sonarcloud, "SonarCloud", "Static analysis and coverage reporting.")
+System_Ext(ghcr, "GHCR", "Container registry for backend and frontend images.")
+System_Ext(readthedocs, "Read the Docs", "Published Sphinx/MyST project documentation.")
+
+Rel(guest, quizzard, "Uses public landing page, practice mode, and leaderboard", "HTTPS")
+Rel(registered, quizzard, "Uses login, ranked queue, and live battle mode", "HTTPS / WebSocket")
+Rel(operator, quizzard, "Starts and observes the local/container deployment", "Docker Compose / logs")
+
+Rel(quizzard, keycloak, "Delegates identity and verifies access tokens", "OIDC/PKCE, HTTPS JWKS")
+Rel(quizzard, postgres, "Persists durable application data", "PostgreSQL protocol")
+Rel(quizzard, trivia_api, "Fetches, normalizes, and caches quiz questions", "HTTPS JSON")
+
+Rel(dev_team, github_actions, "Pushes changes and reviews automated checks", "Git / CI")
+Rel(github_actions, quizzard, "Builds and tests frontend/backend", "CI jobs")
+Rel(github_actions, sonarcloud, "Uploads coverage and analysis data", "Sonar scan")
+Rel(github_actions, ghcr, "Publishes Docker images", "OCI images")
+Rel(github_actions, readthedocs, "Keeps documentation build inputs versioned", "Repository changes")
+Rel(reviewer, readthedocs, "Reads published documentation", "HTTPS")
+Rel(dev_team, readthedocs, "Maintains architecture, planning, ADRs, and test concept", "Markdown / Sphinx")
+
+@enduml

@@ -1,0 +1,53 @@
+@startuml C4_Dynamic_Match
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Dynamic.puml
+
+LAYOUT_WITH_LEGEND()
+
+title Dynamic View - Ranked Match Runtime\nQuizzard of Oz
+
+Person(player1, "Player 1", "Authenticated ranked player.")
+Person(player2, "Player 2", "Authenticated ranked player.")
+
+Container(frontend1, "Frontend P1", "Next.js / Browser WebSocket", "Queue and battle UI for player 1.")
+Container(frontend2, "Frontend P2", "Next.js / Browser WebSocket", "Queue and battle UI for player 2.")
+Container(backend, "FastAPI backend", "BattleRouter, MatchmakingService, BattleManager", "Server-authoritative queue and battle runtime.")
+ContainerDb(database, "PostgreSQL", "PostgreSQL", "Rankings, question cache, match results, sessions.")
+System_Ext(trivia_api, "The Trivia API", "External HTTPS API", "Fallback source when cache is insufficient.")
+
+Rel(player1, frontend1, "1. Joins ranked queue", "HTTPS")
+Rel(frontend1, backend, "2. WS /battle/queue with session cookie", "WebSocket")
+Rel(backend, database, "3. Reads Player 1 ranking", "SQL")
+Rel(backend, frontend1, "4. queued", "WebSocket event")
+
+Rel(player2, frontend2, "5. Joins ranked queue", "HTTPS")
+Rel(frontend2, backend, "6. WS /battle/queue with session cookie", "WebSocket")
+Rel(backend, database, "7. Reads Player 2 ranking", "SQL")
+Rel(backend, backend, "8. Matches closest eligible Elo pair and creates match UUID", "Process-local memory")
+Rel(backend, frontend1, "9. matched {match_id}", "WebSocket event")
+Rel(backend, frontend2, "10. matched {match_id}", "WebSocket event")
+
+Rel(frontend1, backend, "11. WS /battle/ws/{match_id}", "WebSocket")
+Rel(frontend2, backend, "12. WS /battle/ws/{match_id}", "WebSocket")
+Rel(backend, frontend1, "13. match_ready", "WebSocket event")
+Rel(backend, frontend2, "14. match_ready", "WebSocket event")
+
+Rel(backend, frontend1, "15. pick_category with three categories", "WebSocket event")
+Rel(backend, frontend2, "16. waiting_for_category", "WebSocket event")
+Rel(frontend1, backend, "17. pick_category {category}", "WebSocket event")
+Rel(backend, database, "18. Loads three cached questions for category", "SQL")
+Rel(backend, trivia_api, "19. Optional cache refill when insufficient", "HTTPS JSON")
+Rel(backend, frontend1, "20. category_chosen, then question", "WebSocket events")
+Rel(backend, frontend2, "21. category_chosen, then question", "WebSocket events")
+Rel(frontend1, backend, "22. answer", "WebSocket event")
+Rel(backend, frontend1, "23. answer_received", "WebSocket event")
+Rel(frontend2, backend, "24. answer", "WebSocket event")
+Rel(backend, frontend2, "25. answer_received", "WebSocket event")
+Rel(backend, frontend1, "26. question_result, round_result", "WebSocket events")
+Rel(backend, frontend2, "27. question_result, round_result", "WebSocket events")
+
+Rel(backend, frontend1, "28. game_over", "WebSocket event")
+Rel(backend, frontend2, "29. game_over", "WebSocket event")
+Rel(backend, database, "30. Applies Elo and records match_results row", "SQL")
+Rel(backend, backend, "31. Removes MatchState from memory", "Process-local cleanup")
+
+@enduml
